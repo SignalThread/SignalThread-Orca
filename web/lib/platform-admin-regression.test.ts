@@ -46,6 +46,8 @@ function superAdminNeedsOrgSelectionContext(): AuthContext {
   return {
     status: "NEEDS_ORG_SELECTION",
     supabaseUserId: "supabase-platform-admin",
+    platformUserId: "supabase-platform-admin",
+    identityLinkMode: "CANONICAL",
     email: "platform@example.com",
     appUserId: "platform-admin",
     role: UserRole.SUPER_ADMIN,
@@ -61,6 +63,8 @@ function orgAdminContext(): AuthContext {
   return {
     status: "OK",
     supabaseUserId: "supabase-org-admin",
+    platformUserId: "supabase-org-admin",
+    identityLinkMode: "CANONICAL",
     email: "org-admin@example.com",
     appUserId: "org-admin",
     role: UserRole.ADMIN,
@@ -73,6 +77,8 @@ function unauthenticatedContext(): AuthContext {
   return {
     status: "UNAUTHENTICATED",
     supabaseUserId: null,
+    platformUserId: null,
+    identityLinkMode: null,
     email: null,
     appUserId: null,
     role: null,

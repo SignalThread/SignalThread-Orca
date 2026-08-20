@@ -1,4 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import {
+  ProductTokenSecretError,
+  resolveSpeakerIntakeTokenSecrets,
+} from "@/src/server/security/product-token-secrets";
 
 export class SpeakerIntakeTokenError extends Error {}
 
@@ -19,18 +23,33 @@ function fromBase64Url(value: string): string {
   return Buffer.from(value, "base64url").toString("utf8");
 }
 
-function getSpeakerIntakeSecret(): string {
-  const explicitSecret = process.env.SPEAKER_INTAKE_TOKEN_SECRET?.trim();
-  if (explicitSecret) return explicitSecret;
-
-  const fallbackSecret = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (fallbackSecret) return fallbackSecret;
-
-  throw new SpeakerIntakeTokenError("Missing SPEAKER_INTAKE_TOKEN_SECRET or SUPABASE_SERVICE_ROLE_KEY.");
+function getSpeakerIntakeSecrets(): { signing: string; verification: readonly string[] } {
+  try {
+    const resolved = resolveSpeakerIntakeTokenSecrets();
+    return { signing: resolved.signing, verification: resolved.verification };
+  } catch (error) {
+    if (error instanceof ProductTokenSecretError) {
+      throw new SpeakerIntakeTokenError(error.message);
+    }
+    throw error;
+  }
 }
 
+function signWith(secret: string, input: string): string {
+  return createHmac("sha256", secret).update(input).digest("base64url");
+}
+
+// New tokens are always signed with the product-owned signing secret. Authentication
+// authority (Supabase project) must never determine whether a speaker link is valid.
 function sign(input: string): string {
-  return createHmac("sha256", getSpeakerIntakeSecret()).update(input).digest("base64url");
+  return signWith(getSpeakerIntakeSecrets().signing, input);
+}
+
+function signatureMatches(expected: string, actual: string): boolean {
+  const expectedBuffer = Buffer.from(expected, "utf8");
+  const actualBuffer = Buffer.from(actual, "utf8");
+  if (expectedBuffer.length !== actualBuffer.length) return false;
+  return timingSafeEqual(expectedBuffer, actualBuffer);
 }
 
 export function createSpeakerIntakeToken(input: {
@@ -64,14 +83,14 @@ export function verifySpeakerIntakeToken(token: string): SpeakerIntakeTokenPaylo
     throw new SpeakerIntakeTokenError("Invalid intake link.");
   }
 
-  const expectedSignature = sign(encodedPayload);
-  const actualSignature = Buffer.from(encodedSignature, "utf8");
-  const expectedSignatureBuffer = Buffer.from(expectedSignature, "utf8");
+  // Verification accepts transitional legacy secrets so links minted before the signing
+  // secret was separated from the auth authority survive the Platform Core cutover.
+  const { verification } = getSpeakerIntakeSecrets();
+  const verified = verification.some((secret) =>
+    signatureMatches(signWith(secret, encodedPayload), encodedSignature),
+  );
 
-  if (
-    actualSignature.length !== expectedSignatureBuffer.length
-    || !timingSafeEqual(actualSignature, expectedSignatureBuffer)
-  ) {
+  if (!verified) {
     throw new SpeakerIntakeTokenError("Invalid intake link.");
   }
 

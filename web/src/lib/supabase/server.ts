@@ -1,12 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { requireAuthAuthorityConfig } from "@/src/lib/supabase/auth-authority";
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
+  // Authentication authority only. Operational data never flows through this client.
+  const authAuthority = requireAuthAuthorityConfig();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    authAuthority.url,
+    authAuthority.anonKey,
     {
       cookies: {
         getAll() {

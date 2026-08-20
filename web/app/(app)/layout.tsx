@@ -2,10 +2,13 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
+import { resolveAuthAuthorityConfig } from "@/src/lib/supabase/auth-authority";
 
 export default async function ProtectedAppLayout({ children }: { children: ReactNode }) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Session presence is decided by the authentication authority, not by the operational DB.
+  const authAuthority = resolveAuthAuthorityConfig();
+  const supabaseUrl = authAuthority?.url;
+  const supabaseAnonKey = authAuthority?.anonKey;
   if (!supabaseUrl || !supabaseAnonKey) {
     redirect("/login");
   }

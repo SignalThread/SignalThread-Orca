@@ -5,6 +5,7 @@ import {
   ACTIVE_ORG_COOKIE_NAME,
   ORGANIZATION_SELECTION_COOKIE_NAME,
 } from "@/lib/request-user";
+import { resolveAuthAuthorityConfig } from "@/src/lib/supabase/auth-authority";
 import { PLATFORM_CONTEXT_COOKIE_NAME } from "@/src/server/services/platform-admin";
 
 const createRouteHandlerClient = createServerClient;
@@ -17,8 +18,10 @@ function isVerifyOtpType(value: string): value is VerifyOtpType {
 }
 
 export async function GET(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // The callback belongs to whichever project is the authentication authority.
+  const authAuthority = resolveAuthAuthorityConfig();
+  const supabaseUrl = authAuthority?.url;
+  const supabaseAnonKey = authAuthority?.anonKey;
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const tokenHash = requestUrl.searchParams.get("token_hash");

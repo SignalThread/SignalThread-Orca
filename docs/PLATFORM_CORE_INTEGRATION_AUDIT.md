@@ -555,6 +555,17 @@ Reseeding is strongly preferred and already well-supported:
 
 ---
 
+## Implementation Status
+
+**Phase 1 is implemented** on branch `platform-core-phase-1`. It delivers step 1 below in full, plus the additive half of step 4 (canonical `user_id`), and prepares — but does not perform — the auth repoint. See [PLATFORM_CORE_MIGRATION_PHASE_1.md](PLATFORM_CORE_MIGRATION_PHASE_1.md) for what changed, what transitional behaviour remains, and the deviations from the order below.
+
+Two corrections to this audit surfaced during implementation:
+
+- **§C.4** assumes every event route calls `requireEventRouteAccess`. In practice six helpers reach identity, all funnelling into `resolveRequestUser`; the coverage test was generalised accordingly.
+- The repository has **two mirrored Prisma trees** (`prisma/` and `web/prisma/`). Schema changes must be applied to both.
+
+---
+
 ## Recommended Implementation Order
 
 1. **Pre-work (no behaviour change).** Set `SPEAKER_INTAKE_TOKEN_SECRET` explicitly. Add the route-coverage test for `requireEventRouteAccess`. Delete the unused `supabase/client.ts`.

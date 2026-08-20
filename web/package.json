@@ -40,7 +40,8 @@
     "test:budget-files:smoke": "node scripts/smoke-budget-files.mjs",
     "auth:promote-super-admin": "node scripts/promote-super-admin.mjs",
     "timeline:backfill-roots": "node scripts/backfill-timeline-roots.mjs",
-    "activity:backfill": "npx tsx scripts/backfill-event-activity.ts"
+    "activity:backfill": "npx tsx scripts/backfill-event-activity.ts",
+    "platform:backfill-user-ids": "npx tsx scripts/backfill-platform-user-ids.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1107.0",

@@ -72,6 +72,8 @@ function unauthorized(reason: string, hint: string, status = 401) {
       hint,
       status: "UNAUTHENTICATED",
       supabaseUserId: null,
+      platformUserId: null,
+      identityLinkMode: null,
       email: null,
       appUserId: null,
       activeOrgId: null,
@@ -97,6 +99,10 @@ async function getHandler(request: NextRequest) {
       reason: context.status === "OK" ? null : context.reason,
       hint: context.status === "OK" ? null : context.hint,
       supabaseUserId: context.supabaseUserId,
+      // Canonical Platform Core identity, plus how this row was reached. `identityLinkMode`
+      // exposes whether the request still depended on the transitional email bridge.
+      platformUserId: context.platformUserId,
+      identityLinkMode: context.identityLinkMode,
       email: context.email,
       appUserId: context.appUserId,
       activeOrgId: context.activeOrgId,

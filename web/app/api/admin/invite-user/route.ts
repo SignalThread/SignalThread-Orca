@@ -142,6 +142,10 @@ async function postHandler(request: NextRequest) {
     }
 
     const result = await getPrisma().$transaction(async (tx) => {
+      // Invitees have no Platform Core identity until they accept, so this row is created
+      // unlinked and gets its `platformUserId` from the transitional email bridge on first
+      // sign-in. Invites must move to Platform Core (audit A.5) before the bridge can be
+      // switched off, otherwise invited users would never link.
       const user = await tx.user.upsert({
         where: { email: normalizedEmail },
         update: {

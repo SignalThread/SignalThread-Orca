@@ -7,10 +7,15 @@ import { createServerSupabaseClient } from "@/src/lib/supabase/server";
 import { shouldQuietE2ERoutineLogs } from "@/lib/logging/log-policy";
 import { filterVisibleOrganizations } from "@/lib/test-fixture-orgs";
 import { resolveOrganizationSelection } from "@/lib/organization-selection";
+import {
+  isEmailIdentityBridgeEnabled,
+  resolveAppUserByPlatformIdentity,
+  type PlatformIdentityLinkMode,
+} from "@/lib/platform/identity";
 
 type RequestUserErrorStatus = 400 | 401 | 403;
 
-type AppUser = Pick<User, "id" | "email" | "orgId" | "role">;
+type AppUser = Pick<User, "id" | "email" | "orgId" | "role" | "platformUserId">;
 
 type MembershipSummary = {
   id: string;
@@ -24,7 +29,15 @@ type OrganizationSummary = {
 };
 
 type EnsureBaseContext = {
+  /** Authenticated identity id from the authentication authority. */
   supabaseUserId: string | null;
+  /**
+   * Canonical Platform Core user id stored on the Orca user row. Null while a row is
+   * still resolved through the transitional email bridge.
+   */
+  platformUserId: string | null;
+  /** How the Orca user row was reached for this request. */
+  identityLinkMode: PlatformIdentityLinkMode | null;
   email: string | null;
   appUserId: string | null;
   role: UserRole | null;
@@ -215,6 +228,7 @@ async function createAppUserWithMembership(input: {
   email: string;
   suggestedName: string | null;
   orgId: string;
+  platformUserId: string;
 }): Promise<AppUser> {
   return getPrisma().$transaction(async (tx) => {
     const user = await tx.user.create({
@@ -223,8 +237,10 @@ async function createAppUserWithMembership(input: {
         name: input.suggestedName?.trim() || deriveDisplayNameFromEmail(input.email),
         role: UserRole.MEMBER,
         orgId: input.orgId,
+        // New rows are canonical from birth: never created email-first.
+        platformUserId: input.platformUserId,
       },
-      select: { id: true, email: true, orgId: true, role: true },
+      select: { id: true, email: true, orgId: true, role: true, platformUserId: true },
     });
 
     await tx.membership.upsert({
@@ -299,12 +315,21 @@ async function ensureMembershipForUser(appUser: AppUser): Promise<
   return { memberships: await listMemberships(appUser.id) };
 }
 
-async function resolveAppUserFromSupabaseIdentity(input: {
+/**
+ * Resolve the Orca user row for an authenticated Platform Core identity.
+ *
+ * Identity is keyed on the canonical Platform user id. Email is only a transitional
+ * bridge for linking pre-existing rows (see `lib/platform/identity.ts`); it is never
+ * treated as proof of identity on its own.
+ */
+async function resolveAppUserFromPlatformIdentity(input: {
+  platformUserId: string;
   supabaseEmail: string;
   suggestedName: string | null;
 }): Promise<
   | {
       appUser: AppUser;
+      linkMode: Exclude<PlatformIdentityLinkMode, "UNRESOLVED">;
     }
   | {
       reason: string;
@@ -321,13 +346,40 @@ async function resolveAppUserFromSupabaseIdentity(input: {
     };
   }
 
-  const existingUser = await getPrisma().user.findUnique({
-    where: { email },
-    select: { id: true, email: true, orgId: true, role: true },
+  const resolution = await resolveAppUserByPlatformIdentity({
+    platformUserId: input.platformUserId,
+    email,
   });
 
-  if (existingUser) {
-    return { appUser: existingUser };
+  if (resolution.status === "CONFLICT") {
+    return {
+      reason: resolution.reason,
+      hint: resolution.hint,
+      appUserId: null,
+    };
+  }
+
+  if (resolution.status === "RESOLVED") {
+    return { appUser: resolution.appUser, linkMode: resolution.linkMode };
+  }
+
+  // Nothing matched the canonical id. An Orca row may still hold this address without a
+  // platform link — when the email bridge is off, or if it was linked concurrently. Do not
+  // try to create a second row for it: the email is unique, and a collision here would
+  // surface as a 500 rather than an actionable state.
+  const unlinkedByEmail = await getPrisma().user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  if (unlinkedByEmail) {
+    return {
+      reason: "PLATFORM_IDENTITY_NOT_LINKED",
+      hint: isEmailIdentityBridgeEnabled()
+        ? "This account exists but is not linked to your Platform Core identity. Contact an administrator."
+        : "This account has not been linked to a Platform Core identity yet. Run the platform user id backfill.",
+      appUserId: null,
+    };
   }
 
   const defaultOrg = await getDefaultOrgIdResolution();
@@ -343,19 +395,22 @@ async function resolveAppUserFromSupabaseIdentity(input: {
     email,
     suggestedName: input.suggestedName,
     orgId: defaultOrg.orgId,
+    platformUserId: input.platformUserId,
   });
 
-  return { appUser };
+  return { appUser, linkMode: "CANONICAL" };
 }
 
 async function resolveFromAuthenticatedIdentity(input: {
   requestedOrgId: string | null;
   selectedOrganizationId: string | null;
+  /** Canonical Platform Core user id carried by the authenticated session. */
   supabaseUserId: string;
   email: string;
   suggestedName: string | null;
 }): Promise<EnsureProvisionedUserAndContextResult> {
-  const appUserResult = await resolveAppUserFromSupabaseIdentity({
+  const appUserResult = await resolveAppUserFromPlatformIdentity({
+    platformUserId: input.supabaseUserId,
     supabaseEmail: input.email,
     suggestedName: input.suggestedName,
   });
@@ -364,6 +419,8 @@ async function resolveFromAuthenticatedIdentity(input: {
     return {
       status: "NEEDS_PROVISIONING",
       supabaseUserId: input.supabaseUserId,
+      platformUserId: null,
+      identityLinkMode: "UNRESOLVED",
       email: input.email,
       appUserId: appUserResult.appUserId,
       role: null,
@@ -374,7 +431,33 @@ async function resolveFromAuthenticatedIdentity(input: {
     };
   }
 
-  const appUser = appUserResult.appUser;
+  return buildContextForResolvedAppUser({
+    requestedOrgId: input.requestedOrgId,
+    selectedOrganizationId: input.selectedOrganizationId,
+    supabaseUserId: input.supabaseUserId,
+    email: input.email,
+    appUser: appUserResult.appUser,
+    identityLinkMode: appUserResult.linkMode,
+  });
+}
+
+/**
+ * Build the org/membership context for an already-resolved Orca user.
+ *
+ * Split out so the development fallback can reuse the exact same authorization path
+ * without going through platform identity resolution — the dev fallback names a local row
+ * directly and must never mint or claim a Platform Core id.
+ */
+async function buildContextForResolvedAppUser(input: {
+  requestedOrgId: string | null;
+  selectedOrganizationId: string | null;
+  supabaseUserId: string;
+  email: string;
+  appUser: AppUser;
+  identityLinkMode: Exclude<PlatformIdentityLinkMode, "UNRESOLVED">;
+}): Promise<EnsureProvisionedUserAndContextResult> {
+  const appUser = input.appUser;
+  const identityLinkMode = input.identityLinkMode;
   const memberships =
     appUser.role === UserRole.SUPER_ADMIN ? await listMemberships(appUser.id) : undefined;
 
@@ -387,6 +470,8 @@ async function resolveFromAuthenticatedIdentity(input: {
         return {
           status: "OK",
           supabaseUserId: input.supabaseUserId,
+          platformUserId: appUser.platformUserId,
+          identityLinkMode,
           email: input.email,
           appUserId: appUser.id,
           role: appUser.role,
@@ -402,6 +487,8 @@ async function resolveFromAuthenticatedIdentity(input: {
       return {
         status: "NEEDS_PROVISIONING",
         supabaseUserId: input.supabaseUserId,
+        platformUserId: appUser.platformUserId,
+        identityLinkMode,
         email: input.email,
         appUserId: appUser.id,
         role: appUser.role,
@@ -429,6 +516,8 @@ async function resolveFromAuthenticatedIdentity(input: {
     return {
       status: "NEEDS_PROVISIONING",
       supabaseUserId: input.supabaseUserId,
+      platformUserId: appUser.platformUserId,
+      identityLinkMode,
       email: input.email,
       appUserId: appUser.id,
       role: appUser.role,
@@ -443,6 +532,8 @@ async function resolveFromAuthenticatedIdentity(input: {
     return {
       status: "NEEDS_ORG_SELECTION",
       supabaseUserId: input.supabaseUserId,
+      platformUserId: appUser.platformUserId,
+      identityLinkMode,
       email: input.email,
       appUserId: appUser.id,
       role: appUser.role,
@@ -457,6 +548,8 @@ async function resolveFromAuthenticatedIdentity(input: {
   return {
     status: "OK",
     supabaseUserId: input.supabaseUserId,
+    platformUserId: appUser.platformUserId,
+    identityLinkMode,
     email: input.email,
     appUserId: appUser.id,
     role: appUser.role,
@@ -478,20 +571,30 @@ async function resolveFromDevFallback(
   const devUserId = process.env.DEV_USER_ID?.trim() || null;
   const devUserEmail = normalizeEmail(process.env.DEV_USER_EMAIL?.trim() || "demo@planneros.com");
 
+  const devUserSelect = {
+    id: true,
+    email: true,
+    orgId: true,
+    role: true,
+    platformUserId: true,
+  } as const;
+
   const appUser = devUserId
     ? await getPrisma().user.findUnique({
         where: { id: devUserId },
-        select: { id: true, email: true, orgId: true, role: true },
+        select: devUserSelect,
       })
     : await getPrisma().user.findUnique({
         where: { email: devUserEmail },
-        select: { id: true, email: true, orgId: true, role: true },
+        select: devUserSelect,
       });
 
   if (!appUser) {
     return {
       status: "UNAUTHENTICATED",
       supabaseUserId: null,
+      platformUserId: null,
+      identityLinkMode: "UNRESOLVED",
       email: null,
       appUserId: null,
       role: null,
@@ -502,12 +605,15 @@ async function resolveFromDevFallback(
     };
   }
 
-  return resolveFromAuthenticatedIdentity({
+  // The dev fallback names a local row directly. It must never fabricate a Platform Core
+  // id, so it reports the row's real link state and skips identity resolution entirely.
+  return buildContextForResolvedAppUser({
     requestedOrgId,
     selectedOrganizationId,
-    supabaseUserId: appUser.id,
+    supabaseUserId: appUser.platformUserId ?? appUser.id,
     email: appUser.email,
-    suggestedName: null,
+    appUser,
+    identityLinkMode: appUser.platformUserId ? "CANONICAL" : "EMAIL_BRIDGE_UNLINKED",
   });
 }
 
@@ -571,6 +677,8 @@ export async function ensureProvisionedUserAndContext(
   return {
     status: "UNAUTHENTICATED",
     supabaseUserId: null,
+    platformUserId: null,
+    identityLinkMode: null,
     email: null,
     appUserId: null,
     role: null,
