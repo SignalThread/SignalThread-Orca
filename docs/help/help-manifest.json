@@ -1,0 +1,1439 @@
+[
+  {
+    "slug": "welcome-to-orca",
+    "title": "Welcome to Orca",
+    "description": "Learn how Orca organizes event planning work across your portfolio and event workspaces.",
+    "category": "Getting Started",
+    "filePath": "getting-started/welcome-to-orca.md",
+    "status": "published",
+    "order": 10,
+    "tags": [
+      "overview",
+      "navigation"
+    ],
+    "related": [
+      "navigate-orca",
+      "create-your-first-event"
+    ],
+    "sourceRoutes": [
+      "/dashboard"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "navigate-orca",
+    "title": "Navigate Orca",
+    "description": "Move between portfolio views, event workspaces, and event modules without losing context.",
+    "category": "Getting Started",
+    "filePath": "getting-started/navigate-orca.md",
+    "status": "published",
+    "order": 20,
+    "tags": [
+      "navigation",
+      "workspace"
+    ],
+    "related": [
+      "welcome-to-orca",
+      "understand-event-workspace-navigation"
+    ],
+    "sourceRoutes": [
+      "/dashboard"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "understand-organizations-and-access",
+    "title": "Understand Organizations and Access",
+    "description": "Understand how organization context and event roles determine what you can see and change.",
+    "category": "Getting Started",
+    "filePath": "getting-started/understand-organizations-and-access.md",
+    "status": "published",
+    "order": 30,
+    "tags": [
+      "access",
+      "organizations",
+      "permissions"
+    ],
+    "related": [
+      "read-only-access-and-permission-problems",
+      "use-platform-administration",
+      "navigate-orca"
+    ],
+    "sourceRoutes": [
+      "/dashboard"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "create-your-first-event",
+    "title": "Create Your First Event",
+    "description": "Create an event workspace with the correct dates, timezone, and planning starting point.",
+    "category": "Getting Started",
+    "filePath": "getting-started/create-your-first-event.md",
+    "status": "published",
+    "order": 40,
+    "tags": [
+      "event-builder",
+      "setup"
+    ],
+    "related": [
+      "choose-an-event-builder-starting-point",
+      "import-planning-spreadsheets"
+    ],
+    "sourceRoutes": [
+      "/events/new"
+    ],
+    "screenshotStatus": "needed"
+  },
+  {
+    "slug": "choose-an-event-builder-starting-point",
+    "title": "Choose an Event Builder Starting Point",
+    "description": "Choose between a template, spreadsheets, a pasted agenda, or an empty event workspace.",
+    "category": "Getting Started",
+    "filePath": "getting-started/choose-an-event-builder-starting-point.md",
+    "status": "published",
+    "order": 50,
+    "tags": [
+      "event-builder",
+      "templates",
+      "imports"
+    ],
+    "related": [
+      "create-your-first-event",
+      "build-a-new-event-from-a-rough-agenda"
+    ],
+    "sourceRoutes": [
+      "/events/new"
+    ],
+    "screenshotStatus": "needed"
+  },
+  {
+    "slug": "import-planning-spreadsheets",
+    "title": "Import Planning Spreadsheets",
+    "description": "Map existing workbook or CSV data into Run of Show, Budget, and Timeline records.",
+    "category": "Getting Started",
+    "filePath": "getting-started/import-planning-spreadsheets.md",
+    "status": "published",
+    "order": 60,
+    "tags": [
+      "import",
+      "spreadsheets",
+      "event-builder"
+    ],
+    "related": [
+      "spreadsheet-import-problems",
+      "build-a-new-event-from-existing-spreadsheets"
+    ],
+    "sourceRoutes": [
+      "/events/new"
+    ],
+    "screenshotStatus": "needed"
+  },
+  {
+    "slug": "understand-event-workspace-navigation",
+    "title": "Understand Event Workspace Navigation",
+    "description": "Use the event sidebar, module navigation, and event selector to work within the correct event.",
+    "category": "Getting Started",
+    "filePath": "getting-started/understand-event-workspace-navigation.md",
+    "status": "published",
+    "order": 70,
+    "tags": [
+      "navigation",
+      "event-workspace"
+    ],
+    "related": [
+      "navigate-orca",
+      "use-the-event-command-center"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "understand-notifications",
+    "title": "Understand Notifications",
+    "description": "Understand how Orca surfaces unread updates and links you back to relevant work.",
+    "category": "Getting Started",
+    "filePath": "getting-started/understand-notifications.md",
+    "status": "published",
+    "order": 80,
+    "tags": [
+      "notifications"
+    ],
+    "related": [
+      "use-notifications",
+      "missing-notifications"
+    ],
+    "sourceRoutes": [
+      "/dashboard"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "use-the-account-command-center",
+    "title": "Use the Account Command Center",
+    "description": "Review portfolio health, upcoming events, deadlines, budget signals, and program readiness.",
+    "category": "Portfolio",
+    "filePath": "portfolio/use-the-account-command-center.md",
+    "status": "published",
+    "order": 90,
+    "tags": [
+      "command-center",
+      "portfolio"
+    ],
+    "related": [
+      "use-the-action-center",
+      "conduct-a-weekly-event-health-review"
+    ],
+    "sourceRoutes": [
+      "/dashboard"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-the-action-center",
+    "title": "Use the Action Center",
+    "description": "Work through cross-event risks, approvals, deadlines, and budget exposure from one queue.",
+    "category": "Portfolio",
+    "filePath": "portfolio/use-the-action-center.md",
+    "status": "published",
+    "order": 100,
+    "tags": [
+      "action-center",
+      "approvals",
+      "deadlines"
+    ],
+    "related": [
+      "use-the-account-command-center",
+      "understand-approvals-in-orca"
+    ],
+    "sourceRoutes": [
+      "/dashboard/action-center"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "understand-portfolio-reports-and-activity",
+    "title": "Understand Portfolio Reports and Activity",
+    "description": "Understand the current availability of account reporting and event activity pages.",
+    "category": "Portfolio",
+    "filePath": "portfolio/understand-portfolio-reports-and-activity.md",
+    "status": "preview",
+    "order": 110,
+    "tags": [
+      "reports",
+      "activity",
+      "preview"
+    ],
+    "related": [
+      "use-the-account-command-center",
+      "feature-not-available-or-marked-coming-soon"
+    ],
+    "sourceRoutes": [
+      "/reports"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-workspace-settings",
+    "title": "Use Workspace Settings",
+    "description": "Understand the current placeholder state of account workspace and organization settings.",
+    "category": "Portfolio",
+    "filePath": "portfolio/use-workspace-settings.md",
+    "status": "coming-soon",
+    "order": 120,
+    "tags": [
+      "settings",
+      "coming-soon"
+    ],
+    "related": [
+      "configure-event-settings",
+      "feature-not-available-or-marked-coming-soon"
+    ],
+    "sourceRoutes": [
+      "/settings"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "use-platform-administration",
+    "title": "Use Platform Administration",
+    "description": "Invite and provision platform users when you have SUPER_ADMIN access.",
+    "category": "Administration",
+    "filePath": "administration/use-platform-administration.md",
+    "status": "internal",
+    "order": 130,
+    "tags": [
+      "administration",
+      "users",
+      "access"
+    ],
+    "related": [
+      "understand-organizations-and-access",
+      "read-only-access-and-permission-problems"
+    ],
+    "sourceRoutes": [
+      "/admin/platform/users"
+    ],
+    "screenshotStatus": "needed"
+  },
+  {
+    "slug": "use-the-event-command-center",
+    "title": "Use the Event Command Center",
+    "description": "Review the health, milestones, budget, program, and readiness of one event.",
+    "category": "Event Planning",
+    "filePath": "event-planning/use-the-event-command-center.md",
+    "status": "published",
+    "order": 140,
+    "tags": [
+      "event-command-center",
+      "event-health"
+    ],
+    "related": [
+      "customize-the-event-command-center",
+      "prepare-for-a-client-status-meeting"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "customize-the-event-command-center",
+    "title": "Customize the Event Command Center",
+    "description": "Arrange the event dashboard widgets that matter to your planning review.",
+    "category": "Event Planning",
+    "filePath": "event-planning/customize-the-event-command-center.md",
+    "status": "published",
+    "order": 150,
+    "tags": [
+      "event-command-center",
+      "widgets",
+      "layout"
+    ],
+    "related": [
+      "use-the-event-command-center"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-the-roadmap",
+    "title": "Use the Roadmap",
+    "description": "Plan event work across stages, owners, dates, dependencies, priorities, and status views.",
+    "category": "Event Planning",
+    "filePath": "event-planning/use-the-roadmap.md",
+    "status": "published",
+    "order": 160,
+    "tags": [
+      "roadmap",
+      "timeline",
+      "critical-path"
+    ],
+    "related": [
+      "move-an-event-from-setup-into-active-planning",
+      "prepare-for-the-final-30-days"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/timeline"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-the-budget-dashboard",
+    "title": "Use the Budget Dashboard",
+    "description": "Review forecast, actual spend, targets, categories, groups, and the budget work queue.",
+    "category": "Event Planning",
+    "filePath": "event-planning/use-the-budget-dashboard.md",
+    "status": "published",
+    "order": 170,
+    "tags": [
+      "budget",
+      "dashboard",
+      "forecast"
+    ],
+    "related": [
+      "manage-the-full-budget-grid",
+      "review-event-financial-health"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/budget"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "manage-the-full-budget-grid",
+    "title": "Manage the Full Budget Grid",
+    "description": "Create, filter, edit, group, and review event budget line items in a detailed grid.",
+    "category": "Event Planning",
+    "filePath": "event-planning/manage-the-full-budget-grid.md",
+    "status": "published",
+    "order": 180,
+    "tags": [
+      "budget",
+      "grid",
+      "line-items"
+    ],
+    "related": [
+      "use-the-budget-dashboard",
+      "import-and-export-budget-data",
+      "submit-and-review-budget-approvals"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/budget?view=grid"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "import-and-export-budget-data",
+    "title": "Import and Export Budget Data",
+    "description": "Bring budget lines into Orca and export line-level or summary CSV data for review.",
+    "category": "Event Planning",
+    "filePath": "event-planning/import-and-export-budget-data.md",
+    "status": "published",
+    "order": 190,
+    "tags": [
+      "budget",
+      "import",
+      "export"
+    ],
+    "related": [
+      "manage-the-full-budget-grid",
+      "spreadsheet-import-problems"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/budget"
+    ],
+    "screenshotStatus": "needed"
+  },
+  {
+    "slug": "submit-and-review-budget-approvals",
+    "title": "Submit and Review Budget Approvals",
+    "description": "Route budget lines for a reviewer decision and maintain a clear approval history.",
+    "category": "Event Planning",
+    "filePath": "event-planning/submit-and-review-budget-approvals.md",
+    "status": "published",
+    "order": 200,
+    "tags": [
+      "budget",
+      "approvals"
+    ],
+    "related": [
+      "understand-approvals-in-orca",
+      "budget-editing-and-approval-problems"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/budget"
+    ],
+    "screenshotStatus": "partial"
+  },
+  {
+    "slug": "use-the-run-of-show",
+    "title": "Use the Run of Show",
+    "description": "Plan what happens, when it happens, where it happens, and what each session requires.",
+    "category": "Event Planning",
+    "filePath": "event-planning/use-the-run-of-show.md",
+    "status": "published",
+    "order": 210,
+    "tags": [
+      "run-of-show",
+      "sessions",
+      "schedule"
+    ],
+    "related": [
+      "choose-board-or-list-view",
+      "create-and-edit-sessions",
+      "build-and-review-a-run-of-show"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "choose-board-or-list-view",
+    "title": "Choose Board or List View",
+    "description": "Choose the Run of Show view that fits visual scheduling or dense record review.",
+    "category": "Event Planning",
+    "filePath": "event-planning/choose-board-or-list-view.md",
+    "status": "published",
+    "order": 220,
+    "tags": [
+      "run-of-show",
+      "board",
+      "list"
+    ],
+    "related": [
+      "use-the-run-of-show",
+      "create-and-edit-sessions"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "create-and-edit-sessions",
+    "title": "Create and Edit Sessions",
+    "description": "Add sessions and maintain their schedule, room, type, and operational details.",
+    "category": "Event Planning",
+    "filePath": "event-planning/create-and-edit-sessions.md",
+    "status": "published",
+    "order": 230,
+    "tags": [
+      "sessions",
+      "run-of-show"
+    ],
+    "related": [
+      "use-the-session-workspace",
+      "assign-speakers-to-sessions"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-the-session-workspace",
+    "title": "Use the Session Workspace",
+    "description": "Coordinate a session's schedule, people, requirements, files, F&B, and onsite details in one workspace.",
+    "category": "Event Planning",
+    "filePath": "event-planning/use-the-session-workspace.md",
+    "status": "published",
+    "order": 240,
+    "tags": [
+      "sessions",
+      "workspace",
+      "logistics"
+    ],
+    "related": [
+      "create-and-edit-sessions",
+      "coordinate-session-logistics"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix/sessions/{sessionId}"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "manage-room-sets-and-seating",
+    "title": "Manage Room Sets and Seating",
+    "description": "Understand the current availability of Room Set and Seating and use the supported document workflow.",
+    "category": "Event Planning",
+    "filePath": "event-planning/manage-room-sets-and-seating.md",
+    "status": "coming-soon",
+    "order": 250,
+    "tags": [
+      "room-set",
+      "seating",
+      "coming-soon"
+    ],
+    "related": [
+      "feature-not-available-or-marked-coming-soon",
+      "coordinate-session-logistics"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix/sessions/{sessionId}/room-set"
+    ],
+    "screenshotStatus": "needed"
+  },
+  {
+    "slug": "use-the-docs-hub",
+    "title": "Use the Docs Hub",
+    "description": "Store event documents, organize them by category, link them to planning records, and manage review states.",
+    "category": "Event Planning",
+    "filePath": "event-planning/use-the-docs-hub.md",
+    "status": "published",
+    "order": 260,
+    "tags": [
+      "docs",
+      "documents",
+      "approvals"
+    ],
+    "related": [
+      "understand-approvals-in-orca",
+      "request-and-review-speaker-documents"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/docs"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "configure-event-settings",
+    "title": "Configure Event Settings",
+    "description": "Configure reusable Run of Show options and event workspace actions for one event.",
+    "category": "Event Planning",
+    "filePath": "event-planning/configure-event-settings.md",
+    "status": "published",
+    "order": 270,
+    "tags": [
+      "event-settings",
+      "configuration"
+    ],
+    "related": [
+      "use-the-session-workspace",
+      "use-workspace-settings"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/settings"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-the-fnb-catalog",
+    "title": "Use the F&B Catalog",
+    "description": "Review existing approved F&B items and understand the limits of the preview catalog screen.",
+    "category": "Event Planning",
+    "filePath": "event-planning/use-the-fnb-catalog.md",
+    "status": "preview",
+    "order": 280,
+    "tags": [
+      "fnb",
+      "catalog",
+      "menus"
+    ],
+    "related": [
+      "assign-fnb-to-sessions",
+      "coordinate-session-logistics"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/fnb-catalog"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "assign-fnb-to-sessions",
+    "title": "Assign F&B to Sessions",
+    "description": "Connect approved catalog items or F&B requirements to the sessions where service occurs.",
+    "category": "Event Planning",
+    "filePath": "event-planning/assign-fnb-to-sessions.md",
+    "status": "published",
+    "order": 290,
+    "tags": [
+      "fnb",
+      "sessions",
+      "run-of-show"
+    ],
+    "related": [
+      "use-the-fnb-catalog",
+      "use-the-session-workspace"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-the-directory",
+    "title": "Use the Directory",
+    "description": "Maintain the canonical event people list and the roles each person holds.",
+    "category": "People and Program",
+    "filePath": "people-and-program/use-the-directory.md",
+    "status": "published",
+    "order": 300,
+    "tags": [
+      "directory",
+      "people",
+      "roles"
+    ],
+    "related": [
+      "understand-attendee-and-directory-records",
+      "import-and-clean-directory-records"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/directory"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "import-and-clean-directory-records",
+    "title": "Import and Clean Directory Records",
+    "description": "Import event people, review conflicts, and correct duplicate-review records in Event Directory.",
+    "category": "People and Program",
+    "filePath": "people-and-program/import-and-clean-directory-records.md",
+    "status": "published",
+    "order": 310,
+    "tags": [
+      "directory",
+      "import",
+      "duplicates"
+    ],
+    "related": [
+      "missing-or-duplicate-people",
+      "use-the-directory"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/directory"
+    ],
+    "screenshotStatus": "needed"
+  },
+  {
+    "slug": "manage-attendees",
+    "title": "Manage Attendees",
+    "description": "Track event participation, registration state, source, roles, and review issues for attendees.",
+    "category": "People and Program",
+    "filePath": "people-and-program/manage-attendees.md",
+    "status": "published",
+    "order": 320,
+    "tags": [
+      "attendees",
+      "registration",
+      "directory"
+    ],
+    "related": [
+      "understand-attendee-and-directory-records",
+      "missing-or-duplicate-people"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/attendees"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "understand-attendee-and-directory-records",
+    "title": "Understand Attendee and Directory Records",
+    "description": "Understand why one person can appear in Directory and a role-specific attendee or speaker view.",
+    "category": "People and Program",
+    "filePath": "people-and-program/understand-attendee-and-directory-records.md",
+    "status": "published",
+    "order": 330,
+    "tags": [
+      "directory",
+      "attendees",
+      "identity"
+    ],
+    "related": [
+      "use-the-directory",
+      "manage-attendees",
+      "manage-speakers"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/directory"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "manage-speakers",
+    "title": "Manage Speakers",
+    "description": "Maintain speaker profiles, assignments, files, communications, notes, onsite details, and portal access.",
+    "category": "People and Program",
+    "filePath": "people-and-program/manage-speakers.md",
+    "status": "published",
+    "order": 340,
+    "tags": [
+      "speakers",
+      "program",
+      "portal"
+    ],
+    "related": [
+      "track-speaker-readiness",
+      "use-speaker-intake",
+      "use-the-speaker-portal"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/speakers"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "track-speaker-readiness",
+    "title": "Track Speaker Readiness",
+    "description": "Find missing profile, presentation, travel, dietary, request, and scheduling information before it becomes an onsite issue.",
+    "category": "People and Program",
+    "filePath": "people-and-program/track-speaker-readiness.md",
+    "status": "published",
+    "order": 350,
+    "tags": [
+      "speakers",
+      "readiness"
+    ],
+    "related": [
+      "prepare-speakers-for-an-event",
+      "request-and-review-speaker-documents"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/speakers"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "assign-speakers-to-sessions",
+    "title": "Assign Speakers to Sessions",
+    "description": "Connect confirmed speakers to the correct Run of Show sessions and review schedule conflicts.",
+    "category": "People and Program",
+    "filePath": "people-and-program/assign-speakers-to-sessions.md",
+    "status": "published",
+    "order": 360,
+    "tags": [
+      "speakers",
+      "sessions",
+      "run-of-show"
+    ],
+    "related": [
+      "manage-speakers",
+      "create-and-edit-sessions"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-speaker-intake",
+    "title": "Use Speaker Intake",
+    "description": "Request profile updates through a secure speaker-facing form and review the submitted changes.",
+    "category": "People and Program",
+    "filePath": "people-and-program/use-speaker-intake.md",
+    "status": "published",
+    "order": 370,
+    "tags": [
+      "speakers",
+      "intake",
+      "profile"
+    ],
+    "related": [
+      "manage-speakers",
+      "use-the-speaker-portal"
+    ],
+    "sourceRoutes": [
+      "/speaker-intake/{token}"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-the-speaker-portal",
+    "title": "Use the Speaker Portal",
+    "description": "Give a speaker secure access to their profile, presentations, required documents, and messages.",
+    "category": "People and Program",
+    "filePath": "people-and-program/use-the-speaker-portal.md",
+    "status": "published",
+    "order": 380,
+    "tags": [
+      "speakers",
+      "portal",
+      "external-access"
+    ],
+    "related": [
+      "speaker-portal-link-problems",
+      "use-speaker-intake",
+      "request-and-review-speaker-documents"
+    ],
+    "sourceRoutes": [
+      "/speaker-portal/{token}"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "request-and-review-speaker-documents",
+    "title": "Request and Review Speaker Documents",
+    "description": "Track required speaker documents and review files submitted against those requests.",
+    "category": "People and Program",
+    "filePath": "people-and-program/request-and-review-speaker-documents.md",
+    "status": "published",
+    "order": 390,
+    "tags": [
+      "speakers",
+      "documents",
+      "reviews"
+    ],
+    "related": [
+      "use-the-docs-hub",
+      "use-the-speaker-portal"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/speakers/{speakerId}"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-marketing",
+    "title": "Use Marketing",
+    "description": "Plan event email campaigns, audiences, sends, approvals, suppressions, and delivery outcomes.",
+    "category": "Communications",
+    "filePath": "communications/use-marketing.md",
+    "status": "published",
+    "order": 400,
+    "tags": [
+      "marketing",
+      "email",
+      "campaigns"
+    ],
+    "related": [
+      "create-campaigns-audiences-and-sends",
+      "review-marketing-approvals-and-compliance"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/marketing"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "create-campaigns-audiences-and-sends",
+    "title": "Create Campaigns, Audiences, and Sends",
+    "description": "Create an email campaign, define its recipients, compose a send, preview personalization, and schedule or send it.",
+    "category": "Communications",
+    "filePath": "communications/create-campaigns-audiences-and-sends.md",
+    "status": "published",
+    "order": 410,
+    "tags": [
+      "marketing",
+      "audiences",
+      "email-sends"
+    ],
+    "related": [
+      "use-marketing",
+      "review-marketing-approvals-and-compliance"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/marketing"
+    ],
+    "screenshotStatus": "needed"
+  },
+  {
+    "slug": "review-marketing-approvals-and-compliance",
+    "title": "Review Marketing Approvals and Compliance",
+    "description": "Review email content, recipients, approval state, suppressions, and unsubscribe behavior before sending.",
+    "category": "Communications",
+    "filePath": "communications/review-marketing-approvals-and-compliance.md",
+    "status": "published",
+    "order": 420,
+    "tags": [
+      "marketing",
+      "approvals",
+      "compliance"
+    ],
+    "related": [
+      "create-campaigns-audiences-and-sends",
+      "understand-approvals-in-orca"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/marketing"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-tasks",
+    "title": "Use Tasks",
+    "description": "Understand the current disabled state of Orca's generic tasking interface.",
+    "category": "Collaboration",
+    "filePath": "collaboration/use-tasks.md",
+    "status": "coming-soon",
+    "order": 430,
+    "tags": [
+      "tasks",
+      "coming-soon"
+    ],
+    "related": [
+      "use-the-roadmap",
+      "feature-not-available-or-marked-coming-soon"
+    ],
+    "sourceRoutes": [
+      "/dashboard/action-center"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "use-notifications",
+    "title": "Use Notifications",
+    "description": "Open recent notifications, clear unread state, and return to linked work.",
+    "category": "Collaboration",
+    "filePath": "collaboration/use-notifications.md",
+    "status": "published",
+    "order": 440,
+    "tags": [
+      "notifications",
+      "collaboration"
+    ],
+    "related": [
+      "understand-notifications",
+      "missing-notifications"
+    ],
+    "sourceRoutes": [
+      "/dashboard"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "understand-approvals-in-orca",
+    "title": "Understand Approvals in Orca",
+    "description": "Understand how approval decisions belong to Budget, Docs, Marketing, and speaker submission records.",
+    "category": "Collaboration",
+    "filePath": "collaboration/understand-approvals-in-orca.md",
+    "status": "published",
+    "order": 450,
+    "tags": [
+      "approvals",
+      "collaboration"
+    ],
+    "related": [
+      "submit-and-review-budget-approvals",
+      "use-the-docs-hub",
+      "review-marketing-approvals-and-compliance"
+    ],
+    "sourceRoutes": [
+      "/dashboard/action-center?view=approvals"
+    ],
+    "screenshotStatus": "captured"
+  },
+  {
+    "slug": "use-planner-copilot",
+    "title": "Use Planner Copilot",
+    "description": "Understand the current gated state of Orca's contextual planning assistant.",
+    "category": "Collaboration",
+    "filePath": "collaboration/use-planner-copilot.md",
+    "status": "preview",
+    "order": 460,
+    "tags": [
+      "copilot",
+      "ai",
+      "preview"
+    ],
+    "related": [
+      "feature-not-available-or-marked-coming-soon"
+    ],
+    "sourceRoutes": [
+      "/dashboard"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "build-a-new-event-from-existing-spreadsheets",
+    "title": "Build a New Event from Existing Spreadsheets",
+    "description": "Create a usable event workspace from existing Run of Show, budget, and timeline files.",
+    "category": "Workflows",
+    "filePath": "workflows/build-a-new-event-from-existing-spreadsheets.md",
+    "status": "published",
+    "order": 470,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "import-planning-spreadsheets",
+      "spreadsheet-import-problems",
+      "use-the-run-of-show"
+    ],
+    "sourceRoutes": [
+      "/events/new"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "build-a-new-event-from-a-rough-agenda",
+    "title": "Build a New Event from a Rough Agenda",
+    "description": "Turn agenda text into an initial Run of Show that can be reviewed and expanded.",
+    "category": "Workflows",
+    "filePath": "workflows/build-a-new-event-from-a-rough-agenda.md",
+    "status": "published",
+    "order": 480,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "choose-an-event-builder-starting-point",
+      "create-and-edit-sessions",
+      "choose-board-or-list-view"
+    ],
+    "sourceRoutes": [
+      "/events/new",
+      "/events/{eventId}/matrix"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "move-an-event-from-setup-into-active-planning",
+    "title": "Move an Event from Setup into Active Planning",
+    "description": "Establish the core records and ownership needed for weekly planning.",
+    "category": "Workflows",
+    "filePath": "workflows/move-an-event-from-setup-into-active-planning.md",
+    "status": "published",
+    "order": 490,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "configure-event-settings",
+      "use-the-roadmap",
+      "use-the-budget-dashboard"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}",
+      "/events/{eventId}/timeline",
+      "/events/{eventId}/budget",
+      "/events/{eventId}/matrix"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "prepare-for-a-client-status-meeting",
+    "title": "Prepare for a Client Status Meeting",
+    "description": "Assemble a current, decision-focused event status without maintaining a parallel tracker.",
+    "category": "Workflows",
+    "filePath": "workflows/prepare-for-a-client-status-meeting.md",
+    "status": "published",
+    "order": 500,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "use-the-event-command-center",
+      "use-the-roadmap",
+      "review-event-financial-health"
+    ],
+    "sourceRoutes": [
+      "/dashboard",
+      "/events/{eventId}"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "conduct-a-weekly-event-health-review",
+    "title": "Conduct a Weekly Event Health Review",
+    "description": "Run a repeatable cross-module check of event risk, readiness, and financial health.",
+    "category": "Workflows",
+    "filePath": "workflows/conduct-a-weekly-event-health-review.md",
+    "status": "published",
+    "order": 510,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "use-the-account-command-center",
+      "use-the-action-center",
+      "use-the-event-command-center"
+    ],
+    "sourceRoutes": [
+      "/dashboard",
+      "/dashboard/action-center",
+      "/events/{eventId}"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "build-and-review-a-run-of-show",
+    "title": "Build and Review a Run of Show",
+    "description": "Create a schedule that supports program design and production delivery.",
+    "category": "Workflows",
+    "filePath": "workflows/build-and-review-a-run-of-show.md",
+    "status": "published",
+    "order": 520,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "use-the-run-of-show",
+      "choose-board-or-list-view",
+      "coordinate-session-logistics"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "prepare-speakers-for-an-event",
+    "title": "Prepare Speakers for an Event",
+    "description": "Move speakers from initial confirmation through profile, content, logistics, and onsite readiness.",
+    "category": "Workflows",
+    "filePath": "workflows/prepare-speakers-for-an-event.md",
+    "status": "published",
+    "order": 530,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "manage-speakers",
+      "track-speaker-readiness",
+      "use-the-speaker-portal"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/speakers",
+      "/events/{eventId}/speakers/{speakerId}"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "coordinate-session-logistics",
+    "title": "Coordinate Session Logistics",
+    "description": "Bring schedule, speaker, AV, F&B, staffing, room, and budget context together for each session.",
+    "category": "Workflows",
+    "filePath": "workflows/coordinate-session-logistics.md",
+    "status": "published",
+    "order": 540,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "use-the-session-workspace",
+      "assign-fnb-to-sessions",
+      "manage-the-full-budget-grid"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix/sessions/{sessionId}",
+      "/events/{eventId}/budget",
+      "/events/{eventId}/docs"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "review-event-financial-health",
+    "title": "Review Event Financial Health",
+    "description": "Assess forecast, actuals, variance, targets, exposure, and pending approvals.",
+    "category": "Workflows",
+    "filePath": "workflows/review-event-financial-health.md",
+    "status": "published",
+    "order": 550,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "use-the-budget-dashboard",
+      "manage-the-full-budget-grid",
+      "submit-and-review-budget-approvals"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/budget"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "prepare-for-the-final-30-days",
+    "title": "Prepare for the Final 30 Days",
+    "description": "Shift from broad planning into deadline, readiness, and exception management.",
+    "category": "Workflows",
+    "filePath": "workflows/prepare-for-the-final-30-days.md",
+    "status": "published",
+    "order": 560,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "use-the-roadmap",
+      "conduct-a-weekly-event-health-review",
+      "prepare-speakers-for-an-event"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/timeline",
+      "/events/{eventId}/matrix",
+      "/events/{eventId}/budget",
+      "/events/{eventId}/speakers"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "prepare-for-onsite-operations",
+    "title": "Prepare for Onsite Operations",
+    "description": "Turn the planning workspace into a reliable operating picture for event delivery.",
+    "category": "Workflows",
+    "filePath": "workflows/prepare-for-onsite-operations.md",
+    "status": "published",
+    "order": 570,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "use-the-run-of-show",
+      "use-the-session-workspace",
+      "use-the-docs-hub"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix",
+      "/events/{eventId}/docs",
+      "/events/{eventId}/speakers"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "close-out-an-event",
+    "title": "Close Out an Event",
+    "description": "Reconcile financial, program, document, and planning records after delivery.",
+    "category": "Workflows",
+    "filePath": "workflows/close-out-an-event.md",
+    "status": "published",
+    "order": 580,
+    "tags": [
+      "workflow"
+    ],
+    "related": [
+      "review-event-financial-health",
+      "use-the-docs-hub",
+      "understand-portfolio-reports-and-activity"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/budget",
+      "/events/{eventId}/timeline",
+      "/events/{eventId}/docs"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "spreadsheet-import-problems",
+    "title": "Spreadsheet Import Problems",
+    "description": "Resolve unreadable files, missing mappings, skipped rows, and unexpected import results.",
+    "category": "Troubleshooting",
+    "filePath": "troubleshooting/spreadsheet-import-problems.md",
+    "status": "published",
+    "order": 590,
+    "tags": [
+      "troubleshooting"
+    ],
+    "related": [
+      "import-planning-spreadsheets",
+      "import-and-clean-directory-records"
+    ],
+    "sourceRoutes": [
+      "/events/new"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "missing-or-duplicate-people",
+    "title": "Missing or Duplicate People",
+    "description": "Find and correct identity, role, source, import, and duplicate-review issues in Directory, Attendees, or Speakers.",
+    "category": "Troubleshooting",
+    "filePath": "troubleshooting/missing-or-duplicate-people.md",
+    "status": "published",
+    "order": 600,
+    "tags": [
+      "troubleshooting"
+    ],
+    "related": [
+      "use-the-directory",
+      "understand-attendee-and-directory-records"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/directory",
+      "/events/{eventId}/attendees",
+      "/events/{eventId}/speakers"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "speaker-portal-link-problems",
+    "title": "Speaker Portal Link Problems",
+    "description": "Resolve missing, invalid, expired-by-revocation, or misdirected speaker portal access.",
+    "category": "Troubleshooting",
+    "filePath": "troubleshooting/speaker-portal-link-problems.md",
+    "status": "published",
+    "order": 610,
+    "tags": [
+      "troubleshooting"
+    ],
+    "related": [
+      "use-the-speaker-portal",
+      "use-speaker-intake"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/speakers/{speakerId}",
+      "/speaker-portal/{token}"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "read-only-access-and-permission-problems",
+    "title": "Read-Only Access and Permission Problems",
+    "description": "Determine whether organization context, event role, approval state, or platform role prevents an action.",
+    "category": "Troubleshooting",
+    "filePath": "troubleshooting/read-only-access-and-permission-problems.md",
+    "status": "published",
+    "order": 620,
+    "tags": [
+      "troubleshooting"
+    ],
+    "related": [
+      "understand-organizations-and-access",
+      "use-platform-administration"
+    ],
+    "sourceRoutes": [
+      "/dashboard",
+      "/events/{eventId}"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "missing-sessions-or-schedule-conflicts",
+    "title": "Missing Sessions or Schedule Conflicts",
+    "description": "Find sessions on the correct date and resolve room or speaker timing conflicts.",
+    "category": "Troubleshooting",
+    "filePath": "troubleshooting/missing-sessions-or-schedule-conflicts.md",
+    "status": "published",
+    "order": 630,
+    "tags": [
+      "troubleshooting"
+    ],
+    "related": [
+      "use-the-run-of-show",
+      "create-and-edit-sessions"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/matrix"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "budget-editing-and-approval-problems",
+    "title": "Budget Editing and Approval Problems",
+    "description": "Resolve read-only lines, failed submissions, missing reviewers, and unexpected approval state.",
+    "category": "Troubleshooting",
+    "filePath": "troubleshooting/budget-editing-and-approval-problems.md",
+    "status": "published",
+    "order": 640,
+    "tags": [
+      "troubleshooting"
+    ],
+    "related": [
+      "manage-the-full-budget-grid",
+      "submit-and-review-budget-approvals"
+    ],
+    "sourceRoutes": [
+      "/events/{eventId}/budget"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "missing-notifications",
+    "title": "Missing Notifications",
+    "description": "Check unread state, recent-list limits, links, and source records when an expected notification is absent.",
+    "category": "Troubleshooting",
+    "filePath": "troubleshooting/missing-notifications.md",
+    "status": "published",
+    "order": 650,
+    "tags": [
+      "troubleshooting"
+    ],
+    "related": [
+      "use-notifications",
+      "use-the-action-center"
+    ],
+    "sourceRoutes": [
+      "/dashboard"
+    ],
+    "screenshotStatus": "none"
+  },
+  {
+    "slug": "feature-not-available-or-marked-coming-soon",
+    "title": "Feature Not Available or Marked Coming Soon",
+    "description": "Understand disabled, preview, restricted, placeholder, and coming-soon Orca features.",
+    "category": "Troubleshooting",
+    "filePath": "troubleshooting/feature-not-available-or-marked-coming-soon.md",
+    "status": "published",
+    "order": 660,
+    "tags": [
+      "troubleshooting"
+    ],
+    "related": [
+      "use-tasks",
+      "use-planner-copilot",
+      "understand-portfolio-reports-and-activity"
+    ],
+    "sourceRoutes": [
+      "/dashboard",
+      "/reports",
+      "/events/{eventId}/matrix"
+    ],
+    "screenshotStatus": "none"
+  }
+]

@@ -1,0 +1,39 @@
+<!-- @dsCard group="Spacing" viewport="700x150" name="Radius & elevation" subtitle="Soft corners, border-led cards, whisper shadows" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 22px 24px; background: var(--surface-canvas); font-family: var(--font-sans); }
+  .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  .lbl { font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-subtle); margin: 0 0 10px; }
+  .row { display: flex; gap: 14px; align-items: flex-end; }
+  .swatch { width: 56px; height: 56px; background: var(--surface-card); border: 1px solid var(--border-subtle); }
+  .t { font-family: var(--font-mono); font-size: 10px; color: var(--text-subtle); margin-top: 6px; text-align: center; }
+  .shadow { width: 64px; height: 56px; background: var(--surface-card); border-radius: var(--radius-md); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <p class="lbl">Radius</p>
+    <div class="row">
+      <div><div class="swatch" style="border-radius:6px"></div><div class="t">sm·6</div></div>
+      <div><div class="swatch" style="border-radius:12px"></div><div class="t">md·12</div></div>
+      <div><div class="swatch" style="border-radius:16px"></div><div class="t">lg·16</div></div>
+      <div><div class="swatch" style="border-radius:20px"></div><div class="t">xl·20</div></div>
+      <div><div class="swatch" style="border-radius:9999px"></div><div class="t">pill</div></div>
+    </div>
+  </div>
+  <div>
+    <p class="lbl">Elevation</p>
+    <div class="row">
+      <div><div class="shadow" style="box-shadow:var(--shadow-card); border:1px solid var(--border-subtle)"></div><div class="t">card</div></div>
+      <div><div class="shadow" style="box-shadow:var(--shadow-md)"></div><div class="t">md·pop</div></div>
+      <div><div class="shadow" style="box-shadow:var(--shadow-modal)"></div><div class="t">modal</div></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,196 @@
+{
+  "document": "SYSTEM_ARCHITECTURE",
+  "audit": {
+    "date": "2026-06-11",
+    "codex_version": "gpt-5-codex",
+    "confidence": "medium",
+    "scope": "Repository source audit only; hosted policies and external infrastructure were not inspected."
+  },
+  "current_state": {
+    "product": "Planner OS / Planner Dash event planning operating system",
+    "frontend": {
+      "framework": "Next.js App Router",
+      "runtime_versions": {
+        "next": "16.1.6",
+        "react": "19.2.3"
+      },
+      "global_shell_navigation": [
+        "Dashboard",
+        "Events",
+        "Reports",
+        "Settings"
+      ],
+      "event_workspace_navigation": [
+        "Event dashboard",
+        "Run of Show",
+        "Budget",
+        "Docs",
+        "Speakers",
+        "F&B Catalog",
+        "Timeline",
+        "Settings"
+      ],
+      "app_structure": {
+        "shell_layout": "web/app/(shell)/*",
+        "event_workspace": "web/app/(shell)/events/[eventId]/*",
+        "api_routes": "web/app/api/**/route.ts"
+      }
+    },
+    "backend": {
+      "primary_runtime": "Next.js route handlers using Node runtime",
+      "orm": "Prisma",
+      "database": "PostgreSQL",
+      "data_access": {
+        "prisma_singleton": "web/src/server/db/prisma.ts",
+        "schemas": [
+          "prisma/schema.prisma",
+          "web/prisma/schema.prisma"
+        ],
+        "prisma_config": "prisma.config.ts"
+      },
+      "service_boundaries": {
+        "events": "web/lib/events.ts",
+        "event_access": "web/lib/event-access.ts",
+        "matrix_2_snapshot": "web/lib/matrix2.ts",
+        "matrix_2_session_mutation": "web/lib/matrix2-session.ts",
+        "session_requirements": "web/lib/session-requirements.ts",
+        "fnb_catalog": "web/lib/fnb-catalog.ts",
+        "seating": "web/lib/seating.ts",
+        "budget": "web/src/server/services/budget.ts",
+        "documents": "web/src/server/services/documents.ts",
+        "speakers": "web/src/server/services/speakers.ts",
+        "platform_admin": "web/src/server/services/platform-admin.ts"
+      }
+    },
+    "storage": {
+      "document_binary_storage": "Cloudflare R2 via S3-compatible API",
+      "speaker_file_storage": "Cloudflare R2 via S3-compatible API",
+      "local_document_upload_route": "disabled with HTTP 410"
+    },
+    "implemented_modules": {
+      "run_of_show": {
+        "primary_routes": [
+          "/matrix-2",
+          "/events/:eventId/matrix-2",
+          "/events/:eventId/matrix/sessions/:sessionId"
+        ],
+        "current_behavior": [
+          "Matrix 2 is the active Run of Show command center.",
+          "Board/List views share the same MatrixRow-backed snapshot.",
+          "Board session cards expose a quick action launcher for Basics, Speakers, AV, F&B, Staffing, Room Set, Seating, Conflicts, and full workspace.",
+          "Session Quick Change drawer is status-first: basic fields at top, module status cards, compact quick panels for Speakers, AV, F&B, and Staffing only.",
+          "Room Set and Seating actions open the full session Room Set workspace modes rather than inline quick editors."
+        ],
+        "canonical_data": [
+          "MatrixRow owns core schedule/session fields.",
+          "Room owns canonical rooms.",
+          "Speaker and SessionSpeakerAssignment own speaker directory assignment.",
+          "SessionRequirementTemplate/Section/Item/Selection own AV, F&B, Staffing, setup, and status requirement selections.",
+          "EventFnbCatalogItem and SessionFnbCatalogAssignment own canonical F&B catalog/menu assignment.",
+          "EventPerson and SessionStaffAssignment own staffing/person assignment."
+        ]
+      },
+      "room_set_and_seating": {
+        "route": "/events/:eventId/matrix/sessions/:sessionId/room-set?mode=layout|seating",
+        "current_behavior": [
+          "Room Set is the rich layout workspace for a Run of Show session.",
+          "Seating is embedded as a session-scoped mode in the Room Set workspace.",
+          "Seating writes can be scoped by matrixRowId/seatingPlanId and support exact chair assignment via seatIndex."
+        ]
+      },
+      "budget": {
+        "current_behavior": [
+          "Budget line items, submissions, approval/rejection/revision, reporting, import/export, and budget file flows are implemented.",
+          "F&B catalog assignments can sync to budget line items."
+        ]
+      },
+      "docs_hub": {
+        "current_behavior": [
+          "Document upload/presign/finalize, versioning, review submit/pull-back, approve/reject/reopen, categories, download, and link options are implemented."
+        ]
+      },
+      "speakers": {
+        "current_behavior": [
+          "Event-scoped speaker directory is implemented.",
+          "Speaker portal/intake, files, documents, messages, notes, reminders, onsite information, readiness, activity, and read-only planner preview are implemented in source.",
+          "Speaker session assignment integrates with Matrix 2 sessions."
+        ]
+      },
+      "timeline": {
+        "current_behavior": [
+          "Timeline items and dependencies exist with event-scoped service access checks."
+        ]
+      }
+    },
+    "api_surfaces": {
+      "events": [
+        "GET/POST /api/events",
+        "GET/PATCH/DELETE /api/events/:eventId"
+      ],
+      "run_of_show_matrix_2": [
+        "GET /api/events/:eventId/matrix-2",
+        "GET /api/events/:eventId/matrix-2/people",
+        "PATCH /api/events/:eventId/matrix-2/sessions/:sessionId",
+        "POST/DELETE /api/events/:eventId/matrix-2/sessions/:sessionId/speakers/:speakerId",
+        "DELETE /api/events/:eventId/matrix-2/sessions/:sessionId/requirements/:itemId",
+        "GET/POST /api/events/:eventId/matrix-2/sessions/:sessionId/fnb-catalog-assignments",
+        "PATCH/DELETE /api/events/:eventId/matrix-2/sessions/:sessionId/fnb-catalog-assignments/:assignmentId"
+      ],
+      "legacy_matrix_rows": [
+        "GET/POST /api/events/:eventId/matrix-rows",
+        "PATCH/DELETE /api/events/:eventId/matrix-rows/:rowId",
+        "POST /api/events/:eventId/matrix-rows/:rowId/duplicate",
+        "GET /api/events/:eventId/matrix-rows/export.csv"
+      ],
+      "rooms": [
+        "GET/POST /api/events/:eventId/rooms",
+        "PATCH/DELETE /api/events/:eventId/rooms/:roomId"
+      ],
+      "seating": [
+        "GET /api/events/:eventId/seating",
+        "POST /api/events/:eventId/seating/tables",
+        "PATCH/DELETE /api/events/:eventId/seating/tables/:tableId",
+        "POST /api/events/:eventId/seating/attendees",
+        "POST /api/events/:eventId/seating/assign",
+        "POST /api/events/:eventId/seating/unassign"
+      ],
+      "fnb_catalog": [
+        "GET/POST /api/events/:eventId/fnb-catalog",
+        "PATCH/DELETE /api/events/:eventId/fnb-catalog/:itemId",
+        "source menu parse/presign/feedback routes"
+      ],
+      "speakers": [
+        "GET/POST /api/events/:eventId/speakers",
+        "GET/PATCH/DELETE /api/events/:eventId/speakers/:speakerId",
+        "speaker files/documents/messages/notes/activity/reminder/portal-link/onsite/readiness/submission routes",
+        "public speaker intake and portal token routes"
+      ],
+      "budget_documents_timeline": [
+        "Budget, document, timeline item, and timeline dependency API route families remain implemented under /api/events/:eventId/*."
+      ]
+    },
+    "auth_and_authorization": {
+      "request_user_resolution": "resolveRequestUser and ensureProvisionedUserAndContext resolve authenticated app users, org context, and PlatformAdmin context.",
+      "event_visibility": [
+        "SUPER_ADMIN can view across organizations and may use Platform Admin context switching.",
+        "OWNER and ADMIN can list organization events.",
+        "MEMBER and VIEWER event visibility depends on EventMember rows.",
+        "EventMemberRole.EVENT_VIEWER is read-only for guarded event writes."
+      ],
+      "event_access_helper": "assertEventAccessForUser(eventId, user, read|write) centralizes event read/write authorization.",
+      "route_guard_coverage": "Partial but broadening. Matrix 2 snapshot reads, Matrix speaker assignment writes, seating snapshot/assign/unassign, speaker services, budget services, docs review routes, timeline services, and platform routes use server-side auth/access checks. Some Matrix 2 session, requirement, and F&B assignment routes are not yet uniformly wrapped with request-user/event-access guards.",
+      "platform_admin": "SUPER_ADMIN-only platform routes use a canonical Platform Admin gate; normal org users continue through org membership and event access paths."
+    },
+    "schema_guardrail": {
+      "status": "controlled",
+      "rule": "No schema changes without rationale, migration plan, data/backfill review, rollback/remediation notes, tests, and generated Prisma client updates.",
+      "this_doc_update": "Documentation only; no schema or application code changes implied."
+    }
+  },
+  "roadmap_not_current_state": [
+    "Universal event-access guard coverage for every historical event-scoped route.",
+    "Further consolidation of older Matrix routes into the Matrix 2 / Run of Show surface.",
+    "Additional external integration infrastructure beyond snapshot-style stored metrics.",
+    "Any schema change not accompanied by a reviewed migration proposal."
+  ]
+}

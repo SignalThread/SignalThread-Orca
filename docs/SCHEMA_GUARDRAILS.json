@@ -1,0 +1,264 @@
+{
+  "document": "SCHEMA_GUARDRAILS",
+  "audit": {
+    "date": "2026-03-01",
+    "codex_version": "gpt-5-codex",
+    "repo_commit": "f9310e3",
+    "confidence": "high"
+  },
+  "status": "CONTROLLED",
+  "rule": "No unreviewed schema changes. Changes require clear rationale, migration plan, data/backfill considerations, rollback notes, tests, and updated Prisma client.",
+  "tenancy_model": {
+    "hierarchy": [
+      "Organization",
+      "Client",
+      "Event"
+    ],
+    "tenancy_keys": {
+      "organization_scope": "orgId",
+      "client_scope": "clientId (optional on Event)",
+      "event_scope": "eventId"
+    },
+    "multi_tenant": true
+  },
+  "core_models": {
+    "organization_scope": [
+      "Organization",
+      "User",
+      "Membership",
+      "Client"
+    ],
+    "event_scope": [
+      "Event",
+      "EventMember",
+      "Deadline",
+      "EventActivity",
+      "EventIntegrationMetric"
+    ],
+    "budget_domain": [
+      "Budget",
+      "BudgetLineItem",
+      "BudgetSubmission",
+      "BudgetSubmissionRecipient",
+      "BudgetSubmissionLineItem",
+      "BudgetVersion",
+      "BudgetApproval",
+      "BudgetActivity",
+      "BudgetItem"
+    ],
+    "document_domain": [
+      "Document",
+      "DocumentVersion",
+      "DocumentApproval",
+      "DocumentApprovalRecipient",
+      "DocumentCategory",
+      "DocumentTag",
+      "DocumentTagOnDocument",
+      "DocumentLink"
+    ],
+    "operations_domain": [
+      "Room",
+      "MatrixRow",
+      "SeatingTable",
+      "SeatingAttendee",
+      "SeatingAssignment"
+    ]
+  },
+  "enums": {
+    "UserRole": [
+      "OWNER",
+      "ADMIN",
+      "MEMBER",
+      "VIEWER"
+    ],
+    "EventMemberRole": [
+      "EVENT_ADMIN",
+      "EVENT_EDITOR",
+      "EVENT_VIEWER"
+    ],
+    "BudgetStatus": [
+      "DRAFT",
+      "SUBMITTED",
+      "APPROVED",
+      "REJECTED"
+    ],
+    "BudgetSubmissionStatus": [
+      "SUBMITTED",
+      "APPROVED",
+      "REJECTED",
+      "PULLED_BACK"
+    ],
+    "DocumentStatus": [
+      "DRAFT",
+      "IN_REVIEW",
+      "APPROVED",
+      "REJECTED"
+    ],
+    "DocumentApprovalStatus": [
+      "IN_REVIEW",
+      "APPROVED",
+      "REJECTED"
+    ],
+    "DocumentLinkType": [
+      "BUDGET_ITEM",
+      "DEADLINE",
+      "MATRIX_SESSION",
+      "EVENT"
+    ]
+  },
+  "state_machines": {
+    "budget": {
+      "states": [
+        "DRAFT",
+        "SUBMITTED",
+        "APPROVED",
+        "REJECTED"
+      ],
+      "implemented_transitions": [
+        "DRAFT -> SUBMITTED",
+        "SUBMITTED -> APPROVED",
+        "SUBMITTED -> REJECTED",
+        "SUBMITTED -> DRAFT",
+        "REJECTED -> DRAFT"
+      ],
+      "notes": "Budget top-level status is mutated by submission and transition service methods."
+    },
+    "budget_submission": {
+      "states": [
+        "SUBMITTED",
+        "APPROVED",
+        "REJECTED",
+        "PULLED_BACK"
+      ],
+      "implemented_transitions": [
+        "SUBMITTED -> PULLED_BACK",
+        "SUBMITTED -> APPROVED",
+        "SUBMITTED -> REJECTED"
+      ]
+    },
+    "document": {
+      "states": [
+        "DRAFT",
+        "IN_REVIEW",
+        "APPROVED",
+        "REJECTED"
+      ],
+      "implemented_transitions": [
+        "DRAFT -> IN_REVIEW",
+        "IN_REVIEW -> DRAFT",
+        "IN_REVIEW -> APPROVED",
+        "IN_REVIEW -> REJECTED",
+        "REJECTED -> DRAFT"
+      ],
+      "notes": "Pull-back is represented by Document.status returning to DRAFT; DocumentApproval status remains IN_REVIEW and pull-back signal is encoded in note."
+    },
+    "document_approval": {
+      "states": [
+        "IN_REVIEW",
+        "APPROVED",
+        "REJECTED"
+      ],
+      "notes": "No separate PULLED_BACK enum value exists in DocumentApprovalStatus."
+    }
+  },
+  "versioning": {
+    "budget": {
+      "models": [
+        "BudgetVersion",
+        "BudgetSubmission",
+        "BudgetSubmissionLineItem"
+      ],
+      "current_pointer": "Budget.currentVersionId",
+      "unique_keys": [
+        "BudgetVersion(budgetId, versionNumber)",
+        "BudgetSubmissionLineItem(submissionId, budgetLineItemId)"
+      ]
+    },
+    "documents": {
+      "models": [
+        "DocumentVersion"
+      ],
+      "unique_keys": [
+        "DocumentVersion(documentId, versionNumber)"
+      ]
+    }
+  },
+  "drift_risks": [
+    {
+      "risk": "Legacy and new budget item models coexist (BudgetItem and BudgetLineItem), creating potential query drift if mixed accidentally.",
+      "evidence": [
+        "/Users/ali/Documents/planner-os/prisma/schema.prisma:187-208",
+        "/Users/ali/Documents/planner-os/prisma/schema.prisma:423-440"
+      ]
+    },
+    {
+      "risk": "Document category compatibility code handles missing eventId column, indicating potential DB/runtime drift versus current Prisma model.",
+      "evidence": [
+        "/Users/ali/Documents/planner-os/prisma/schema.prisma:349-362",
+        "/Users/ali/Documents/planner-os/web/src/server/services/documents.ts:1442-1514"
+      ]
+    },
+    {
+      "risk": "Document review workflow remains tightly coupled to route/service contracts; keep API path canonical at /review/submit.",
+      "evidence": [
+        "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/documents/[documentId]/review/submit/route.ts:16-47",
+        "/Users/ali/Documents/planner-os/web/src/server/services/documents.ts:1300-1382"
+      ]
+    }
+  ],
+  "notes": {
+    "verified_from": [
+      {
+        "section": "tenancy_model and core_models",
+        "refs": [
+          "/Users/ali/Documents/planner-os/prisma/schema.prisma:15-119",
+          "/Users/ali/Documents/planner-os/prisma/schema.prisma:134-561"
+        ]
+      },
+      {
+        "section": "enums",
+        "refs": [
+          "/Users/ali/Documents/planner-os/prisma/schema.prisma:563-696"
+        ]
+      },
+      {
+        "section": "budget state machine",
+        "refs": [
+          "/Users/ali/Documents/planner-os/web/src/server/services/budget.ts:566-714",
+          "/Users/ali/Documents/planner-os/web/src/server/services/budget.ts:716-883",
+          "/Users/ali/Documents/planner-os/web/src/server/services/budget.ts:885-1045"
+        ]
+      },
+      {
+        "section": "document state machine and approval persistence",
+        "refs": [
+          "/Users/ali/Documents/planner-os/web/src/server/services/documents.ts:1300-1382",
+          "/Users/ali/Documents/planner-os/web/src/server/services/documents.ts:1266-1297"
+        ]
+      },
+      {
+        "section": "versioning",
+        "refs": [
+          "/Users/ali/Documents/planner-os/prisma/schema.prisma:279-296",
+          "/Users/ali/Documents/planner-os/prisma/schema.prisma:391-407",
+          "/Users/ali/Documents/planner-os/prisma/schema.prisma:244-253"
+        ]
+      }
+    ],
+    "unverified": [
+      {
+        "item": "Live database schema parity with prisma/schema.prisma (no direct DB introspection in this audit).",
+        "looked_in": [
+          "/Users/ali/Documents/planner-os/prisma/schema.prisma",
+          "/Users/ali/Documents/planner-os/prisma/migrations"
+        ]
+      },
+      {
+        "item": "Supabase RLS policies and dashboard-level access controls.",
+        "looked_in": [
+          "/Users/ali/Documents/planner-os (searched for supabase/, policies/, sql/ directories; none found in tracked source paths)"
+        ]
+      }
+    ]
+  }
+}

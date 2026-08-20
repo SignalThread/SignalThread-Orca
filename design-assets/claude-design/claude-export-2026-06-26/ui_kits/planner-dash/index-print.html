@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Planner Dash — SignalThread (print)</title>
+<link rel="stylesheet" href="../../styles.css" />
+<script>
+  // Deep-link the print copy straight into the authed Platform Users view.
+  window.__ST_START_AUTHED = true;
+  window.__ST_START_NAV = "users";
+</script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { margin: 0; height: auto; background: var(--surface-canvas); }
+  #root { min-height: 0; }
+
+  @page { size: letter landscape; margin: 0; }
+
+  @media print {
+    body { padding: 0.45in 0.5in; background: var(--surface-canvas); }
+
+    /* Freeze any entrance animation/transition at its end state. */
+    *, *::before, *::after {
+      animation-delay: -99s !important; animation-duration: .001s !important;
+      animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+      animation-play-state: running !important; transition-duration: 0s !important;
+    }
+
+    /* Reflow the fixed app shell into normal page flow. */
+    #root > div { min-height: 0 !important; background: transparent !important; }
+    #root > div > aside { display: none !important; }          /* nav chrome */
+    #root > div > div { margin-left: 0 !important; min-height: 0 !important; }
+
+    /* Top bar: keep as a document header, drop interactive chrome height. */
+    #root > div > div > header {
+      height: auto !important; padding: 0 0 14px 0 !important;
+      border-bottom: 1px solid var(--border-subtle) !important; margin-bottom: 18px !important;
+    }
+    main { padding: 0 !important; }
+    main > div { max-width: none !important; width: auto !important; }
+
+    /* Keep grouped units whole across page breaks. */
+    section > div, .st-card, table { break-inside: avoid; }
+    h2, h3 { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" fill="#28439A"/>
+  <rect x="30" y="30" width="40" height="40" rx="8" fill="#ffffff"/>
+  <text x="50" y="58" font-family="sans-serif" font-size="22" font-weight="700" fill="#28439A" text-anchor="middle">ST</text>
+</svg>
+</template>
+<div id="root"></div>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="Shell.jsx"></script>
+<script type="text/babel" src="LoginScreen.jsx"></script>
+<script type="text/babel" src="EventsScreen.jsx"></script>
+<script type="text/babel" src="PlatformUsersScreen.jsx"></script>
+<script type="text/babel" src="App.jsx"></script>
+<script>
+  addEventListener('load', () => {
+    (async () => {
+      // Wait for Babel to transpile + React to mount.
+      const start = Date.now();
+      while (!document.querySelector('#root main') && Date.now() - start < 8000) {
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      try { await document.fonts.ready; } catch (e) {}
+      const imgs = Array.from(document.images).filter((i) => !i.complete);
+      await Promise.race([
+        Promise.allSettled(imgs.map((i) => i.decode())),
+        new Promise((r) => setTimeout(r, 8000)),
+      ]);
+      setTimeout(() => window.print(), 600);
+    })();
+  });
+</script>
+</body>
+</html>

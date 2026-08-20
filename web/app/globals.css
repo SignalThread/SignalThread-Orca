@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import "./dashboard-tokens.css";
+
+:root {
+  --background: #f8f8fb;
+  --foreground: #334155;
+  --font-hero: var(--font-montserrat), Montserrat, system-ui, sans-serif;
+  --font-body: var(--font-montserrat), Montserrat, system-ui, sans-serif;
+  --orca-blue: #00167a;
+  --orca-os-cyan: #00c3cc;
+  --orca-os-blue: #3372e3;
+  --orca-os-purple: #7426ef;
+  --orca-os-gradient: linear-gradient(
+    135deg,
+    #00c3cc 0%,
+    #3372e3 48%,
+    #7426ef 100%
+  );
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: #0040ff;
+  --color-primary-light: #eef4ff;
+  --color-warning: #eab308;
+  --color-warning-light: #fefce8;
+  --color-danger: #dc2626;
+  --color-danger-light: #fef2f2;
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  --font-hero: var(--font-montserrat), Montserrat, system-ui, sans-serif;
+  --font-body: var(--font-montserrat), Montserrat, system-ui, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+
+html,
+body {
+  font-size: 15px;
+}
+
+.btn-primary {
+  @apply rounded bg-primary px-4 py-2 font-medium text-white transition hover:bg-[var(--orca-blue)];
+}
+
+.dropdown-item {
+  @apply block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-primary-light hover:text-primary;
+}

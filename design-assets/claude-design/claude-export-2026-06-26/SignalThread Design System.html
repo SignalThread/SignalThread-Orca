@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SignalThread Design System</title>
+<link rel="stylesheet" href="./styles.css" />
+<style>
+  :root { --page-w: 760px; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--surface-canvas, #f8f8fb);
+    font-family: var(--font-sans, system-ui, sans-serif);
+    color: var(--text-body, #334155);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: var(--page-w);
+    margin: 0 auto;
+    padding: 56px 0 80px;
+  }
+
+  /* ---- Cover ---- */
+  .cover {
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    background: var(--surface-card, #fff);
+    border-radius: var(--radius-lg, 16px);
+    padding: 44px 40px;
+    margin-bottom: 40px;
+  }
+  .cover img { height: 30px; display: block; margin-bottom: 28px; }
+  .eyebrow {
+    font-size: 10px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--text-subtle, #94a3b8);
+    margin: 0 0 12px;
+  }
+  .cover h1 {
+    font-size: 40px; line-height: 1.05; font-weight: 600;
+    color: var(--text-strong, #0f172a); margin: 0 0 14px; letter-spacing: -.01em;
+  }
+  .cover p {
+    font-size: 15px; line-height: 1.55; color: var(--text-muted, #64748b);
+    margin: 0; max-width: 60ch;
+  }
+  .meta-row {
+    display: flex; gap: 28px; margin-top: 28px; padding-top: 22px;
+    border-top: 1px solid var(--border-subtle, #e2e8f0);
+  }
+  .meta-row div { font-size: 12px; color: var(--text-muted, #64748b); }
+  .meta-row strong { display: block; font-size: 11px; font-weight: 600;
+    letter-spacing: .05em; text-transform: uppercase; color: var(--text-subtle, #94a3b8); margin-bottom: 5px; }
+
+  /* ---- Section ---- */
+  .section { margin-top: 14px; }
+  .section-head {
+    display: flex; align-items: baseline; gap: 12px;
+    margin: 38px 0 18px; padding-bottom: 10px;
+    border-bottom: 2px solid var(--text-strong, #0f172a);
+  }
+  .section-head h2 {
+    font-size: 22px; font-weight: 600; color: var(--text-strong, #0f172a); margin: 0;
+  }
+  .section-head .count {
+    font-size: 11px; font-family: var(--font-mono, monospace);
+    color: var(--text-subtle, #94a3b8); white-space: nowrap; flex-shrink: 0;
+  }
+
+  /* ---- Card specimen ---- */
+  .spec {
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    background: var(--surface-card, #fff);
+    border-radius: var(--radius-lg, 16px);
+    overflow: hidden;
+    margin-bottom: 22px;
+    box-shadow: var(--shadow-card, 0 1px 2px rgba(15,23,42,.04));
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .spec-head {
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+  }
+  .spec-head .name { font-size: 14px; font-weight: 600; color: var(--text-heading, #1e293b); }
+  .spec-head .sub { font-size: 12px; color: var(--text-muted, #64748b); margin-top: 2px; }
+  .spec iframe { width: 100%; border: 0; display: block; }
+
+  @page { size: A4 portrait; margin: 0; }
+  @media print {
+    .page { padding-top: 36px; }
+    .section-head { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <img src="./assets/signalthread-logo.png" alt="SignalThread" />
+    <p class="eyebrow">Design System · Foundations</p>
+    <h1>SignalThread Design System</h1>
+    <p>The shared product UI system behind SignalThread — soft canvas backgrounds, white border-led cards, slate text, and a deep indigo-blue primary. This reference collects the foundation specimens: brand, color, type, and spacing.</p>
+    <div class="meta-row">
+      <div><strong>Primary</strong>#28439A indigo-blue</div>
+      <div><strong>Type</strong>Geist · Geist Mono</div>
+      <div><strong>Canvas</strong>#f8f8fb</div>
+      <div><strong>Version</strong>June 2026</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>Brand</h2><span class="count">2 specimens</span></div>
+    <div class="spec">
+      <div class="spec-head"><div class="name">Logo</div><div class="sub">The SignalThread wordmark + signal waveform</div></div>
+      <iframe src="./guidelines/brand-logo.card.html" height="180" scrolling="no"></iframe>
+    </div>
+    <div class="spec">
+      <div class="spec-head"><div class="name">Brand palette</div><div class="sub">Navy wordmark, blue→cyan waveform, orange signal pulse</div></div>
+      <iframe src="./guidelines/brand-palette.card.html" height="150" scrolling="no"></iframe>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>Colors</h2><span class="count">4 specimens</span></div>
+    <div class="spec">
+      <div class="spec-head"><div class="name">Primary action</div><div class="sub">Deep indigo-blue — buttons, active nav, links (#28439A)</div></div>
+      <iframe src="./guidelines/color-primary.card.html" height="150" scrolling="no"></iframe>
+    </div>
+    <div class="spec">
+      <div class="spec-head"><div class="name">Slate neutrals</div><div class="sub">Text, borders, surfaces — the structural backbone</div></div>
+      <iframe src="./guidelines/color-neutrals.card.html" height="150" scrolling="no"></iframe>
+    </div>
+    <div class="spec">
+      <div class="spec-head"><div class="name">Surfaces & text</div><div class="sub">Canvas, card, borders, and the text ramp</div></div>
+      <iframe src="./guidelines/color-surfaces.card.html" height="150" scrolling="no"></iframe>
+    </div>
+    <div class="spec">
+      <div class="spec-head"><div class="name">Semantic status</div><div class="sub">success · warning · danger · info · accent role tints</div></div>
+      <iframe src="./guidelines/color-semantic.card.html" height="160" scrolling="no"></iframe>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>Type</h2><span class="count">2 specimens</span></div>
+    <div class="spec">
+      <div class="spec-head"><div class="name">Families & weights</div><div class="sub">Geist Sans for everything · Geist Mono for IDs and code</div></div>
+      <iframe src="./guidelines/type-families.card.html" height="150" scrolling="no"></iframe>
+    </div>
+    <div class="spec">
+      <div class="spec-head"><div class="name">Type scale</div><div class="sub">Geist — page title to micro label</div></div>
+      <iframe src="./guidelines/type-scale.card.html" height="180" scrolling="no"></iframe>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>Spacing</h2><span class="count">2 specimens</span></div>
+    <div class="spec">
+      <div class="spec-head"><div class="name">Spacing scale</div><div class="sub">4px base grid — the rhythm of every layout</div></div>
+      <iframe src="./guidelines/spacing-scale.card.html" height="150" scrolling="no"></iframe>
+    </div>
+    <div class="spec">
+      <div class="spec-head"><div class="name">Radius & elevation</div><div class="sub">Soft corners, border-led cards, whisper shadows</div></div>
+      <iframe src="./guidelines/spacing-radius.card.html" height="150" scrolling="no"></iframe>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

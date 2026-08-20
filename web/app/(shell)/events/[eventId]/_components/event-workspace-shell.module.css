@@ -1,0 +1,30 @@
+.sidebarCollapsed {
+  width: 80px !important;
+}
+
+.sidebarExpanded {
+  width: 280px !important;
+}
+
+.contentCollapsed {
+  width: calc(100% - 80px) !important;
+  margin-left: 80px !important;
+}
+
+.contentExpanded {
+  width: calc(100% - 280px) !important;
+  margin-left: 280px !important;
+}
+
+@media (max-width: 720px) {
+  .sidebarCollapsed,
+  .sidebarExpanded {
+    width: 20.5128vw !important;
+  }
+
+  .contentCollapsed,
+  .contentExpanded {
+    width: 79.4872vw !important;
+    margin-left: 20.5128vw !important;
+  }
+}

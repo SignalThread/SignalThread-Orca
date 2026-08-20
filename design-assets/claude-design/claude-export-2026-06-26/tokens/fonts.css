@@ -1,0 +1,8 @@
+/* ============================================================
+   SignalThread — Webfonts
+   Geist + Geist Mono. These ARE the product's real typefaces
+   (loaded as next/font in @signalthread/ui); here served from
+   Google Fonts so consumers get them with one import.
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap");

@@ -1,0 +1,115 @@
+/* ============================================================
+   SignalThread — Color tokens
+   Base palette (slate neutrals + brand + product accents)
+   and semantic aliases. Grounded in @signalthread/ui:
+   canvas #f8f8fb, slate text, #28439A primary action.
+   ============================================================ */
+
+:root {
+  /* ---- Neutrals (slate scale) ---- */
+  --slate-50:  #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+
+  /* The app canvas — a hair cooler/softer than slate-50 */
+  --canvas: #f8f8fb;
+  --white: #ffffff;
+
+  /* ---- Brand (from the SignalThread mark) ---- */
+  --brand-navy:   #183060; /* wordmark */
+  --brand-blue:   #3078c0; /* waveform */
+  --brand-cyan:   #30a8d8; /* waveform tail */
+  --brand-orange: #f07830; /* signal dot + arcs */
+
+  /* ---- Primary product action (deep indigo-blue) ---- */
+  --primary-50:   #eef2fb;
+  --primary-100:  #dbe3f6;
+  --primary-200:  #b7c5ec;
+  --primary-500:  #3551ab;
+  --primary-600:  #28439a; /* default button / active nav */
+  --primary-700:  #243d8e; /* hover */
+  --primary-800:  #1f3d8f; /* headings, links */
+  --primary-900:  #182f6b;
+
+  /* ---- Semantic status scales ---- */
+  /* success / positive */
+  --success-50:  #ecfdf5;
+  --success-100: #d1fae5;
+  --success-200: #a7f3d0;
+  --success-600: #059669;
+  --success-700: #047857;
+  --success-800: #065f46;
+
+  /* warning / needs-attention */
+  --warning-50:  #fffbeb;
+  --warning-100: #fef3c7;
+  --warning-200: #fde68a;
+  --warning-600: #d97706;
+  --warning-700: #b45309;
+  --warning-800: #92400e;
+
+  /* danger / destructive */
+  --danger-50:  #fff1f2;
+  --danger-100: #ffe4e6;
+  --danger-200: #fecdd3;
+  --danger-600: #e11d48;
+  --danger-700: #be123c;
+  --danger-800: #9f1239;
+
+  /* info / in-progress */
+  --info-50:  #eff6ff;
+  --info-100: #dbeafe;
+  --info-200: #bfdbfe;
+  --info-600: #2563eb;
+  --info-700: #1d4ed8;
+  --info-800: #1e40af;
+
+  /* accent / elevated role (SUPER ADMIN, OWNER) */
+  --violet-50:  #f5f3ff;
+  --violet-100: #ede9fe;
+  --violet-200: #ddd6fe;
+  --violet-600: #7c3aed;
+  --violet-700: #6d28d9;
+  --violet-800: #5b21b6;
+
+  /* ============================================================
+     SEMANTIC ALIASES — reference these in product code
+     ============================================================ */
+
+  /* surfaces */
+  --surface-canvas: var(--canvas);
+  --surface-card:   var(--white);
+  --surface-muted:  var(--slate-50);
+  --surface-sunken: var(--slate-100);
+  --surface-inverse: var(--slate-900);
+
+  /* borders */
+  --border-subtle: var(--slate-200);
+  --border-strong: var(--slate-300);
+  --border-focus:  var(--primary-600);
+
+  /* text */
+  --text-strong:   var(--slate-900);
+  --text-heading:  var(--slate-800);
+  --text-body:     var(--slate-700);
+  --text-muted:    var(--slate-500);
+  --text-subtle:   var(--slate-400);
+  --text-on-primary: var(--white);
+  --text-link:     var(--primary-800);
+
+  /* actions */
+  --accent-primary:        var(--primary-600);
+  --accent-primary-hover:  var(--primary-700);
+  --accent-primary-soft:   var(--primary-50);
+
+  /* focus ring */
+  --ring: color-mix(in srgb, var(--primary-600) 35%, transparent);
+}

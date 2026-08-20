@@ -1,0 +1,15 @@
+@import "./tokens.css";
+
+.st-theme {
+  background: var(--st-bg-canvas);
+  color: var(--st-text-secondary);
+  font-family: var(--st-font-sans);
+}
+
+.st-focus-ring {
+  outline: none;
+}
+
+.st-focus-ring:focus-visible {
+  box-shadow: var(--st-focus-ring);
+}

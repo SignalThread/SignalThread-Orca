@@ -1,0 +1,2 @@
+-- This migration is a baseline for an existing change already present in the DB.
+-- It is intentionally empty so Prisma's migration history matches the live schema.

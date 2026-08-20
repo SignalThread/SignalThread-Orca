@@ -1,0 +1,88 @@
+import { NextRequest, NextResponse } from "next/server";
+import { observeHandledRouteError, withApiRequestLogging } from "@/lib/observability/api-route";
+import { setRequestUserId } from "@/lib/observability/request-context";
+import { PlatformAdminAuthError, requirePlatformAdmin } from "@/src/server/auth/platform-admin";
+import {
+  PlatformAdminServiceError,
+  revokeUserEventAccess,
+} from "@/src/server/services/platform-admin";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function authErrorResponse(error: PlatformAdminAuthError): NextResponse {
+  return NextResponse.json(
+    {
+      message: error.status === 401 ? "Unauthorized" : "Forbidden",
+      reason: error.reason,
+      hint: error.hint,
+    },
+    { status: error.status },
+  );
+}
+
+function serviceErrorResponse(error: PlatformAdminServiceError): NextResponse {
+  return NextResponse.json(
+    {
+      message: error.message,
+      reason: error.reason,
+    },
+    { status: error.status },
+  );
+}
+
+function invalidUuidResponse(field: string): NextResponse {
+  return NextResponse.json(
+    {
+      message: "Bad Request",
+      reason: "INVALID_UUID",
+      hint: `${field} must be a valid UUID.`,
+    },
+    { status: 400 },
+  );
+}
+
+function unknownErrorResponse(error: unknown, context: string): NextResponse {
+  observeHandledRouteError(error);
+  console.error(`${context} failed`, error);
+  return NextResponse.json(
+    {
+      message: "Internal server error",
+      reason: "PLATFORM_EVENT_MEMBER_ERROR",
+    },
+    { status: 500 },
+  );
+}
+
+async function deleteHandler(
+  request: NextRequest,
+  { params }: { params: Promise<{ orgId: string; eventId: string; userId: string }> },
+) {
+  try {
+    const user = await requirePlatformAdmin(request);
+    setRequestUserId(user.id);
+
+    const { orgId, eventId, userId } = await params;
+    if (!UUID_REGEX.test(orgId)) return invalidUuidResponse("orgId");
+    if (!UUID_REGEX.test(eventId)) return invalidUuidResponse("eventId");
+    if (!UUID_REGEX.test(userId)) return invalidUuidResponse("userId");
+
+    const result = await revokeUserEventAccess(orgId, eventId, userId);
+    return NextResponse.json({ result });
+  } catch (error) {
+    if (error instanceof PlatformAdminAuthError) {
+      return authErrorResponse(error);
+    }
+    if (error instanceof PlatformAdminServiceError) {
+      return serviceErrorResponse(error);
+    }
+    return unknownErrorResponse(error, "DELETE /api/platform/accounts/[orgId]/events/[eventId]/members/[userId]");
+  }
+}
+
+export const DELETE = withApiRequestLogging(
+  "DELETE /api/platform/accounts/[orgId]/events/[eventId]/members/[userId]",
+  deleteHandler,
+);

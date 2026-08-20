@@ -1,0 +1,54 @@
+/* ============================================================
+   SignalThread — Typography tokens
+   Geist (sans) + Geist Mono. Base 15px, compact SaaS scale.
+   ============================================================ */
+
+:root {
+  /* ---- Families ---- */
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", "Menlo",
+    "Consolas", monospace;
+
+  /* ---- Sizes (px / line-height) ---- */
+  --text-label: 10px;   /* table headers, eyebrows — UPPERCASE */
+  --text-xs:    12px;   /* badges, captions */
+  --text-sm:    13px;   /* table cells, dense body */
+  --text-base:  14px;   /* default body / controls */
+  --text-md:    15px;   /* root size */
+  --text-lg:    20px;   /* card titles, subheads */
+  --text-xl:    24px;   /* section titles */
+  --text-2xl:   30px;   /* page wordmark */
+  --text-3xl:   32px;   /* page titles */
+
+  --leading-label: 16px;
+  --leading-xs:    16px;
+  --leading-sm:    18px;
+  --leading-base:  20px;
+  --leading-lg:    24px;
+  --leading-xl:    28px;
+  --leading-2xl:   30px;
+  --leading-3xl:   36px;
+
+  /* ---- Weights ---- */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --weight-extrabold: 800;
+
+  /* ---- Tracking ---- */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:  0.05em;  /* uppercase labels */
+
+  /* ============================================================
+     SEMANTIC TYPE ROLES
+     ============================================================ */
+  --type-page-title:  var(--weight-semibold) var(--text-3xl)/var(--leading-3xl) var(--font-sans);
+  --type-section:     var(--weight-semibold) var(--text-xl)/var(--leading-xl) var(--font-sans);
+  --type-card-title:  var(--weight-semibold) var(--text-lg)/var(--leading-lg) var(--font-sans);
+  --type-body:        var(--weight-regular) var(--text-base)/var(--leading-base) var(--font-sans);
+  --type-body-sm:     var(--weight-regular) var(--text-sm)/var(--leading-sm) var(--font-sans);
+  --type-label:       var(--weight-semibold) var(--text-label)/var(--leading-label) var(--font-sans);
+}

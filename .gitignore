@@ -1,0 +1,25 @@
+.env
+
+/generated/prisma
+cookies.txt
+
+node_modules/
+.next/
+packages/*/dist/
+
+web/test-results/
+web/playwright-report/
+
+.DS_Store
+
+.DS_Store
+.vercel/
+
+# Claude Code local state
+.claude/
+.vercel
+.env*
+
+# Generated local simulation artifacts
+web/tmp/
+web/roomset-sim-results.json

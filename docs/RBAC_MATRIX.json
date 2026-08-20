@@ -1,0 +1,170 @@
+{
+  "document": "RBAC_MATRIX",
+  "audit": {
+    "date": "2026-03-01",
+    "codex_version": "gpt-5-codex",
+    "repo_commit": "f9310e3",
+    "confidence": "medium"
+  },
+  "role_sources": {
+    "organization_roles": [
+      "OWNER",
+      "ADMIN",
+      "MEMBER",
+      "VIEWER"
+    ],
+    "event_roles": [
+      "EVENT_ADMIN",
+      "EVENT_EDITOR",
+      "EVENT_VIEWER"
+    ]
+  },
+  "surfaces": {
+    "dashboard": "planned_not_enforced",
+    "events": "planned_not_enforced",
+    "timeline": "planned_not_enforced",
+    "budgets": "planned_not_enforced",
+    "matrix": "planned_not_enforced",
+    "seating": "planned_not_enforced",
+    "docs_hub": "planned_not_enforced",
+    "reports": "planned_not_enforced",
+    "settings": "planned_not_enforced"
+  },
+  "action_matrix": {
+    "events": {
+      "list": {
+        "endpoint": "GET /api/events",
+        "enforcement": "orgId query param required; no auth guard in route"
+      },
+      "create": {
+        "endpoint": "POST /api/events",
+        "enforcement": "authenticated user required via resolveRequestUser; orgId derived from user row"
+      },
+      "update_delete": {
+        "endpoint": "PATCH/DELETE /api/events/:eventId",
+        "enforcement": "no auth/role guard in route"
+      }
+    },
+    "budgets": {
+      "snapshot_and_line_item_crud": {
+        "endpoint": "GET /api/events/:eventId/budget, POST /budget/line-items, PATCH/DELETE /budget/line-items/:id",
+        "enforcement": "no auth/role guard in these routes"
+      },
+      "submission_create_pullback": {
+        "endpoint": "POST /budget/submissions, POST /budget/submissions/:submissionId/pullback",
+        "enforcement": "authenticated user required via resolveRequestUser"
+      },
+      "approve_reject_revise_simulate": {
+        "endpoint": "POST /budget/approve, /budget/reject, /budget/revise, /budget/submissions/:id/simulate-*",
+        "enforcement": "no route-level auth guard; actorUserId may come from body in some routes"
+      }
+    },
+    "documents": {
+      "list_create_metadata_download_presign_categories": {
+        "endpoint": "GET/POST /documents, GET/PATCH /documents/:documentId, GET /documents/:documentId/download, POST /documents/presign, GET/POST /document-categories",
+        "enforcement": "no route-level auth guard"
+      },
+      "finalize_and_review_actions": {
+        "endpoint": "POST /documents/:documentId/finalize-upload, POST /documents/:documentId/review/submit, POST /documents/:documentId/review/pull-back, POST /documents/:documentId/approve|reject|reopen",
+        "enforcement": "authenticated user required via resolveRequestUser"
+      }
+    },
+    "matrix": {
+      "crud_and_export": {
+        "endpoint": "GET/POST /matrix-rows, PATCH/DELETE /matrix-rows/:rowId, POST /matrix-rows/:rowId/duplicate, GET /matrix-rows/export.csv",
+        "enforcement": "no auth/role guard in routes"
+      }
+    },
+    "seating": {
+      "snapshot_and_mutations": {
+        "endpoint": "GET /seating, POST /seating/tables, PATCH/DELETE /seating/tables/:tableId, POST /seating/attendees, POST /seating/assign, POST /seating/unassign",
+        "enforcement": "no auth/role guard in routes"
+      }
+    }
+  },
+  "enforcement_summary": {
+    "middleware": "none found",
+    "auth_helper": "resolveRequestUser returns user id + orgId (session headers/cookies; dev fallback supported)",
+    "role_checks": "not implemented in API handlers/services",
+    "overall": "partial_auth_without_rbac"
+  },
+  "notes": {
+    "verified_from": [
+      {
+        "section": "roles defined in schema",
+        "refs": [
+          "/Users/ali/Documents/planner-os/prisma/schema.prisma:563-581"
+        ]
+      },
+      {
+        "section": "navigation surfaces",
+        "refs": [
+          "/Users/ali/Documents/planner-os/web/app/(shell)/_components/sidebar-nav.tsx:17-27"
+        ]
+      },
+      {
+        "section": "auth helper behavior",
+        "refs": [
+          "/Users/ali/Documents/planner-os/web/lib/request-user.ts:14-99"
+        ]
+      },
+      {
+        "section": "event routes auth mix",
+        "refs": [
+          "/Users/ali/Documents/planner-os/web/app/api/events/route.ts:36-49",
+          "/Users/ali/Documents/planner-os/web/app/api/events/route.ts:61-125",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/route.ts:10-104"
+        ]
+      },
+      {
+        "section": "budget routes auth mix",
+        "refs": [
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/budget/route.ts:13-24",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/budget/line-items/route.ts:13-31",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/budget/submissions/route.ts:47-95",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/budget/submissions/[submissionId]/pullback/route.ts:19-33"
+        ]
+      },
+      {
+        "section": "documents routes auth mix",
+        "refs": [
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/documents/route.ts:23-63",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/documents/[documentId]/finalize-upload/route.ts:31-44",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/documents/[documentId]/review/submit/route.ts:30-47",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/documents/[documentId]/review/pull-back/route.ts:30-47"
+        ]
+      },
+      {
+        "section": "matrix and seating routes lack auth guards",
+        "refs": [
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/matrix-rows/route.ts:64-114",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/matrix-rows/[rowId]/route.ts:15-69",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/seating/route.ts:13-24",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/seating/assign/route.ts:13-39",
+          "/Users/ali/Documents/planner-os/web/app/api/events/[eventId]/seating/attendees/route.ts:13-39"
+        ]
+      },
+      {
+        "section": "no middleware-level route protection",
+        "refs": [
+          "/Users/ali/Documents/planner-os/web/middleware.ts (file not present)"
+        ]
+      }
+    ],
+    "unverified": [
+      {
+        "item": "Database-level RLS or policy enforcement outside app code.",
+        "looked_in": [
+          "/Users/ali/Documents/planner-os (searched for supabase/, policies/, sql/ directories; none found in app source tree)"
+        ]
+      },
+      {
+        "item": "External auth provider role mapping (if any) to internal User.role.",
+        "looked_in": [
+          "/Users/ali/Documents/planner-os/web/lib/request-user.ts",
+          "/Users/ali/Documents/planner-os/web/app/api"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+:root {
+  /*
+   * SignalThread token source of truth.
+   * Claude exports are reference material only; map any borrowed aliases back
+   * to these values unless a separate visual redesign is approved.
+   */
+  --st-bg-canvas: #f8f8fb;
+  --st-bg-surface: #ffffff;
+  --st-bg-panel: #f1f5f9;
+  --st-bg-overlay: rgba(15, 23, 42, 0.42);
+
+  --st-border-default: #cbd5e1;
+  --st-border-subtle: #e2e8f0;
+  --st-border-strong: #94a3b8;
+
+  --st-text-primary: #0f172a;
+  --st-text-secondary: #334155;
+  --st-text-muted: #64748b;
+  --st-text-inverse: #ffffff;
+
+  --st-action-primary: #28439a;
+  --st-action-primary-hover: #243d8e;
+  --st-action-primary-soft: #e8edff;
+  --st-action-danger: #dc2626;
+  --st-action-danger-hover: #b91c1c;
+  --st-action-danger-soft: #fef2f2;
+
+  --st-shell-nav: #0b1638;
+
+  --st-brand-navy: #183060;
+  --st-brand-blue: #3078c0;
+  --st-brand-cyan: #30a8d8;
+  --st-brand-signal-orange: #f07830;
+
+  --st-surface-canvas: var(--st-bg-canvas);
+  --st-surface-card: var(--st-bg-surface);
+  --st-surface-panel: var(--st-bg-panel);
+  --st-accent-primary: var(--st-action-primary);
+  --st-accent-primary-hover: var(--st-action-primary-hover);
+  --st-accent-primary-soft: var(--st-action-primary-soft);
+  --st-shell-nav-dark: var(--st-shell-nav);
+  --st-text-on-dark: var(--st-text-inverse);
+
+  --st-status-success: #16a34a;
+  --st-status-success-bg: #f0fdf4;
+  --st-status-success-border: #bbf7d0;
+  --st-status-warning: #d97706;
+  --st-status-warning-bg: #fffbeb;
+  --st-status-warning-border: #fde68a;
+  --st-status-danger: #dc2626;
+  --st-status-danger-bg: #fef2f2;
+  --st-status-danger-border: #fecaca;
+  --st-status-info: #2563eb;
+  --st-status-info-bg: #eff6ff;
+  --st-status-info-border: #bfdbfe;
+  --st-status-neutral: #64748b;
+  --st-status-neutral-bg: #f8fafc;
+  --st-status-neutral-border: #e2e8f0;
+
+  --st-font-sans: var(--font-montserrat, Montserrat, Arial, Helvetica, sans-serif);
+  --st-font-mono: var(--font-geist-mono, "SFMono-Regular", Consolas, monospace);
+  --st-font-product-sans: var(--st-font-sans);
+  --st-font-code-mono: var(--st-font-mono);
+
+  --st-text-xs: 0.75rem;
+  --st-text-sm: 0.875rem;
+  --st-text-md: 0.9375rem;
+  --st-text-lg: 1rem;
+  --st-text-xl: 1.125rem;
+  --st-text-display-sm: 1.625rem;
+
+  --st-space-1: 0.25rem;
+  --st-space-2: 0.5rem;
+  --st-space-3: 0.75rem;
+  --st-space-4: 1rem;
+  --st-space-5: 1.25rem;
+  --st-space-6: 1.5rem;
+  --st-space-8: 2rem;
+  --st-space-10: 2.5rem;
+  --st-space-12: 3rem;
+
+  --st-radius-sm: 0.375rem;
+  --st-radius-md: 0.5rem;
+  --st-radius-lg: 0.75rem;
+  --st-radius-xl: 1rem;
+  --st-radius-2xl: 1.5rem;
+  --st-radius-full: 9999px;
+
+  --st-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --st-shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --st-shadow-popover: 0 24px 70px -30px rgba(15, 23, 42, 0.45);
+  --st-shadow-modal: 0 24px 80px rgba(15, 23, 42, 0.18);
+
+  --st-focus-ring: 0 0 0 4px rgba(40, 67, 154, 0.16);
+  --st-motion-fast: 120ms;
+  --st-motion-base: 180ms;
+  --st-motion-slow: 260ms;
+  --st-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}

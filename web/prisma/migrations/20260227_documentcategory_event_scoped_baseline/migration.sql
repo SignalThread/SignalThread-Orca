@@ -1,0 +1,3 @@
+-- Baseline migration.
+-- DocumentCategory is already event-scoped in the live DB (eventId, slug, orgId removed).
+-- This file is intentionally empty to align migration history with the live schema.

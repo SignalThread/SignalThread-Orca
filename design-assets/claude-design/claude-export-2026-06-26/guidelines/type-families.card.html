@@ -1,0 +1,34 @@
+<!-- @dsCard group="Type" viewport="700x150" name="Families & weights" subtitle="Geist Sans for everything · Geist Mono for IDs and code" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 20px 24px; background: var(--surface-card); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .lbl { font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-subtle); margin: 0 0 8px; }
+  .weights { display: flex; gap: 14px; flex-wrap: wrap; }
+  .weights span { font-size: 20px; color: var(--text-heading); }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div>
+    <p class="lbl">Geist Sans</p>
+    <div style="font-family:var(--font-sans); font-size:30px; color:var(--text-strong)">Aa Bb Cc 1234</div>
+    <div class="weights" style="margin-top:10px">
+      <span style="font-weight:400">Regular</span>
+      <span style="font-weight:500">Medium</span>
+      <span style="font-weight:600">Semibold</span>
+      <span style="font-weight:700">Bold</span>
+    </div>
+  </div>
+  <div>
+    <p class="lbl">Geist Mono</p>
+    <div style="font-family:var(--font-mono); font-size:30px; color:var(--text-strong)">Aa Bb 0123</div>
+    <div style="font-family:var(--font-mono); font-size:13px; color:var(--text-muted); margin-top:14px">org_atlas · dd0023ec-5204-4471</div>
+  </div>
+</div>
+</body>
+</html>
