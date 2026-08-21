@@ -5,9 +5,12 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider      = "prisma-client-js"
-  engineType    = "library"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  provider        = "prisma-client-js"
+  // Six live unique indexes carry WHERE predicates. Without this preview feature Prisma
+  // models them as plain unique indexes and silently drops the predicate.
+  previewFeatures = ["partialIndexes"]
+  engineType      = "library"
+  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -15,11 +18,11 @@ datasource db {
 }
 
 model Organization {
-  id                 String              @id @default(uuid()) @db.Uuid
-  name               String              @db.Text
-  slug               String              @unique @db.Text
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  id                 String               @id @default(uuid()) @db.Uuid
+  name               String               @db.Text
+  slug               String               @unique @db.Text
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
   users              User[]
   memberships        Membership[]
   events             Event[]
@@ -31,10 +34,11 @@ model Organization {
   tasks              Task[]
   eventImportIntents EventImportIntent[]
   eventImportResults EventImportResult[]
-  agendaTerm         String?             @db.Text
-  runOfShowTerm      String?             @db.Text
-  matrixTerm         String?             @db.Text
-  showFlowTerm       String?             @db.Text
+  agendaTerm         String?              @db.Text
+  runOfShowTerm      String?              @db.Text
+  matrixTerm         String?              @db.Text
+  showFlowTerm       String?              @db.Text
+  EventDashboardView EventDashboardView[]
 }
 
 model User {
@@ -101,6 +105,14 @@ model User {
   verifiedFnbCatalogItems         EventFnbCatalogItem[]       @relation("FnbCatalogItemVerifier")
   verifiedFnbCatalogModifications EventFnbCatalogItem[]       @relation("FnbCatalogItemModificationVerifier")
 
+  SessionSupplyAllocation SessionSupplyAllocation[]
+  SupplyAllocationAudit   SupplyAllocationAudit[]
+
+  EventDashboardLayoutMigration EventDashboardLayoutMigration[]
+  EventDashboardView            EventDashboardView[]
+  EventDashboardViewPreference  EventDashboardViewPreference[]
+  UserDashboardLayout           UserDashboardLayout[]
+
   @@index([orgId])
   @@index([platformUserId])
 }
@@ -118,7 +130,7 @@ model Membership {
 }
 
 model Notification {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId      String    @db.Uuid
   orgId       String?   @db.Uuid
   type        String    @db.Text
@@ -215,7 +227,7 @@ model Event {
   timelineDependencies          TimelineDependency[]
   copilotAuditLogs              CopilotAuditLog[]
   tasks                         Task[]
-  sessionRequirementTemplate    SessionRequirementTemplate?            @relation("EventSessionRequirementTemplate", fields: [sessionRequirementTemplateId], references: [id], onDelete: SetNull)
+  sessionRequirementTemplate    SessionRequirementTemplate?            @relation("EventSessionRequirementTemplate", fields: [sessionRequirementTemplateId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   sessionRequirementTemplates   SessionRequirementTemplate[]           @relation("EventOwnedSessionRequirementTemplates")
   marketingPlans                MarketingPlan[]
   marketingCampaigns            MarketingCampaign[]
@@ -238,6 +250,20 @@ model Event {
   sessionShowFlowItems          SessionShowFlowItem[]
   sessionShowFlowStates         SessionShowFlowState[]
   sessionAgendaPublications     SessionAgendaPublication[]
+
+  SessionSupplyAllocation SessionSupplyAllocation[]
+  SessionSupplyState      SessionSupplyState[]
+  SignageChecklistItem    SignageChecklistItem[]
+  SignageSign             SignageSign[]
+  SupplyAllocationAudit   SupplyAllocationAudit[]
+  SupplyItem              SupplyItem[]
+  SupplyTemplate          SupplyTemplate[]
+
+  EventDashboardLayoutMigration EventDashboardLayoutMigration[]
+  EventDashboardView            EventDashboardView?
+  EventFnbSourceMenuParseJob    EventFnbSourceMenuParseJob[]
+  EventFnbSourceMenuParseTarget EventFnbSourceMenuParseTarget[]
+  UserDashboardLayout           UserDashboardLayout[]
 
   @@index([orgId])
   @@index([clientId])
@@ -454,7 +480,7 @@ model Speaker {
 }
 
 model SpeakerIntakeToken {
-  id          String                     @id @default(uuid()) @db.Uuid
+  id          String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   speakerId   String                     @db.Uuid
   eventId     String                     @db.Uuid
   tokenHash   String                     @unique @db.Text
@@ -473,7 +499,7 @@ model SpeakerIntakeToken {
 }
 
 model SpeakerProfileSubmission {
-  id                  String                  @id @default(uuid()) @db.Uuid
+  id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   speakerId           String                  @db.Uuid
   eventId             String                  @db.Uuid
   tokenId             String?                 @db.Uuid
@@ -508,7 +534,7 @@ model SpeakerProfileSubmission {
 }
 
 model SpeakerReadinessItem {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   speakerId   String    @db.Uuid
   eventId     String    @db.Uuid
   key         String    @db.Text
@@ -525,7 +551,7 @@ model SpeakerReadinessItem {
 }
 
 model SpeakerFile {
-  id                String                  @id @default(uuid()) @db.Uuid
+  id                String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   speakerId         String                  @db.Uuid
   eventId           String                  @db.Uuid
   sessionId         String?                 @db.Uuid
@@ -708,8 +734,8 @@ model TimelineItem {
   isCriticalPath          Boolean                 @default(false)
   ownerUserId             String?                 @db.Uuid
   parentId                String?                 @db.Uuid
-  startDate               DateTime?               @db.Date
-  endDate                 DateTime?               @db.Date
+  startDate               DateTime?
+  endDate                 DateTime?
   progress                Int?
   sortOrder               Int                     @default(0)
   disposition             TimelineItemDisposition @default(ACTIVE)
@@ -721,13 +747,12 @@ model TimelineItem {
   event                   Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
   ownerUser               User?                   @relation("TimelineItemOwner", fields: [ownerUserId], references: [id])
   dispositionActorUser    User?                   @relation("TimelineItemNotNeededBy", fields: [dispositionActorUserId], references: [id], onDelete: SetNull)
-  parent                  TimelineItem?           @relation("TimelineItemParent", fields: [parentId], references: [id], onDelete: SetNull)
+  parent                  TimelineItem?           @relation("TimelineItemParent", fields: [parentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   children                TimelineItem[]          @relation("TimelineItemParent")
   predecessorDependencies TimelineDependency[]    @relation("TimelineDependencyPredecessor")
   successorDependencies   TimelineDependency[]    @relation("TimelineDependencySuccessor")
 
   @@index([eventId, sortOrder])
-  @@index([eventId, parentId, sortOrder])
   @@index([eventId, status])
   @@index([eventId, disposition, endDate])
   @@index([eventId, startDate])
@@ -848,6 +873,9 @@ model BudgetLineItem {
   submissionLineItems         BudgetSubmissionLineItem[]
   sessionRequirementSelection SessionRequirementSelection?
   fnbCatalogAssignment        SessionFnbCatalogAssignment?
+
+  SessionSupplyAllocation SessionSupplyAllocation[]
+  SignageSign             SignageSign[]
 
   @@index([budgetId, sortOrder])
   @@index([budgetId, category])
@@ -1027,7 +1055,7 @@ model DocumentLink {
 }
 
 model EventFnbCatalogItem {
-  id                           String                              @id @default(uuid()) @db.Uuid
+  id                           String                              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   eventId                      String                              @db.Uuid
   sourceMenuId                 String?                             @db.Uuid
   itemName                     String                              @db.Text
@@ -1156,7 +1184,7 @@ enum EventFnbSourceMenuStatus {
 }
 
 model EventFnbSourceMenu {
-  id                 String                       @id @default(uuid()) @db.Uuid
+  id                 String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   eventId            String                       @db.Uuid
   menuName           String                       @db.Text
   fileName           String?                      @db.Text
@@ -1184,13 +1212,16 @@ model EventFnbSourceMenu {
   version            Int                          @default(1)
   archivedAt         DateTime?
   createdAt          DateTime                     @default(now())
-  updatedAt          DateTime                     @updatedAt
+  updatedAt          DateTime                     @default(now()) @updatedAt
   event              Event                        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   baseSourceMenu     EventFnbSourceMenu?          @relation("FnbSourceMenuAmendments", fields: [baseSourceMenuId], references: [id], onDelete: SetNull)
   amendments         EventFnbSourceMenu[]         @relation("FnbSourceMenuAmendments")
   owner              User?                        @relation("FnbSourceMenuOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   verifiedBy         User?                        @relation("FnbSourceMenuVerifier", fields: [verifiedByUserId], references: [id], onDelete: SetNull)
   catalogItems       EventFnbCatalogItem[]
+
+  EventFnbSourceMenuParseJob    EventFnbSourceMenuParseJob?
+  EventFnbSourceMenuParseTarget EventFnbSourceMenuParseTarget[]
 
   @@index([eventId, archivedAt])
   @@index([eventId, status])
@@ -1281,8 +1312,8 @@ model EventFnbExportRecord {
   event             Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId, recipient, generatedAt])
-  @@index([eventId, recipient, projectionKey, projectionVersion])
   @@index([eventId, sourceDataVersion])
+  @@index([eventId, recipient, projectionKey, projectionVersion], map: "EventFnbExportRecord_eventId_recipient_projectionKey_projection")
 }
 
 model SessionFnbAssignmentSafetyResolution {
@@ -1305,14 +1336,14 @@ model SessionFnbAssignmentSafetyResolution {
   assignment         SessionFnbCatalogAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   requirement        SessionFnbRequirement       @relation(fields: [requirementId], references: [id], onDelete: Cascade)
 
-  @@unique([assignmentId, requirementId])
-  @@index([eventId, sessionId, outcome])
+  @@unique([assignmentId, requirementId], map: "SessionFnbAssignmentSafetyResolution_assignmentId_requirementId")
   @@index([sessionId, resolvedAt])
   @@index([requirementId])
+  @@index([eventId, sessionId, outcome], map: "SessionFnbAssignmentSafetyResolution_eventId_sessionId_outcome_")
 }
 
 model FnbParserFeedback {
-  id                 String       @id @default(uuid()) @db.Uuid
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orgId              String       @db.Uuid
   eventId            String       @db.Uuid
   clientId           String?      @db.Uuid
@@ -1418,6 +1449,8 @@ model Room {
   event                Event       @relation(fields: [eventId], references: [id])
   matrixRows           MatrixRow[]
 
+  SignageSign SignageSign[]
+
   @@unique([eventId, name])
   @@index([eventId])
 }
@@ -1468,6 +1501,13 @@ model MatrixRow {
   fnbRequirements              SessionFnbRequirement[]
   fnbSafetyResolutions         SessionFnbAssignmentSafetyResolution[]
 
+  MatrixRowSpeaker         MatrixRowSpeaker[]
+  MatrixRowStaffAssignment MatrixRowStaffAssignment[]
+  SessionSupplyAllocation  SessionSupplyAllocation[]
+  SessionSupplyState       SessionSupplyState?
+  SignageSign              SignageSign[]
+  SignageSignSession       SignageSignSession[]
+
   @@index([eventId, dayDate, roomId])
   @@index([eventId, dayDate, roomName])
   @@index([eventId, dayDate, startTime, sortOrder])
@@ -1511,7 +1551,7 @@ model TimelineImportBatch {
   event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   requestedByUser   User     @relation("TimelineImportRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
 
-  @@unique([eventId, requestedByUserId, idempotencyKey])
+  @@unique([eventId, requestedByUserId, idempotencyKey], map: "TimelineImportBatch_eventId_requestedByUserId_idempotencyKey_ke")
   @@index([eventId, createdAt])
   @@index([requestedByUserId, createdAt])
 }
@@ -1593,12 +1633,12 @@ model SessionAgendaPublication {
 }
 
 model SessionRequirementTemplate {
-  id               String                      @id @default(uuid()) @db.Uuid
+  id               String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   eventId          String                      @db.Uuid
   name             String                      @db.Text
-  createdAt        DateTime                    @default(now())
-  updatedAt        DateTime                    @updatedAt
-  event            Event                       @relation("EventOwnedSessionRequirementTemplates", fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt        DateTime                    @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime                    @default(now()) @updatedAt @db.Timestamptz(6)
+  event            Event                       @relation("EventOwnedSessionRequirementTemplates", fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   assignedToEvents Event[]                     @relation("EventSessionRequirementTemplate")
   sections         SessionRequirementSection[]
 
@@ -1607,15 +1647,15 @@ model SessionRequirementTemplate {
 }
 
 model SessionRequirementSection {
-  id         String                     @id @default(uuid()) @db.Uuid
+  id         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   templateId String                     @db.Uuid
   key        String                     @db.Text
   label      String                     @db.Text
   icon       String                     @db.Text
   sortOrder  Int
-  createdAt  DateTime                   @default(now())
-  updatedAt  DateTime                   @updatedAt
-  template   SessionRequirementTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  createdAt  DateTime                   @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime                   @default(now()) @updatedAt @db.Timestamptz(6)
+  template   SessionRequirementTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   items      SessionRequirementItem[]
 
   @@unique([templateId, key])
@@ -1623,16 +1663,16 @@ model SessionRequirementSection {
 }
 
 model SessionRequirementItem {
-  id          String                        @id @default(uuid()) @db.Uuid
+  id          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   sectionId   String                        @db.Uuid
   key         String                        @db.Text
   label       String                        @db.Text
   active      Boolean                       @default(true)
   hasQuantity Boolean                       @default(false)
   sortOrder   Int
-  createdAt   DateTime                      @default(now())
-  updatedAt   DateTime                      @updatedAt
-  section     SessionRequirementSection     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime                      @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime                      @default(now()) @updatedAt @db.Timestamptz(6)
+  section     SessionRequirementSection     @relation(fields: [sectionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   selections  SessionRequirementSelection[]
 
   @@unique([sectionId, key])
@@ -1644,10 +1684,10 @@ model SessionRequirementSelection {
   itemId           String                 @db.Uuid
   budgetLineItemId String?                @unique @db.Uuid
   quantity         Int?
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
-  session          MatrixRow              @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  item             SessionRequirementItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdAt        DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
+  session          MatrixRow              @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  item             SessionRequirementItem @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   budgetLineItem   BudgetLineItem?        @relation(fields: [budgetLineItemId], references: [id], onDelete: SetNull)
 
   @@id([sessionId, itemId])
@@ -1655,21 +1695,25 @@ model SessionRequirementSelection {
 }
 
 model EventPerson {
-  id                      String                   @id @default(uuid()) @db.Uuid
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   eventId                 String                   @db.Uuid
   name                    String                   @db.Text
   role                    EventPersonRole
   company                 String?                  @db.Text
   email                   String?                  @db.Text
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  event                   Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  phone                   String?
+  notes                   String?
+  createdAt               DateTime                 @default(now()) @db.Timestamp(6)
+  updatedAt               DateTime                 @default(now()) @updatedAt @db.Timestamp(6)
+  event                   Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   sessionStaffAssignments SessionStaffAssignment[]
   showFlowCues            SessionShowFlowItem[]
 
-  @@unique([eventId, name])
+  MatrixRowSpeaker         MatrixRowSpeaker[]
+  MatrixRowStaffAssignment MatrixRowStaffAssignment[]
+
   @@index([eventId, role])
-  @@index([eventId, email])
+  @@index([eventId])
 }
 
 model SessionSpeakerAssignment {
@@ -1688,9 +1732,9 @@ model SessionAVRequirement {
   sessionId String    @db.Uuid
   avType    String    @db.Text
   quantity  Int?
-  createdAt DateTime  @default(now())
+  createdAt DateTime? @default(now())
   updatedAt DateTime  @updatedAt
-  session   MatrixRow @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session   MatrixRow @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([sessionId])
   @@index([sessionId, avType])
@@ -1702,13 +1746,13 @@ model SessionFoodService {
   serviceType  String    @db.Text
   serviceStyle String?   @db.Text
   headcount    Int?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime? @default(now())
   updatedAt    DateTime  @updatedAt
-  session      MatrixRow @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session      MatrixRow @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model SessionFnbCatalogAssignment {
-  id                    String                                 @id @default(uuid()) @db.Uuid
+  id                    String                                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   sessionId             String                                 @db.Uuid
   eventFnbCatalogItemId String                                 @db.Uuid
   budgetLineItemId      String?                                @unique @db.Uuid
@@ -1732,7 +1776,7 @@ model SessionFnbCatalogAssignment {
 }
 
 model SessionFnbCatalogAssignmentTax {
-  id           String                      @id @default(uuid()) @db.Uuid
+  id           String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   assignmentId String                      @db.Uuid
   label        String?                     @db.Text
   percentage   Decimal                     @db.Decimal(7, 4)
@@ -1783,7 +1827,7 @@ model EventActivity {
   type             EventActivityType?
   createdAt        DateTime               @default(now())
   event            Event                  @relation(fields: [eventId], references: [id])
-  actorUser        User?                  @relation("EventActivityActor", fields: [actorUserId], references: [id])
+  actorUser        User?                  @relation("EventActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
 
   // Event-scoped deduplication: rows without source identity (NULLs) never collide.
   @@unique([eventId, sourceRecordType, sourceRecordId])
@@ -1795,7 +1839,7 @@ model EventActivity {
 }
 
 model CopilotAuditLog {
-  id                 String              @id @default(uuid()) @db.Uuid
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId             String              @db.Uuid
   orgId              String              @db.Uuid
   eventId            String?             @db.Uuid
@@ -1837,7 +1881,7 @@ model EventIntegrationMetric {
 }
 
 model SeatingPlan {
-  id          String              @id @default(uuid()) @db.Uuid
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   eventId     String              @db.Uuid
   matrixRowId String?             @db.Uuid
   name        String              @db.Text
@@ -1906,6 +1950,8 @@ model SeatingAssignment {
 
   @@unique([tableId, attendeeId])
   @@unique([tableId, seatIndex])
+  @@unique([eventId, attendeeId], map: "SeatingAssignment_event_attendee_event_level_key", where: raw("(\"seatingPlanId\" IS NULL)"))
+  @@unique([eventId, attendeeId, seatingPlanId], map: "SeatingAssignment_event_attendee_plan_key", where: raw("(\"seatingPlanId\" IS NOT NULL)"))
   @@index([eventId])
   @@index([eventId, tableId])
   @@index([eventId, seatingPlanId])
@@ -1922,6 +1968,9 @@ model UserDashboardLayout {
   layout    Json
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
+
+  Event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  User  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId, roleKey])
   @@index([eventId, roleKey])
@@ -1944,7 +1993,7 @@ enum EventDashboardViewVisibility {
 model EventDashboardView {
   id             String                       @id @db.Uuid
   organizationId String                       @db.Uuid
-  eventId        String                       @db.Uuid
+  eventId        String                       @unique(map: "EventDashboardView_one_active_team_default_per_event", where: raw("((\"isTeamDefault\" = true) AND (\"archivedAt\" IS NULL))")) @db.Uuid
   ownerUserId    String                       @db.Uuid
   name           String
   description    String?
@@ -1956,6 +2005,12 @@ model EventDashboardView {
   configuration  Json
   createdAt      DateTime                     @default(now())
   updatedAt      DateTime
+
+  Event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  Organization Organization @relation(fields: [organizationId], references: [id])
+  User         User         @relation(fields: [ownerUserId], references: [id])
+
+  EventDashboardViewPreference EventDashboardViewPreference[]
 
   @@index([eventId, archivedAt])
   @@index([eventId, visibility])
@@ -1972,6 +2027,9 @@ model EventDashboardViewPreference {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime
 
+  User               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  EventDashboardView EventDashboardView @relation(fields: [viewId], references: [id], onDelete: Cascade)
+
   @@unique([viewId, userId])
   @@index([userId, isPersonalDefault])
 }
@@ -1984,6 +2042,9 @@ model EventDashboardLayoutMigration {
   viewId      String?  @db.Uuid
   outcome     String
   completedAt DateTime @default(now())
+
+  Event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  User  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
   @@index([userId])
@@ -2028,6 +2089,11 @@ model EventFnbSourceMenuParseJob {
   failedTargetCount    Int                              @default(0)
   mapCreatedAt         DateTime?
 
+  Event              Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  EventFnbSourceMenu EventFnbSourceMenu @relation(fields: [sourceMenuId], references: [id], onDelete: Cascade)
+
+  EventFnbSourceMenuParseTarget EventFnbSourceMenuParseTarget[]
+
   @@index([eventId, status, runAfter])
   @@index([status, runAfter])
   @@index([lockedAt])
@@ -2053,6 +2119,10 @@ model EventFnbSourceMenuParseTarget {
   failedAt     DateTime?
   createdAt    DateTime                            @default(now())
   updatedAt    DateTime                            @default(now())
+
+  Event                      Event                      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  EventFnbSourceMenuParseJob EventFnbSourceMenuParseJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  EventFnbSourceMenu         EventFnbSourceMenu         @relation(fields: [sourceMenuId], references: [id], onDelete: Cascade)
 
   @@unique([jobId, targetKey])
   @@index([eventId, sourceMenuId])
@@ -3076,11 +3146,12 @@ model EventAttendeeSessionEnrollment {
   integrationConnection         EventIntegrationConnection?          @relation(fields: [integrationConnectionId], references: [id], onDelete: SetNull)
   registrationRecord            EventRegistrationRecord?             @relation(fields: [registrationRecordId], references: [id], onDelete: SetNull)
 
-  @@unique([eventId, attendeeId, matrixRowId])
-  @@index([eventId, attendeeId, enrollmentStatus])
-  @@index([eventId, matrixRowId, enrollmentStatus])
-  @@index([eventId, registrationRecordId])
-  @@index([eventId, integrationConnectionId])
+  @@unique([eventId, attendeeId, matrixRowId], map: "EventAttendeeSessionEnrollment_event_attendee_session_key")
+  @@unique([eventId, integrationConnectionId, externalSessionRegistrationId], map: "EventAttendeeSessionEnrollment_external_registration_key", where: raw("((\"integrationConnectionId\" IS NOT NULL) AND (\"externalSessionRegistrationId\" IS NOT NULL))"))
+  @@index([eventId, attendeeId, enrollmentStatus], map: "EventAttendeeSessionEnrollment_event_attendee_status_idx")
+  @@index([eventId, integrationConnectionId], map: "EventAttendeeSessionEnrollment_event_integrationConnection_idx")
+  @@index([eventId, matrixRowId, enrollmentStatus], map: "EventAttendeeSessionEnrollment_event_matrix_status_idx")
+  @@index([eventId, registrationRecordId], map: "EventAttendeeSessionEnrollment_event_registrationRecord_idx")
 }
 
 enum EventAttendeeSessionEnrollmentStatus {
@@ -3223,4 +3294,566 @@ enum EventIntegrationSyncMode {
   READ_ONLY
   READ_WRITE
   MANUAL
+}
+
+// ---------------------------------------------------------------------------
+// Supplies and Signage
+//
+// These families exist in the live database with data, but were never present in the
+// previous checked-in schema. Recovered from live PostgreSQL truth during the clean
+// baseline reconciliation. MatrixRowSpeaker / MatrixRowStaffAssignment are the legacy
+// matrix bridges: still live, still populated, deliberately preserved rather than retired.
+// ---------------------------------------------------------------------------
+
+enum SignageApprovalState {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+enum SignageAssetKind {
+  LOGO
+  ARTWORK
+  PROOF
+  FINAL_FILE
+  INSTALL_PROOF
+  PLACEMENT_REFERENCE
+}
+
+enum SignageBrandingDecision {
+  NEEDS_DECISION
+  NO_LOGO
+  EVENT_BRAND
+  SPONSOR_LOGO
+  CUSTOM_ASSET
+}
+
+enum SignageDimensionUnit {
+  INCHES
+  FEET
+  CENTIMETERS
+}
+
+enum SignageImpactSource {
+  SESSION
+  ROOM
+  SPEAKER
+  SPONSOR
+  FNB
+  VENUE
+  LOCATION
+}
+
+enum SignageInstallProofStatus {
+  NOT_RECORDED
+  CONFIRMED_WITHOUT_PHOTO
+}
+
+enum SignageInstallState {
+  NOT_SCHEDULED
+  READY
+  INSTALLED
+  REMOVED
+}
+
+enum SignageIssueStatus {
+  NONE
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum SignageIssueType {
+  MISSING
+  DAMAGED
+  WRONG_PLACEMENT
+  REPLACEMENT_NEEDED
+  OTHER
+}
+
+enum SignageLogoRequirement {
+  TO_BE_DECIDED
+  REQUIRED
+  OPTIONAL
+  NOT_REQUIRED
+}
+
+enum SignageMaterial {
+  FOAM_BOARD
+  GATORBOARD
+  VINYL
+  FABRIC
+  TENSION_FABRIC
+  PAPER
+  ACRYLIC
+  COROPLAST
+  METAL
+  OTHER
+}
+
+enum SignageOrientation {
+  PORTRAIT
+  LANDSCAPE
+  SQUARE
+}
+
+enum SignagePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum SignageSidedness {
+  SINGLE
+  DOUBLE
+}
+
+enum SignageSignType {
+  WELCOME_ARRIVAL
+  REGISTRATION
+  SESSION_ROOM_ID
+  DIRECTIONAL
+  SPONSOR_EXHIBITOR
+  FOOD_BEVERAGE
+  RESERVED_VIP
+  EMERGENCY_SAFETY
+  STAFF_BACK_OF_HOUSE
+  CUSTOM
+}
+
+enum SignageWorkflowState {
+  NOT_NEEDED
+  NEEDS_INFO
+  READY_FOR_DESIGN
+  IN_DESIGN
+  AWAITING_APPROVAL
+  APPROVED
+  IN_PRODUCTION
+  READY_FOR_INSTALL
+  INSTALLED
+  REMOVED_CLOSED
+}
+
+enum SupplyAllocationState {
+  ACTIVE
+  CANCELLED
+}
+
+enum SupplyDependencyType {
+  SHOW_FLOW
+  STAFFING
+  FNB
+  AV
+  SIGNAGE
+  VENDOR
+  OTHER
+}
+
+enum SupplyFulfillmentState {
+  PLANNED
+  CONFIRMED
+  PACKED
+  DELIVERED
+  SET
+}
+
+enum SupplyQuantityRule {
+  PER_ATTENDEE
+  PER_TABLE
+  PER_STATION
+  FIXED
+  MANUAL
+}
+
+enum TimelineItemPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TimelineItemStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  AT_RISK
+  COMPLETE
+}
+
+model MatrixRowSpeaker {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matrixRowId   String      @db.Uuid
+  eventPersonId String      @db.Uuid
+  createdAt     DateTime    @default(now()) @db.Timestamp(6)
+  EventPerson   EventPerson @relation(fields: [eventPersonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  MatrixRow     MatrixRow   @relation(fields: [matrixRowId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([matrixRowId, eventPersonId])
+  @@index([eventPersonId])
+  @@index([matrixRowId])
+}
+
+model MatrixRowStaffAssignment {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matrixRowId    String      @db.Uuid
+  eventPersonId  String      @db.Uuid
+  assignmentrole String?
+  createdAt      DateTime    @default(now()) @db.Timestamp(6)
+  EventPerson    EventPerson @relation(fields: [eventPersonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  MatrixRow      MatrixRow   @relation(fields: [matrixRowId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([matrixRowId, eventPersonId])
+  @@index([eventPersonId])
+  @@index([matrixRowId])
+}
+
+model SessionSupplyAllocation {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId               String                  @db.Uuid
+  sessionId             String                  @db.Uuid
+  supplyItemId          String?                 @db.Uuid
+  oneOffName            String?
+  category              String
+  unit                  String                  @default("each")
+  quantity              Int?
+  suggestedQuantity     Int?
+  quantityRule          SupplyQuantityRule      @default(MANUAL)
+  quantityOverridden    Boolean                 @default(false)
+  source                String?
+  owner                 String?
+  setupDeadline         DateTime?
+  placement             String?
+  fulfillment           SupplyFulfillmentState  @default(PLANNED)
+  confirmedAt           DateTime?
+  notes                 String?
+  showFlowCueId         String?                 @db.Uuid
+  state                 SupplyAllocationState   @default(ACTIVE)
+  idempotencyKey        String?
+  revision              Int                     @default(1)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @default(now())
+  responsibleUserId     String?                 @db.Uuid
+  budgetLineItemId      String?                 @db.Uuid
+  BudgetLineItem        BudgetLineItem?         @relation(fields: [budgetLineItemId], references: [id])
+  Event                 Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User                  User?                   @relation(fields: [responsibleUserId], references: [id])
+  MatrixRow             MatrixRow               @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  SupplyItem            SupplyItem?             @relation(fields: [supplyItemId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  SupplyAllocationAudit SupplyAllocationAudit[]
+  SupplyDependency      SupplyDependency[]
+
+  @@unique([sessionId, supplyItemId], map: "SessionSupplyAllocation_active_catalog_key", where: raw("((state = 'ACTIVE'::\"SupplyAllocationState\") AND (\"supplyItemId\" IS NOT NULL))"))
+  @@unique([eventId, sessionId, idempotencyKey])
+  @@index([budgetLineItemId])
+  @@index([eventId, state, fulfillment])
+  @@index([responsibleUserId])
+  @@index([sessionId, state])
+  @@index([setupDeadline])
+  @@index([supplyItemId])
+}
+
+model SessionSupplyState {
+  sessionId                       String    @id @db.Uuid
+  eventId                         String    @db.Uuid
+  notNeededAt                     DateTime?
+  notNeededByUserId               String?   @db.Uuid
+  revision                        Int       @default(1)
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @default(now())
+  sessionNotes                    String?
+  registrationStationCount        Int?
+  registrationVipDesk             Boolean?
+  registrationBadgePrintingMethod String?
+  registrationAccessibilityDesk   Boolean?
+  Event                           Event     @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  MatrixRow                       MatrixRow @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([eventId, notNeededAt])
+}
+
+model SignageApproval {
+  id             String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  signId         String               @db.Uuid
+  state          SignageApprovalState @default(PENDING)
+  assetId        String?              @db.Uuid
+  approverUserId String?              @db.Uuid
+  dueAt          DateTime?
+  feedback       String?
+  actedAt        DateTime?
+  createdAt      DateTime             @default(now())
+  SignageSign    SignageSign          @relation(fields: [signId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model SignageAsset {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  signId           String           @db.Uuid
+  kind             SignageAssetKind
+  label            String
+  storageKey       String?
+  secureUrl        String?
+  mimeType         String?
+  version          Int              @default(1)
+  isFinal          Boolean          @default(false)
+  uploadedByUserId String?          @db.Uuid
+  createdAt        DateTime         @default(now())
+  SignageSign      SignageSign      @relation(fields: [signId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([signId, kind, createdAt])
+}
+
+model SignageChangeImpact {
+  id               String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  signId           String              @db.Uuid
+  sourceType       SignageImpactSource
+  sourceId         String
+  affectedFields   String[]
+  fingerprint      String
+  sourceSnapshot   Json?
+  reviewedAt       DateTime?
+  reviewedByUserId String?             @db.Uuid
+  createdAt        DateTime            @default(now())
+  SignageSign      SignageSign         @relation(fields: [signId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([signId, fingerprint])
+}
+
+model SignageChecklistItem {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId           String    @db.Uuid
+  ownerUserId       String?   @db.Uuid
+  key               String
+  label             String
+  isComplete        Boolean   @default(false)
+  completedByUserId String?   @db.Uuid
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime
+  Event             Event     @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([eventId, key])
+  @@unique([eventId, ownerUserId, key])
+}
+
+model SignageIssue {
+  id                     String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  signId                 String             @db.Uuid
+  type                   SignageIssueType
+  status                 SignageIssueStatus @default(OPEN)
+  description            String?
+  reportedByUserId       String?            @db.Uuid
+  resolvedByUserId       String?            @db.Uuid
+  createdAt              DateTime           @default(now())
+  resolvedAt             DateTime?
+  responsibleOwnerUserId String?            @db.Uuid
+  replacementNeeded      Boolean            @default(false)
+  SignageSign            SignageSign        @relation(fields: [signId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([responsibleOwnerUserId, status])
+}
+
+model SignageRouteOrder {
+  id                  String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  signId              String      @db.Uuid
+  routeKey            String
+  routeOrder          Int
+  stopOrder           Int
+  assignedOwnerUserId String?     @db.Uuid
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime
+  SignageSign         SignageSign @relation(fields: [signId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([signId, routeKey])
+}
+
+model SignageSign {
+  id                       String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId                  String                    @db.Uuid
+  sessionId                String?                   @db.Uuid
+  roomId                   String?                   @db.Uuid
+  budgetLineItemId         String?                   @db.Uuid
+  name                     String
+  signType                 SignageSignType
+  workflowState            SignageWorkflowState      @default(NEEDS_INFO)
+  lastNormalState          SignageWorkflowState      @default(NEEDS_INFO)
+  priority                 SignagePriority           @default(NORMAL)
+  notNeededReason          String?
+  blockedReason            String?
+  blockingOwnerUserId      String?                   @db.Uuid
+  displayCopy              String?
+  language                 String?
+  qrDestination            String?
+  accessibilityNotes       String?
+  width                    Decimal?                  @db.Decimal(10, 2)
+  height                   Decimal?                  @db.Decimal(10, 2)
+  dimensionUnit            SignageDimensionUnit      @default(INCHES)
+  orientation              SignageOrientation?
+  material                 SignageMaterial?
+  sidedness                SignageSidedness          @default(SINGLE)
+  quantity                 Int                       @default(1)
+  finishing                String?
+  printInstructions        String?
+  logoRequirement          SignageLogoRequirement    @default(TO_BE_DECIDED)
+  brandingNotes            String?
+  vendorName               String?
+  designOwnerUserId        String?                   @db.Uuid
+  installOwnerUserId       String?                   @db.Uuid
+  approverUserId           String?                   @db.Uuid
+  productionDeadline       DateTime?
+  neededBy                 DateTime?
+  venueName                String?
+  floorName                String?
+  locationName             String?
+  exactPlacement           String?
+  installWindowStart       DateTime?
+  installWindowEnd         DateTime?
+  removalWindowStart       DateTime?
+  removalWindowEnd         DateTime?
+  placementNotes           String?
+  referenceImageUrl        String?
+  installState             SignageInstallState       @default(NOT_SCHEDULED)
+  installedByUserId        String?                   @db.Uuid
+  installedAt              DateTime?
+  issueStatus              SignageIssueStatus        @default(NONE)
+  templateKey              String?
+  templateProvenance       Json?
+  sourceProvenance         Json?
+  revision                 Int                       @default(1)
+  createdByUserId          String?                   @db.Uuid
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime
+  speakerId                String?                   @db.Uuid
+  fnbCatalogItemId         String?                   @db.Uuid
+  linkedSponsorName        String?
+  productionFormat         String?
+  designerUserId           String?                   @db.Uuid
+  installConfirmationNotes String?
+  installProofStatus       SignageInstallProofStatus @default(NOT_RECORDED)
+  requiredLogos            String[]                  @default([])
+  brandingDecision         SignageBrandingDecision   @default(NEEDS_DECISION)
+  SignageApproval          SignageApproval[]
+  SignageAsset             SignageAsset[]
+  SignageChangeImpact      SignageChangeImpact[]
+  SignageIssue             SignageIssue[]
+  SignageRouteOrder        SignageRouteOrder[]
+  BudgetLineItem           BudgetLineItem?           @relation(fields: [budgetLineItemId], references: [id], onUpdate: NoAction)
+  Event                    Event                     @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Room                     Room?                     @relation(fields: [roomId], references: [id], onUpdate: NoAction)
+  MatrixRow                MatrixRow?                @relation(fields: [sessionId], references: [id], onUpdate: NoAction)
+  SignageSignSession       SignageSignSession[]
+
+  @@index([eventId, fnbCatalogItemId])
+  @@index([eventId, installOwnerUserId, installWindowStart])
+  @@index([eventId, roomId])
+  @@index([eventId, sessionId])
+  @@index([eventId, speakerId])
+  @@index([eventId, vendorName])
+  @@index([eventId, workflowState])
+}
+
+model SignageSignSession {
+  signId      String      @db.Uuid
+  sessionId   String      @db.Uuid
+  linkedAt    DateTime    @default(now())
+  MatrixRow   MatrixRow   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  SignageSign SignageSign @relation(fields: [signId], references: [id], onDelete: Cascade)
+
+  @@id([signId, sessionId])
+  @@index([sessionId, signId])
+}
+
+model SupplyAllocationAudit {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId                 String                  @db.Uuid
+  allocationId            String                  @db.Uuid
+  actorUserId             String?                 @db.Uuid
+  action                  String
+  changes                 Json
+  createdAt               DateTime                @default(now())
+  User                    User?                   @relation(fields: [actorUserId], references: [id], onUpdate: NoAction)
+  SessionSupplyAllocation SessionSupplyAllocation @relation(fields: [allocationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Event                   Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([allocationId, createdAt])
+  @@index([eventId, createdAt])
+}
+
+model SupplyDependency {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  allocationId            String                  @db.Uuid
+  type                    SupplyDependencyType
+  linkedSourceRecordId    String?                 @db.Uuid
+  label                   String
+  blocking                Boolean                 @default(false)
+  resolvedAt              DateTime?
+  resolutionNotes         String?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @default(now())
+  SessionSupplyAllocation SessionSupplyAllocation @relation(fields: [allocationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([allocationId, blocking, resolvedAt])
+}
+
+model SupplyItem {
+  id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId                 String                    @db.Uuid
+  name                    String
+  category                String
+  unit                    String                    @default("each")
+  committedQuantity       Int?
+  defaultSource           String?
+  defaultOwner            String?
+  notes                   String?
+  externalReference       String?
+  revision                Int                       @default(1)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @default(now())
+  SessionSupplyAllocation SessionSupplyAllocation[]
+  Event                   Event                     @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  SupplyTemplateItem      SupplyTemplateItem[]
+
+  @@unique([eventId, id])
+  @@unique([eventId, name])
+  @@index([eventId, category])
+}
+
+model SupplyTemplate {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId            String?              @db.Uuid
+  key                String               @unique(map: "SupplyTemplate_system_key_key", where: raw("\"isSystem\""))
+  name               String
+  triggerType        String
+  triggerMeta        Json?
+  isSystem           Boolean              @default(false)
+  active             Boolean              @default(true)
+  revision           Int                  @default(1)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @default(now())
+  Event              Event?               @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  SupplyTemplateItem SupplyTemplateItem[]
+
+  @@unique([eventId, key])
+  @@index([eventId, active])
+  @@index([isSystem, triggerType])
+}
+
+model SupplyTemplateItem {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  templateId     String             @db.Uuid
+  supplyItemId   String?            @db.Uuid
+  name           String
+  category       String
+  unit           String             @default("each")
+  rationale      String
+  quantityRule   SupplyQuantityRule
+  quantityFactor Decimal?           @db.Decimal(12, 4)
+  fixedQuantity  Int?
+  defaultSource  String?
+  defaultOwner   String?
+  sortOrder      Int                @default(0)
+  active         Boolean            @default(true)
+  SupplyItem     SupplyItem?        @relation(fields: [supplyItemId], references: [id], onUpdate: NoAction)
+  SupplyTemplate SupplyTemplate     @relation(fields: [templateId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([templateId, name])
+  @@index([templateId, sortOrder])
 }

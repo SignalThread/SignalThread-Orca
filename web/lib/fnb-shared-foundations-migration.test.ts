@@ -21,6 +21,11 @@ test("schema preserves explicit claims and separate price provenance", async () 
   assert.match(schema, /negotiatedPriceCents\s+Int\?/);
   assert.match(schema, /discountCents\s+Int\?/);
   assert.match(schema, /dispositionReason\s+String\?/);
-  assert.doesNotMatch(schema, /model MatrixRowSpeaker/);
-  assert.doesNotMatch(schema, /model MatrixRowStaffAssignment/);
+  // MatrixRowSpeaker / MatrixRowStaffAssignment are legacy bridges that still exist and
+  // still hold rows in the live database. The clean-database baseline preserves schema
+  // parity, so they are modelled again; canonical reads/writes must still prefer
+  // SessionSpeakerAssignment / SessionStaffAssignment. Retiring the bridges is a separate
+  // decision that requires its own data-retirement evidence.
+  assert.match(schema, /model SessionSpeakerAssignment/);
+  assert.match(schema, /model SessionStaffAssignment/);
 });

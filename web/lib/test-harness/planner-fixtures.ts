@@ -455,6 +455,9 @@ export class PlannerFixtureHarness {
         role,
         company: null,
         email,
+        // Live-only columns recovered by the clean-database baseline reconciliation.
+        phone: null,
+        notes: null,
         createdAt: now,
         updatedAt: now,
       };

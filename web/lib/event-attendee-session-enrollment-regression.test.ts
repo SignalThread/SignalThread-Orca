@@ -45,9 +45,11 @@ test("schema adds normalized attendee-session enrollment without JSON shortcuts"
     assert.match(model, new RegExp(`\\b${field}\\b`));
   }
 
-  assert.match(model, /@@unique\(\[eventId, attendeeId, matrixRowId\]\)/);
-  assert.match(model, /@@index\(\[eventId, attendeeId, enrollmentStatus\]\)/);
-  assert.match(model, /@@index\(\[eventId, matrixRowId, enrollmentStatus\]\)/);
+  // The clean-database baseline pins live index names with `map:`, so these attributes
+  // now carry a trailing argument. The uniqueness/index contract itself is unchanged.
+  assert.match(model, /@@unique\(\[eventId, attendeeId, matrixRowId\][,)]/);
+  assert.match(model, /@@index\(\[eventId, attendeeId, enrollmentStatus\][,)]/);
+  assert.match(model, /@@index\(\[eventId, matrixRowId, enrollmentStatus\][,)]/);
   assert.equal(model.includes("Json"), false);
 });
 
