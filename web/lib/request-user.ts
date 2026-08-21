@@ -12,6 +12,15 @@ import {
   resolveAppUserByPlatformIdentity,
   type PlatformIdentityLinkMode,
 } from "@/lib/platform/identity";
+import {
+  createDevelopmentEntitlementClaims,
+  isEntitlementDenialWaivableInDevelopment,
+  readEntitlementClaims,
+  resolveOrcaEntitlement,
+  type EntitlementGrantSource,
+  type PlatformEntitlementClaims,
+} from "@/lib/platform/entitlements";
+import { resolveAuthAuthorityPosture } from "@/src/lib/supabase/auth-authority";
 
 type RequestUserErrorStatus = 400 | 401 | 403;
 
@@ -38,6 +47,8 @@ type EnsureBaseContext = {
   platformUserId: string | null;
   /** How the Orca user row was reached for this request. */
   identityLinkMode: PlatformIdentityLinkMode | null;
+  /** How Platform Core entitlement to enter Orca was satisfied, when it was. */
+  entitlementSource: EntitlementGrantSource | null;
   email: string | null;
   appUserId: string | null;
   role: UserRole | null;
@@ -99,26 +110,12 @@ export type RequestUserResult =
       };
     };
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const ACTIVE_ORG_COOKIE_NAME = "activeOrgId";
 export const ORGANIZATION_SELECTION_COOKIE_NAME = "activeOrgSelectionId";
 export const ORGANIZATION_CONTEXT_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
-}
-
-function deriveDisplayNameFromEmail(email: string): string | null {
-  const localPart = email.split("@")[0]?.trim() ?? "";
-  if (!localPart) return null;
-
-  const words = localPart
-    .split(/[._-]+/)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => part[0]!.toUpperCase() + part.slice(1));
-
-  return words.length > 0 ? words.join(" ") : null;
 }
 
 function isDevNoMembershipBypassEnabled(): boolean {
@@ -141,14 +138,6 @@ async function readSelectedOrganizationId(request?: NextRequest): Promise<string
 
   const cookieStore = await cookies();
   return cookieStore.get(ORGANIZATION_SELECTION_COOKIE_NAME)?.value?.trim() || null;
-}
-
-async function organizationExists(orgId: string): Promise<boolean> {
-  const organization = await getPrisma().organization.findUnique({
-    where: { id: orgId },
-    select: { id: true },
-  });
-  return Boolean(organization);
 }
 
 async function listMemberships(userId: string): Promise<MembershipSummary[]> {
@@ -184,84 +173,30 @@ export async function listAccessibleOrganizationsForUser(input: {
     .filter((organization): organization is OrganizationSummary => Boolean(organization));
 }
 
-async function getDefaultOrgIdResolution(): Promise<
-  | {
-      orgId: string;
-    }
-  | {
-      orgId: null;
-      reason: string;
-      hint: string;
-    }
-> {
-  const defaultOrgId = process.env.DEFAULT_ORG_ID?.trim();
-
-  if (!defaultOrgId) {
-    return {
-      orgId: null,
-      reason: "DEFAULT_ORG_ID_MISSING",
-      hint: "Set DEFAULT_ORG_ID to auto-provision first-time users or invite them through admin provisioning.",
-    };
-  }
-
-  if (!UUID_REGEX.test(defaultOrgId)) {
-    return {
-      orgId: null,
-      reason: "DEFAULT_ORG_ID_INVALID",
-      hint: "DEFAULT_ORG_ID must be a valid UUID.",
-    };
-  }
-
-  const exists = await organizationExists(defaultOrgId);
-  if (!exists) {
-    return {
-      orgId: null,
-      reason: "DEFAULT_ORG_NOT_FOUND",
-      hint: "DEFAULT_ORG_ID does not match an existing organization.",
-    };
-  }
-
-  return { orgId: defaultOrgId };
+/**
+ * `DEFAULT_ORG_ID` is retired from authenticated identity and access resolution.
+ *
+ * It previously let any address with a valid OTP self-provision into a fallback
+ * organization. Platform Core owns organization membership now, so implicit tenant
+ * assignment is gone: a user with no Orca organization access is denied, never given one.
+ *
+ * The variable survives only for development fixtures and seeding (`prisma/seed.ts`), which
+ * is why this helper exists — to prove, in one place, that nothing in the request path
+ * reads it. See `isDevNoMembershipBypassEnabled` for the development-only escape hatch.
+ */
+export function isDefaultOrgIdUsedForAccessResolution(): false {
+  return false;
 }
 
-async function createAppUserWithMembership(input: {
-  email: string;
-  suggestedName: string | null;
-  orgId: string;
-  platformUserId: string;
-}): Promise<AppUser> {
-  return getPrisma().$transaction(async (tx) => {
-    const user = await tx.user.create({
-      data: {
-        email: input.email,
-        name: input.suggestedName?.trim() || deriveDisplayNameFromEmail(input.email),
-        role: UserRole.MEMBER,
-        orgId: input.orgId,
-        // New rows are canonical from birth: never created email-first.
-        platformUserId: input.platformUserId,
-      },
-      select: { id: true, email: true, orgId: true, role: true, platformUserId: true },
-    });
-
-    await tx.membership.upsert({
-      where: {
-        orgId_userId: {
-          orgId: input.orgId,
-          userId: user.id,
-        },
-      },
-      update: {},
-      create: {
-        orgId: input.orgId,
-        userId: user.id,
-      },
-    });
-
-    return user;
-  });
-}
-
-async function ensureMembershipForUser(appUser: AppUser): Promise<
+/**
+ * Read the organization memberships already provisioned for this user.
+ *
+ * Phase 2 removed the write side entirely. This used to create a `Membership` and rewrite
+ * `User.orgId` as a side effect of a GET, which meant authentication granted tenancy.
+ * Access must now come from Platform Core entitlements or from membership an administrator
+ * explicitly provisioned; a user with none is denied.
+ */
+function readProvisionedMemberships(existingMemberships: MembershipSummary[]):
   | {
       memberships: MembershipSummary[];
     }
@@ -269,50 +204,16 @@ async function ensureMembershipForUser(appUser: AppUser): Promise<
       memberships: MembershipSummary[];
       reason: string;
       hint: string;
-    }
-> {
-  const existingMemberships = await listMemberships(appUser.id);
+    } {
   if (existingMemberships.length > 0) {
     return { memberships: existingMemberships };
   }
 
-  const candidateOrgId =
-    UUID_REGEX.test(appUser.orgId) && (await organizationExists(appUser.orgId)) ? appUser.orgId : null;
-
-  const provisioningOrg = candidateOrgId
-    ? ({ orgId: candidateOrgId } as const)
-    : await getDefaultOrgIdResolution();
-
-  if (provisioningOrg.orgId === null) {
-    return {
-      memberships: [],
-      reason: provisioningOrg.reason,
-      hint: provisioningOrg.hint,
-    };
-  }
-
-  await getPrisma().$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: appUser.id },
-      data: { orgId: provisioningOrg.orgId },
-    });
-
-    await tx.membership.upsert({
-      where: {
-        orgId_userId: {
-          orgId: provisioningOrg.orgId,
-          userId: appUser.id,
-        },
-      },
-      update: {},
-      create: {
-          orgId: provisioningOrg.orgId,
-        userId: appUser.id,
-      },
-    });
-  });
-
-  return { memberships: await listMemberships(appUser.id) };
+  return {
+    memberships: [],
+    reason: "ORCA_ACCESS_NOT_PROVISIONED",
+    hint: "This account has no Orca organization access. An administrator must provision it in Platform Core.",
+  };
 }
 
 /**
@@ -325,7 +226,6 @@ async function ensureMembershipForUser(appUser: AppUser): Promise<
 async function resolveAppUserFromPlatformIdentity(input: {
   platformUserId: string;
   supabaseEmail: string;
-  suggestedName: string | null;
 }): Promise<
   | {
       appUser: AppUser;
@@ -382,23 +282,13 @@ async function resolveAppUserFromPlatformIdentity(input: {
     };
   }
 
-  const defaultOrg = await getDefaultOrgIdResolution();
-  if (defaultOrg.orgId === null) {
-    return {
-      reason: defaultOrg.reason,
-      hint: defaultOrg.hint,
-      appUserId: null,
-    };
-  }
-
-  const appUser = await createAppUserWithMembership({
-    email,
-    suggestedName: input.suggestedName,
-    orgId: defaultOrg.orgId,
-    platformUserId: input.platformUserId,
-  });
-
-  return { appUser, linkMode: "CANONICAL" };
+  // No Orca user exists for this Platform Core identity. Phase 2 removed auto-provisioning:
+  // a valid Platform session never creates an Orca account or a tenant assignment.
+  return {
+    reason: "ORCA_ACCESS_NOT_PROVISIONED",
+    hint: "This Platform Core account has no Orca access. An administrator must provision it.",
+    appUserId: null,
+  };
 }
 
 async function resolveFromAuthenticatedIdentity(input: {
@@ -407,12 +297,12 @@ async function resolveFromAuthenticatedIdentity(input: {
   /** Canonical Platform Core user id carried by the authenticated session. */
   supabaseUserId: string;
   email: string;
-  suggestedName: string | null;
+  /** Verified Platform Core entitlement claims from the session, when present. */
+  entitlementClaims: PlatformEntitlementClaims;
 }): Promise<EnsureProvisionedUserAndContextResult> {
   const appUserResult = await resolveAppUserFromPlatformIdentity({
     platformUserId: input.supabaseUserId,
     supabaseEmail: input.email,
-    suggestedName: input.suggestedName,
   });
 
   if (!("appUser" in appUserResult)) {
@@ -421,6 +311,7 @@ async function resolveFromAuthenticatedIdentity(input: {
       supabaseUserId: input.supabaseUserId,
       platformUserId: null,
       identityLinkMode: "UNRESOLVED",
+      entitlementSource: null,
       email: input.email,
       appUserId: appUserResult.appUserId,
       role: null,
@@ -438,6 +329,7 @@ async function resolveFromAuthenticatedIdentity(input: {
     email: input.email,
     appUser: appUserResult.appUser,
     identityLinkMode: appUserResult.linkMode,
+    entitlementClaims: input.entitlementClaims,
   });
 }
 
@@ -455,15 +347,56 @@ async function buildContextForResolvedAppUser(input: {
   email: string;
   appUser: AppUser;
   identityLinkMode: Exclude<PlatformIdentityLinkMode, "UNRESOLVED">;
+  entitlementClaims: PlatformEntitlementClaims;
 }): Promise<EnsureProvisionedUserAndContextResult> {
   const appUser = input.appUser;
   const identityLinkMode = input.identityLinkMode;
-  const memberships =
-    appUser.role === UserRole.SUPER_ADMIN ? await listMemberships(appUser.id) : undefined;
+  // Read memberships once. Auth resolution runs on every request, so it must not grow
+  // extra round trips (audit: Platform Core must never become a hot-path dependency).
+  const memberships = await listMemberships(appUser.id);
 
-  let resolvedMemberships = memberships;
+  // Entry gate: being authenticated is not being entitled. Platform Core claims decide,
+  // and where they are absent the deployment either fails closed or requires state an
+  // administrator already provisioned. Orca's own roles still decide what happens next.
+  const entitlement = resolveOrcaEntitlement({
+    claims: input.entitlementClaims,
+    subject: {
+      platformUserId: appUser.platformUserId,
+      // An elevated Orca role is provisioned state in its own right: someone deliberately
+      // granted it, so a platform admin without an org membership is not "unprovisioned".
+      hasProvisionedOrcaAccess: memberships.length > 0 || appUser.role === UserRole.SUPER_ADMIN,
+    },
+  });
+
+  const entitlementWaivedInDevelopment =
+    entitlement.status === "DENIED"
+    && isDevNoMembershipBypassEnabled()
+    && isEntitlementDenialWaivableInDevelopment(entitlement.reason);
+
+  if (entitlement.status === "DENIED" && !entitlementWaivedInDevelopment) {
+    return {
+      status: "NEEDS_PROVISIONING",
+      supabaseUserId: input.supabaseUserId,
+      platformUserId: appUser.platformUserId,
+      identityLinkMode,
+      entitlementSource: null,
+      email: input.email,
+      appUserId: appUser.id,
+      role: appUser.role,
+      memberships,
+      activeOrgId: null,
+      reason: entitlement.reason,
+      hint: entitlement.hint,
+    };
+  }
+
+  const entitlementSource = entitlement.status === "GRANTED" ? entitlement.source : null;
+
+  let resolvedMemberships: MembershipSummary[] | undefined =
+    appUser.role === UserRole.SUPER_ADMIN ? memberships : undefined;
+
   if (appUser.role !== UserRole.SUPER_ADMIN) {
-    const membershipResult = await ensureMembershipForUser(appUser);
+    const membershipResult = readProvisionedMemberships(memberships);
     if ("reason" in membershipResult) {
       if (isDevNoMembershipBypassEnabled()) {
         const fallbackOrgId = appUser.orgId;
@@ -472,6 +405,7 @@ async function buildContextForResolvedAppUser(input: {
           supabaseUserId: input.supabaseUserId,
           platformUserId: appUser.platformUserId,
           identityLinkMode,
+          entitlementSource,
           email: input.email,
           appUserId: appUser.id,
           role: appUser.role,
@@ -489,6 +423,7 @@ async function buildContextForResolvedAppUser(input: {
         supabaseUserId: input.supabaseUserId,
         platformUserId: appUser.platformUserId,
         identityLinkMode,
+        entitlementSource,
         email: input.email,
         appUserId: appUser.id,
         role: appUser.role,
@@ -518,6 +453,7 @@ async function buildContextForResolvedAppUser(input: {
       supabaseUserId: input.supabaseUserId,
       platformUserId: appUser.platformUserId,
       identityLinkMode,
+      entitlementSource,
       email: input.email,
       appUserId: appUser.id,
       role: appUser.role,
@@ -534,6 +470,7 @@ async function buildContextForResolvedAppUser(input: {
       supabaseUserId: input.supabaseUserId,
       platformUserId: appUser.platformUserId,
       identityLinkMode,
+      entitlementSource,
       email: input.email,
       appUserId: appUser.id,
       role: appUser.role,
@@ -550,6 +487,7 @@ async function buildContextForResolvedAppUser(input: {
     supabaseUserId: input.supabaseUserId,
     platformUserId: appUser.platformUserId,
     identityLinkMode,
+    entitlementSource,
     email: input.email,
     appUserId: appUser.id,
     role: appUser.role,
@@ -595,6 +533,7 @@ async function resolveFromDevFallback(
       supabaseUserId: null,
       platformUserId: null,
       identityLinkMode: "UNRESOLVED",
+      entitlementSource: null,
       email: null,
       appUserId: null,
       role: null,
@@ -614,6 +553,10 @@ async function resolveFromDevFallback(
     email: appUser.email,
     appUser,
     identityLinkMode: appUser.platformUserId ? "CANONICAL" : "EMAIL_BRIDGE_UNLINKED",
+    // The fallback already bypasses the authentication authority in development; it
+    // carries the matching development entitlement rather than leaving entry undecided.
+    // `createDevelopmentEntitlementClaims` returns null in production.
+    entitlementClaims: createDevelopmentEntitlementClaims(),
   });
 }
 
@@ -622,6 +565,30 @@ export async function ensureProvisionedUserAndContext(
 ): Promise<EnsureProvisionedUserAndContextResult> {
   const requestedOrgId = await readRequestedOrgId(request);
   const selectedOrganizationId = await readSelectedOrganizationId(request);
+
+  // Refuse to authenticate at all against an authority this environment must not use.
+  // Without this a production deployment missing its Platform Core variables would keep
+  // signing people in against the legacy Orca project.
+  const authorityPosture = resolveAuthAuthorityPosture();
+  if (authorityPosture.status === "BLOCKED") {
+    console.error("ensureProvisionedUserAndContext: authentication authority unusable", {
+      reason: authorityPosture.reason,
+    });
+    return {
+      status: "UNAUTHENTICATED",
+      supabaseUserId: null,
+      platformUserId: null,
+      identityLinkMode: null,
+      entitlementSource: null,
+      email: null,
+      appUserId: null,
+      role: null,
+      memberships: [],
+      activeOrgId: null,
+      reason: authorityPosture.reason,
+      hint: authorityPosture.hint,
+    };
+  }
 
   const supabase = await createServerSupabaseClient();
   const {
@@ -646,17 +613,15 @@ export async function ensureProvisionedUserAndContext(
   }
 
   if (supabaseUser?.email) {
-    const suggestedName =
-      (typeof supabaseUser.user_metadata?.full_name === "string" ? supabaseUser.user_metadata.full_name : null) ||
-      (typeof supabaseUser.user_metadata?.name === "string" ? supabaseUser.user_metadata.name : null) ||
-      null;
-
     return resolveFromAuthenticatedIdentity({
       requestedOrgId,
       selectedOrganizationId,
       supabaseUserId: supabaseUser.id,
       email: supabaseUser.email,
-      suggestedName,
+      // Entitlements ride on the verified session, so no call back to Platform Core is
+      // made on the request path. `app_metadata` is server-controlled; `user_metadata`
+      // is user-editable and is deliberately never consulted for access.
+      entitlementClaims: readEntitlementClaims(supabaseUser.app_metadata),
     });
   }
 
@@ -679,6 +644,7 @@ export async function ensureProvisionedUserAndContext(
     supabaseUserId: null,
     platformUserId: null,
     identityLinkMode: null,
+    entitlementSource: null,
     email: null,
     appUserId: null,
     role: null,

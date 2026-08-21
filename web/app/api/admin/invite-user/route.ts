@@ -4,6 +4,7 @@ import { withApiRequestLogging, observeHandledRouteError } from "@/lib/observabi
 import { getPrisma } from "@/lib/prisma";
 import { resolveRequestUser } from "@/lib/request-user";
 import { getSupabaseAdminClient } from "@/src/lib/supabase/admin";
+import { resolvePlatformInvitationCapability } from "@/lib/platform/invitations";
 
 export const runtime = "nodejs";
 
@@ -40,6 +41,21 @@ function deriveNameFromEmail(email: string): string | null {
 }
 
 async function postHandler(request: NextRequest) {
+  // Platform Core owns canonical users and organization memberships. Once it is the
+  // authentication authority, Orca must not create identities or send auth invitations
+  // from a project it does not own — and has no supported API to delegate to yet.
+  const invitationCapability = resolvePlatformInvitationCapability();
+  if (invitationCapability.status === "PLATFORM_MANAGED") {
+    return NextResponse.json(
+      {
+        message: "Invitations are managed by SignalThread Platform Core",
+        reason: invitationCapability.reason,
+        hint: invitationCapability.hint,
+      },
+      { status: 410 },
+    );
+  }
+
   const currentUser = await resolveRequestUser(request);
   if ("error" in currentUser) {
     return NextResponse.json(

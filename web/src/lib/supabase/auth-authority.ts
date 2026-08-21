@@ -76,3 +76,61 @@ export function requireAuthAuthorityConfig(): AuthAuthorityConfig {
 export function isPlatformCoreAuthAuthority(): boolean {
   return resolveAuthAuthorityConfig()?.source === "platform-core";
 }
+
+/**
+ * Phase 2 cutover posture.
+ *
+ * Production must authenticate against Platform Core. The legacy Orca project is only
+ * permitted there as a deliberate, temporary rollback, opted into with
+ * `ALLOW_LEGACY_ORCA_AUTH_AUTHORITY=true` — never as a silent fallback, so a missing or
+ * mistyped Platform Core variable fails closed instead of quietly reverting to Orca auth.
+ *
+ * Outside production the legacy project stays usable so local development and the
+ * Playwright suite keep working without a Platform Core project.
+ */
+export function isLegacyAuthAuthorityAllowed(): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  return process.env.ALLOW_LEGACY_ORCA_AUTH_AUTHORITY?.trim().toLowerCase() === "true";
+}
+
+export type AuthAuthorityPosture =
+  | { status: "OK"; config: AuthAuthorityConfig }
+  | { status: "BLOCKED"; reason: string; hint: string };
+
+/**
+ * Resolve the authority *and* assert it is acceptable for this environment.
+ *
+ * Session resolution uses this rather than `requireAuthAuthorityConfig` so that a
+ * production deployment which has not been cut over refuses to authenticate anyone
+ * instead of authenticating them against the wrong authority.
+ */
+export function resolveAuthAuthorityPosture(): AuthAuthorityPosture {
+  let config: AuthAuthorityConfig | null;
+  try {
+    config = resolveAuthAuthorityConfig();
+  } catch (error) {
+    return {
+      status: "BLOCKED",
+      reason: "AUTH_AUTHORITY_MISCONFIGURED",
+      hint: error instanceof Error ? error.message : "Authentication authority is misconfigured.",
+    };
+  }
+
+  if (!config) {
+    return {
+      status: "BLOCKED",
+      reason: "AUTH_AUTHORITY_NOT_CONFIGURED",
+      hint: "Set NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_URL and NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_ANON_KEY.",
+    };
+  }
+
+  if (config.source === "legacy-orca" && !isLegacyAuthAuthorityAllowed()) {
+    return {
+      status: "BLOCKED",
+      reason: "LEGACY_AUTH_AUTHORITY_NOT_PERMITTED",
+      hint: "Production must authenticate against Platform Core. Configure the Platform Core Supabase variables, or set ALLOW_LEGACY_ORCA_AUTH_AUTHORITY=true to roll back deliberately.",
+    };
+  }
+
+  return { status: "OK", config };
+}

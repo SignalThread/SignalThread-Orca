@@ -117,23 +117,43 @@ test("blank environment values are treated as unset", () => {
 // --- Nothing reaches around the resolver ---------------------------------------
 
 test("every auth entry point resolves the authority through the single helper", () => {
-  const entryPoints = [
+  // Files that build a Supabase client themselves must resolve the authority directly.
+  const directResolvers = [
     "src/lib/supabase/server.ts",
     "src/lib/supabase/browser.ts",
     "src/lib/supabase/admin.ts",
     "app/auth/callback/route.ts",
-    "app/(app)/layout.tsx",
   ];
 
-  for (const file of entryPoints) {
+  for (const file of directResolvers) {
     const source = readFileSync(file, "utf8");
     assert.match(
       source,
       /(require|resolve)AuthAuthorityConfig/,
       `${file} must resolve the authority through auth-authority.ts`,
     );
+  }
+
+  // Guards that do not build a client must delegate to the canonical resolver rather than
+  // keeping a second, weaker copy of the session check (Phase 2).
+  const delegatingGuards = ["app/(app)/layout.tsx", "app/(shell)/layout.tsx"];
+  for (const file of delegatingGuards) {
+    const source = readFileSync(file, "utf8");
     assert.equal(
-      /process\.env\.NEXT_PUBLIC_SUPABASE_(URL|ANON_KEY)/.test(source),
+      source.includes("ensureProvisionedUserAndContext"),
+      true,
+      `${file} must delegate session resolution to lib/request-user`,
+    );
+    assert.equal(
+      source.includes("auth.getSession()"),
+      false,
+      `${file} must not trust an unverified session cookie`,
+    );
+  }
+
+  for (const file of [...directResolvers, ...delegatingGuards]) {
+    assert.equal(
+      /process\.env\.NEXT_PUBLIC_SUPABASE_(URL|ANON_KEY)/.test(readFileSync(file, "utf8")),
       false,
       `${file} must not read the legacy Supabase env directly`,
     );

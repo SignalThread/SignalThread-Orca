@@ -74,6 +74,7 @@ function unauthorized(reason: string, hint: string, status = 401) {
       supabaseUserId: null,
       platformUserId: null,
       identityLinkMode: null,
+      entitlementSource: null,
       email: null,
       appUserId: null,
       activeOrgId: null,
@@ -103,6 +104,8 @@ async function getHandler(request: NextRequest) {
       // exposes whether the request still depended on the transitional email bridge.
       platformUserId: context.platformUserId,
       identityLinkMode: context.identityLinkMode,
+      // How Platform Core entitlement to enter Orca was satisfied, when it was.
+      entitlementSource: context.entitlementSource,
       email: context.email,
       appUserId: context.appUserId,
       activeOrgId: context.activeOrgId,

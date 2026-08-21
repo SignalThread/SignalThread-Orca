@@ -162,12 +162,29 @@ test("the canonical lookup precedes the email bridge and the bridge is switchabl
   assert.equal(resolver.includes("isEmailIdentityBridgeEnabled()"), true, "bridge must be gated by a flag");
 });
 
-test("the email bridge defaults on and is disabled by an explicit flag value", () => {
-  assert.equal(withEnv({ PLATFORM_IDENTITY_EMAIL_BRIDGE: undefined }, isEmailIdentityBridgeEnabled), true);
-  assert.equal(withEnv({ PLATFORM_IDENTITY_EMAIL_BRIDGE: "true" }, isEmailIdentityBridgeEnabled), true);
-  assert.equal(withEnv({ PLATFORM_IDENTITY_EMAIL_BRIDGE: "false" }, isEmailIdentityBridgeEnabled), false);
-  assert.equal(withEnv({ PLATFORM_IDENTITY_EMAIL_BRIDGE: "0" }, isEmailIdentityBridgeEnabled), false);
-  assert.equal(withEnv({ PLATFORM_IDENTITY_EMAIL_BRIDGE: "off" }, isEmailIdentityBridgeEnabled), false);
+test("the email bridge is explicit in both directions and off by default in production", () => {
+  // Phase 2 retires the bridge: production must opt in, everywhere else keeps it for the
+  // fixtures that create users without a Platform id.
+  assert.equal(
+    withEnv({ PLATFORM_IDENTITY_EMAIL_BRIDGE: undefined, NODE_ENV: "production" }, isEmailIdentityBridgeEnabled),
+    false,
+    "production defaults to no email bridge",
+  );
+  assert.equal(
+    withEnv({ PLATFORM_IDENTITY_EMAIL_BRIDGE: undefined, NODE_ENV: "development" }, isEmailIdentityBridgeEnabled),
+    true,
+  );
+  assert.equal(
+    withEnv({ PLATFORM_IDENTITY_EMAIL_BRIDGE: "true", NODE_ENV: "production" }, isEmailIdentityBridgeEnabled),
+    true,
+    "production can opt back in for a migration window",
+  );
+  for (const off of ["false", "0", "off"]) {
+    assert.equal(
+      withEnv({ PLATFORM_IDENTITY_EMAIL_BRIDGE: off, NODE_ENV: "development" }, isEmailIdentityBridgeEnabled),
+      false,
+    );
+  }
 });
 
 test("platform user ids must be UUIDs and emails are normalized before matching", () => {
@@ -196,13 +213,12 @@ test("the development fallback never fabricates a Platform Core id", () => {
   assert.equal(devFallback.includes("buildContextForResolvedAppUser"), true);
 });
 
-test("new users are created with their canonical platform id, never email-first", () => {
-  const createBlock = sourceBetween(
-    requestUserSource,
-    "async function createAppUserWithMembership",
-    "async function ensureMembershipForUser",
-  );
-  assert.equal(createBlock.includes("platformUserId: input.platformUserId"), true);
+test("the authenticated path creates no users at all (Phase 2 removed auto-provisioning)", () => {
+  // Phase 1 created new rows with a canonical platform id. Phase 2 goes further: the auth
+  // path never creates an Orca user, so there is no email-first creation path to guard.
+  assert.equal(requestUserSource.includes("createAppUserWithMembership"), false);
+  assert.equal(requestUserSource.includes("user.create("), false);
+  assert.equal(requestUserSource.includes("tx.user.create"), false);
 });
 
 test("the request context surfaces the canonical id and how identity was reached", () => {
@@ -214,19 +230,26 @@ test("the request context surfaces the canonical id and how identity was reached
   assert.equal(meRouteSource.includes("identityLinkMode: context.identityLinkMode"), true);
 });
 
-test("an unlinked row with the same email is reported, never duplicated", () => {
+test("an unlinked row with the same email is reported, never served or duplicated", () => {
   const resolver = sourceBetween(
     requestUserSource,
     "async function resolveAppUserFromPlatformIdentity",
     "async function resolveFromAuthenticatedIdentity",
   );
-  const collisionIndex = resolver.indexOf('reason: "PLATFORM_IDENTITY_NOT_LINKED"');
-  const createIndex = resolver.indexOf("createAppUserWithMembership");
-  assert.notEqual(collisionIndex, -1, "email collision must be an explicit outcome");
   assert.equal(
-    collisionIndex < createIndex,
+    resolver.includes('reason: "PLATFORM_IDENTITY_NOT_LINKED"'),
     true,
-    "the collision check must run before attempting to create a second row",
+    "an unlinked account with a matching email must be an explicit, actionable outcome",
+  );
+  assert.equal(
+    resolver.includes('reason: "ORCA_ACCESS_NOT_PROVISIONED"'),
+    true,
+    "an unknown platform identity must be denied, not provisioned",
+  );
+  assert.equal(
+    resolver.includes("createAppUserWithMembership"),
+    false,
+    "the resolver must not create a row under any branch",
   );
 });
 

@@ -557,12 +557,18 @@ Reseeding is strongly preferred and already well-supported:
 
 ## Implementation Status
 
-**Phase 1 is implemented** on branch `platform-core-phase-1`. It delivers step 1 below in full, plus the additive half of step 4 (canonical `user_id`), and prepares — but does not perform — the auth repoint. See [PLATFORM_CORE_MIGRATION_PHASE_1.md](PLATFORM_CORE_MIGRATION_PHASE_1.md) for what changed, what transitional behaviour remains, and the deviations from the order below.
+**Phase 1 is complete** (merged to `main`). It delivers step 1 below in full, plus the additive half of step 4 (canonical `user_id`), and prepares — but does not perform — the auth repoint. See [PLATFORM_CORE_MIGRATION_PHASE_1.md](PLATFORM_CORE_MIGRATION_PHASE_1.md).
 
-Two corrections to this audit surfaced during implementation:
+**Phase 2 is implemented** on branch `platform-core-phase-2`. It performs the authentication cutover: steps 4 and 5 below, plus the removal of auto-provisioning and `DEFAULT_ORG_ID`, and a new entitlement boundary the audit did not anticipate. See [PLATFORM_CORE_MIGRATION_PHASE_2.md](PLATFORM_CORE_MIGRATION_PHASE_2.md).
 
-- **§C.4** assumes every event route calls `requireEventRouteAccess`. In practice six helpers reach identity, all funnelling into `resolveRequestUser`; the coverage test was generalised accordingly.
-- The repository has **two mirrored Prisma trees** (`prisma/` and `web/prisma/`). Schema changes must be applied to both.
+Corrections to this audit surfaced during implementation:
+
+- **§C.4** assumes every event route calls `requireEventRouteAccess`. In practice six helpers reach identity, all funnelling into `resolveRequestUser`; the coverage test was generalised accordingly. *(Phase 1)*
+- The repository has **two mirrored Prisma trees** (`prisma/` and `web/prisma/`). Schema changes must be applied to both. *(Phase 1)*
+- **§A.2** proposes deleting the login page and `/auth/callback`. Deleting `/login` would orphan thirteen redirect call sites, so it became a configurable redirector to Platform Core; the callback was narrowed to a PKCE session handoff rather than deleted, because Orca still exchanges the code against Platform Core. *(Phase 2)*
+- The audit did not note that the `(app)` route-group guard ran its **own** session check using `getSession()`, which does not verify the session with the auth server. It now delegates to the canonical resolver. *(Phase 2)*
+- The audit's §12 hot-path constraint drove the entitlement design: Platform Core entitlements arrive as verified session claims, never as a per-request call. *(Phase 2)*
+- **Platform Core Supabase exists** and is Orca's authentication authority. Absence of a Platform Core *repository* is not evidence of an absent Platform Core — an earlier Phase 2 note wrongly concluded that and has been corrected. What is genuinely outstanding is a set of higher-level capabilities, each tracked separately: a systematic **entitlement claim issuer**, an **Orca-callable invitation endpoint**, and the **organization/event context contracts** that Phase 3 depends on. *(Phase 2, corrected)*
 
 ---
 

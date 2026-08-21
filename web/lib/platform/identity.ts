@@ -68,13 +68,23 @@ export function isValidPlatformUserId(value: string | null | undefined): value i
 
 /**
  * Whether the transitional email→platform-id bridge is active.
- * Defaults to enabled so existing deployments keep working; set
- * `PLATFORM_IDENTITY_EMAIL_BRIDGE=false` once the backfill has run.
+ *
+ * Phase 2 retires the bridge: it is **off by default in production**, because email is not
+ * proof of identity and Platform Core now owns identity. Turning it back on there is an
+ * explicit, temporary migration act (`PLATFORM_IDENTITY_EMAIL_BRIDGE=true`) used only while
+ * `backfill-platform-user-ids` is being rolled out.
+ *
+ * Outside production it stays on by default so local development and the Playwright suite,
+ * whose fixtures create users without a Platform id, keep working.
+ *
+ * Even while enabled the bridge never lets a different Platform user inherit another user's
+ * Orca identity: a row already linked to a different id is refused, not re-pointed.
  */
 export function isEmailIdentityBridgeEnabled(): boolean {
   const raw = process.env.PLATFORM_IDENTITY_EMAIL_BRIDGE?.trim().toLowerCase();
+  if (raw === "true" || raw === "1" || raw === "on") return true;
   if (raw === "false" || raw === "0" || raw === "off") return false;
-  return true;
+  return process.env.NODE_ENV !== "production";
 }
 
 const APP_USER_SELECT = {

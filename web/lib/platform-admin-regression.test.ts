@@ -48,6 +48,7 @@ function superAdminNeedsOrgSelectionContext(): AuthContext {
     supabaseUserId: "supabase-platform-admin",
     platformUserId: "supabase-platform-admin",
     identityLinkMode: "CANONICAL",
+    entitlementSource: "platform-claims",
     email: "platform@example.com",
     appUserId: "platform-admin",
     role: UserRole.SUPER_ADMIN,
@@ -65,6 +66,7 @@ function orgAdminContext(): AuthContext {
     supabaseUserId: "supabase-org-admin",
     platformUserId: "supabase-org-admin",
     identityLinkMode: "CANONICAL",
+    entitlementSource: "platform-claims",
     email: "org-admin@example.com",
     appUserId: "org-admin",
     role: UserRole.ADMIN,
@@ -79,6 +81,7 @@ function unauthenticatedContext(): AuthContext {
     supabaseUserId: null,
     platformUserId: null,
     identityLinkMode: null,
+    entitlementSource: null,
     email: null,
     appUserId: null,
     role: null,
@@ -1407,7 +1410,7 @@ test("Platform context is ignored by normal organization request resolution", ()
   const requestUserSource = readFileSync("lib/request-user.ts", "utf8");
   const normalUserBranch = sourceBetween(
     requestUserSource,
-    "const membershipResult = await ensureMembershipForUser(appUser);",
+    "const membershipResult = readProvisionedMemberships(memberships);",
     "async function resolveFromDevFallback",
   );
 
@@ -1451,7 +1454,7 @@ test("Exiting platform context returns normal users to canonical account selecti
   const meRouteSource = readFileSync("app/api/me/route.ts", "utf8");
   const normalUserBranch = sourceBetween(
     requestUserSource,
-    "const membershipResult = await ensureMembershipForUser(appUser);",
+    "const membershipResult = readProvisionedMemberships(memberships);",
     "async function resolveFromDevFallback",
   );
 

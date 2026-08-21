@@ -6,6 +6,9 @@ const requestUserSource = readFileSync("lib/request-user.ts", "utf8");
 const meRouteSource = readFileSync("app/api/me/route.ts", "utf8");
 const callbackSource = readFileSync("app/auth/callback/route.ts", "utf8");
 const loginSource = readFileSync("app/(public)/login/page.tsx", "utf8");
+// Phase 2: the one-time-code sign-in moved off the entry route, which now redirects to
+// Platform Core. The context-clearing behaviour it used to own moved with it.
+const legacyLoginSource = readFileSync("app/(public)/login/legacy-otp-login-form.tsx", "utf8");
 const logoutSource = readFileSync("app/(shell)/_components/logout-button.tsx", "utf8");
 const shellSource = readFileSync("app/(shell)/_components/shell-scaffold.tsx", "utf8");
 const switchSource = readFileSync("app/(shell)/_components/switch-account-button.tsx", "utf8");
@@ -32,17 +35,22 @@ test("every completed login clears prior account and platform context before pic
   assert.match(callbackSource, /ACTIVE_ORG_COOKIE_NAME/);
   assert.match(callbackSource, /ORGANIZATION_SELECTION_COOKIE_NAME/);
   assert.match(callbackSource, /PLATFORM_CONTEXT_COOKIE_NAME/);
-  assert.match(loginSource, /method: "DELETE"/);
-  assert.match(loginSource, /await fetch\("\/api\/me"/);
+  assert.match(legacyLoginSource, /method: "DELETE"/);
+  assert.match(legacyLoginSource, /await fetch\("\/api\/me"/);
   assert.match(callbackSource, /new URL\("\/select-account"/);
-  assert.match(loginSource, /await supabase\.auth\.getSession\(\)/);
-  assert.match(loginSource, /router\.replace\("\/select-account"\)/);
+  assert.match(legacyLoginSource, /await supabase\.auth\.getSession\(\)/);
+  assert.match(legacyLoginSource, /router\.replace\("\/select-account"\)/);
+  // The entry route itself must not sign anyone in any more.
+  assert.doesNotMatch(loginSource, /verifyOtp/);
   assert.match(selectAccountSource, /redirect\("\/dashboard"\)/);
 });
 
 test("logout clears account context so a later login cannot inherit it", () => {
   assert.match(logoutSource, /method: "DELETE"/);
-  assert.match(logoutSource, /await supabase\.auth\.signOut\(\)/);
+  // Phase 2 signs out globally so the Platform Core session ends too, rather than leaving
+  // the user authenticated centrally and bouncing straight back in.
+  assert.match(logoutSource, /await supabase\.auth\.signOut\(\{ scope: "global" \}\)/);
+  assert.match(logoutSource, /getPlatformSignOutUrl\(\)/);
 });
 
 test("the authenticated shell offers a verified, single-flight context-clearing switch action", () => {

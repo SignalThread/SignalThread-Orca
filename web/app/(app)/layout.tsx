@@ -1,37 +1,22 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/auth-helpers-nextjs";
-import { resolveAuthAuthorityConfig } from "@/src/lib/supabase/auth-authority";
+import { ensureProvisionedUserAndContext } from "@/lib/request-user";
 
+/**
+ * Guard for the `(app)` route group.
+ *
+ * This used to run its own auth check against `NEXT_PUBLIC_SUPABASE_*` using
+ * `getSession()`, which only reads the session cookie and does not verify it with the auth
+ * server. That was a second, weaker copy of a rule that belongs in one place.
+ *
+ * It now delegates to the canonical resolver, so it inherits the authentication-authority
+ * posture, verified identity, the Platform Core entitlement gate, and Orca's own
+ * organization context — all decided identically to every other entry point.
+ */
 export default async function ProtectedAppLayout({ children }: { children: ReactNode }) {
-  // Session presence is decided by the authentication authority, not by the operational DB.
-  const authAuthority = resolveAuthAuthorityConfig();
-  const supabaseUrl = authAuthority?.url;
-  const supabaseAnonKey = authAuthority?.anonKey;
-  if (!supabaseUrl || !supabaseAnonKey) {
-    redirect("/login");
-  }
+  const authContext = await ensureProvisionedUserAndContext();
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
-    },
-  );
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
+  if (authContext.status === "UNAUTHENTICATED") {
     redirect("/login");
   }
 

@@ -11,7 +11,20 @@ import { PLATFORM_CONTEXT_COOKIE_NAME } from "@/src/server/services/platform-adm
 const createRouteHandlerClient = createServerClient;
 export const runtime = "nodejs";
 
+/**
+ * Account-lifecycle token types Orca must never process once Platform Core owns accounts.
+ *
+ * Signup, password recovery, and email change are identity operations. Handling them here
+ * would keep Orca acting as an account authority; Platform Core's own callback owns them.
+ * Under the legacy Orca authority they remain accepted so a rolled-back deployment works.
+ */
 type VerifyOtpType = "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email";
+
+const LEGACY_ONLY_OTP_TYPES: ReadonlySet<string> = new Set([
+  "signup",
+  "recovery",
+  "email_change",
+]);
 
 function isVerifyOtpType(value: string): value is VerifyOtpType {
   return ["signup", "invite", "magiclink", "recovery", "email_change", "email"].includes(value);
@@ -27,7 +40,7 @@ export async function GET(request: NextRequest) {
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type");
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!authAuthority || !supabaseUrl || !supabaseAnonKey) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -53,6 +66,12 @@ export async function GET(request: NextRequest) {
     const result = await supabase.auth.exchangeCodeForSession(code);
     error = result.error;
   } else if (tokenHash && type && isVerifyOtpType(type)) {
+    if (authAuthority.source === "platform-core" && LEGACY_ONLY_OTP_TYPES.has(type)) {
+      // Orca does not run account lifecycle against Platform Core. Send the user to sign
+      // in centrally rather than silently establishing a session from an identity token.
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
     const result = await supabase.auth.verifyOtp({
       type,
       token_hash: tokenHash,
