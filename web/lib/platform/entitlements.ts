@@ -217,21 +217,83 @@ export function isEntitlementDenialWaivableInDevelopment(reason: string): boolea
 }
 
 /**
- * Why Platform Core organization claims are not used for access yet.
+ * Whether Platform Core organization claims are authoritative for Orca access.
  *
- * `claims.organizations` carries **canonical Platform Core** organization ids. Orca's
- * `Organization.id` values are still locally generated (Phase 3 adopts the canonical ids as
- * the primary key). The two id spaces are not comparable, so intersecting them today would
- * deny every user the moment Platform Core starts issuing organization claims.
+ * Phase 2 hard-coded this to `false`: `claims.organizations` carried **canonical Platform
+ * Core** organization ids while Orca's `Organization.id` values were still locally
+ * generated, so the two id spaces were not comparable and intersecting them would have
+ * denied everyone.
  *
- * The transitional rule for Phase 2 is therefore: organization context stays decided by
- * Orca's local `Membership` rows and the existing `activeOrgId` cookie, exactly as before.
- * This is safe because Phase 2 also removed auto-provisioning — nothing can *gain* a
- * membership any more, so a user's organization reach can only shrink, never grow.
- *
- * Phase 3 replaces this: once `Organization.id` is the canonical Platform id, the claims
- * become the authority and this function goes away.
+ * Phase 3 adopted the Platform organization uuid *as* `Organization.id`. The id spaces are
+ * now the same, so the claim can finally be enforced. Production is authoritative by
+ * default; `PLATFORM_ORG_CLAIMS_AUTHORITATIVE` allows an explicit override in either
+ * direction for a controlled rollout or rollback.
  */
-export function arePlatformOrganizationClaimsAuthoritative(): false {
-  return false;
+export function arePlatformOrganizationClaimsAuthoritative(): boolean {
+  const raw = process.env.PLATFORM_ORG_CLAIMS_AUTHORITATIVE?.trim().toLowerCase();
+  if (raw === "true" || raw === "1" || raw === "on") return true;
+  if (raw === "false" || raw === "0" || raw === "off") return false;
+  return true;
+}
+
+export type OrganizationRestriction =
+  | { status: "UNRESTRICTED"; orgIds: string[]; source: "claims-not-authoritative" | "no-org-claim" }
+  | { status: "RESTRICTED"; orgIds: string[] }
+  | { status: "DENIED"; reason: string; hint: string };
+
+/**
+ * Narrow the organizations a user may act in to those Platform Core has granted.
+ *
+ * This is a **ceiling, never a grant**. A Platform organization claim can only remove
+ * organizations from the set Orca already knows the user can reach; it can never add one.
+ * Orca product access (an `Organization` row plus a `Membership`) is still required, so a
+ * claim naming an organization Orca has never heard of grants nothing.
+ *
+ * Because the caller passes the already-computed accessible set, a client-supplied cookie
+ * or query parameter cannot widen access: selection happens *within* whatever this returns.
+ */
+export function restrictOrganizationsToPlatformClaims(input: {
+  accessibleOrgIds: readonly string[];
+  claims: PlatformEntitlementClaims;
+}): OrganizationRestriction {
+  const accessible = [...new Set(input.accessibleOrgIds)];
+
+  if (!arePlatformOrganizationClaimsAuthoritative()) {
+    return { status: "UNRESTRICTED", orgIds: accessible, source: "claims-not-authoritative" };
+  }
+
+  // No claims at all means Platform Core said nothing. In production the entitlement gate
+  // has already denied this request, so reaching here means migration mode.
+  if (!input.claims) {
+    return { status: "UNRESTRICTED", orgIds: accessible, source: "no-org-claim" };
+  }
+
+  const claimed = [...new Set(input.claims.organizations)];
+
+  if (claimed.length === 0) {
+    // Entitled to the product but granted no organization. In production that is an
+    // incomplete grant and must fail closed; elsewhere (dev fallback, fixtures) the
+    // organization claim is simply not part of the harness.
+    if (process.env.NODE_ENV === "production") {
+      return {
+        status: "DENIED",
+        reason: "PLATFORM_ORGANIZATION_CLAIM_MISSING",
+        hint: "Platform Core granted Orca access but named no organization for this account.",
+      };
+    }
+    return { status: "UNRESTRICTED", orgIds: accessible, source: "no-org-claim" };
+  }
+
+  const claimedSet = new Set(claimed);
+  const intersection = accessible.filter((id) => claimedSet.has(id));
+
+  if (intersection.length === 0) {
+    return {
+      status: "DENIED",
+      reason: "PLATFORM_ORGANIZATION_CONTEXT_MISMATCH",
+      hint: "The organizations Platform Core granted do not match any Orca organization this account can reach.",
+    };
+  }
+
+  return { status: "RESTRICTED", orgIds: intersection };
 }

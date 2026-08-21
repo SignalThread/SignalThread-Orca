@@ -9,7 +9,6 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  arePlatformOrganizationClaimsAuthoritative,
   createDevelopmentEntitlementClaims,
   getOrcaProductKey,
   isEntitlementDenialWaivableInDevelopment,
@@ -491,22 +490,33 @@ test("entitlement is enforced before any organization context is granted", () =>
   assert.equal(entitlementIndex < selectionIndex, true, "entry is decided before org context");
 });
 
-test("organization context stays local and cannot be widened by platform claims", () => {
-  // Phase 3 makes claims.organizations authoritative; until Orca's organization ids are the
-  // canonical ones, intersecting incomparable id spaces would lock everyone out.
-  assert.equal(arePlatformOrganizationClaimsAuthoritative(), false);
-
+test("organization access still comes from Orca membership and can only shrink", () => {
+  // Phase 2 asserted `arePlatformOrganizationClaimsAuthoritative() === false`, because the
+  // Platform and Orca organization id spaces were not yet comparable. Phase 3 adopted the
+  // Platform uuid as Orca's `Organization.id`, so that flag is now true and is covered by
+  // `platform-core-phase3-canonical-context.test.ts`.
+  //
+  // The Phase 2 guarantee this test still owns is narrower and must never regress: the set
+  // of organizations a user can reach originates in Orca's own membership data, and a
+  // Platform claim can only narrow it.
   const builder = sourceBetween(
     requestUserSource,
     "async function buildContextForResolvedAppUser",
     "async function resolveFromDevFallback",
   );
-  // Accessible organizations still come from local membership, not from the claim list.
-  assert.equal(builder.includes("listAccessibleOrganizationsForUser("), true);
-  assert.equal(builder.includes("entitlement.organizationIds"), false);
-  assert.equal(builder.includes("claims.organizations"), false);
+  assert.equal(
+    builder.includes("listAccessibleOrganizationsForUser("),
+    true,
+    "the candidate set is still Orca membership",
+  );
+  assert.equal(
+    builder.indexOf("listAccessibleOrganizationsForUser(") <
+      builder.indexOf("restrictOrganizationsToPlatformClaims("),
+    true,
+    "claims narrow an already-computed Orca set rather than producing it",
+  );
 
-  // And because provisioning is gone, that reach can only shrink.
+  // And because auto-provisioning is gone, that reach can only shrink.
   assert.equal(requestUserSource.includes("membership.create"), false);
   assert.equal(requestUserSource.includes("membership.upsert"), false);
 });

@@ -17,6 +17,7 @@ import {
   isEntitlementDenialWaivableInDevelopment,
   readEntitlementClaims,
   resolveOrcaEntitlement,
+  restrictOrganizationsToPlatformClaims,
   type EntitlementGrantSource,
   type PlatformEntitlementClaims,
 } from "@/lib/platform/entitlements";
@@ -49,6 +50,12 @@ type EnsureBaseContext = {
   identityLinkMode: PlatformIdentityLinkMode | null;
   /** How Platform Core entitlement to enter Orca was satisfied, when it was. */
   entitlementSource: EntitlementGrantSource | null;
+  /**
+   * Organizations this session may act in: Orca product access narrowed by Platform Core
+   * organization claims. Consumers must use this rather than recomputing the intersection,
+   * so there is exactly one place the ceiling is applied.
+   */
+  authorizedOrganizationIds: string[];
   email: string | null;
   appUserId: string | null;
   role: UserRole | null;
@@ -312,6 +319,7 @@ async function resolveFromAuthenticatedIdentity(input: {
       platformUserId: null,
       identityLinkMode: "UNRESOLVED",
       entitlementSource: null,
+      authorizedOrganizationIds: [],
       email: input.email,
       appUserId: appUserResult.appUserId,
       role: null,
@@ -380,6 +388,7 @@ async function buildContextForResolvedAppUser(input: {
       platformUserId: appUser.platformUserId,
       identityLinkMode,
       entitlementSource: null,
+      authorizedOrganizationIds: [],
       email: input.email,
       appUserId: appUser.id,
       role: appUser.role,
@@ -406,6 +415,7 @@ async function buildContextForResolvedAppUser(input: {
           platformUserId: appUser.platformUserId,
           identityLinkMode,
           entitlementSource,
+          authorizedOrganizationIds: fallbackOrgId ? [fallbackOrgId] : [],
           email: input.email,
           appUserId: appUser.id,
           role: appUser.role,
@@ -424,6 +434,7 @@ async function buildContextForResolvedAppUser(input: {
         platformUserId: appUser.platformUserId,
         identityLinkMode,
         entitlementSource,
+        authorizedOrganizationIds: [],
         email: input.email,
         appUserId: appUser.id,
         role: appUser.role,
@@ -437,10 +448,43 @@ async function buildContextForResolvedAppUser(input: {
     resolvedMemberships = membershipResult.memberships;
   }
 
-  const accessibleOrganizations = await listAccessibleOrganizationsForUser({
+  const orcaAccessibleOrganizations = await listAccessibleOrganizationsForUser({
     userId: appUser.id,
     role: appUser.role,
   });
+
+  // Phase 3: Platform Core organization claims are a ceiling on Orca product access.
+  // Orca's Organization.id IS the Platform organization_id, so the two are directly
+  // comparable. The claim can only narrow the set — never add an organization Orca does
+  // not already grant — and the cookie-based selection below happens strictly within it.
+  const organizationRestriction = restrictOrganizationsToPlatformClaims({
+    accessibleOrgIds: orcaAccessibleOrganizations.map((organization) => organization.id),
+    claims: input.entitlementClaims,
+  });
+
+  if (organizationRestriction.status === "DENIED") {
+    return {
+      status: "NEEDS_PROVISIONING",
+      supabaseUserId: input.supabaseUserId,
+      platformUserId: appUser.platformUserId,
+      identityLinkMode,
+      entitlementSource,
+      authorizedOrganizationIds: [],
+      email: input.email,
+      appUserId: appUser.id,
+      role: appUser.role,
+      memberships: resolvedMemberships ?? [],
+      activeOrgId: null,
+      reason: organizationRestriction.reason,
+      hint: organizationRestriction.hint,
+    };
+  }
+
+  const authorizedOrgIds = new Set(organizationRestriction.orgIds);
+  const accessibleOrganizations = orcaAccessibleOrganizations.filter((organization) =>
+    authorizedOrgIds.has(organization.id),
+  );
+
   const selection = resolveOrganizationSelection({
     accessibleOrgIds: accessibleOrganizations.map((organization) => organization.id),
     requestedOrgId: input.requestedOrgId,
@@ -454,6 +498,7 @@ async function buildContextForResolvedAppUser(input: {
       platformUserId: appUser.platformUserId,
       identityLinkMode,
       entitlementSource,
+      authorizedOrganizationIds: organizationRestriction.orgIds,
       email: input.email,
       appUserId: appUser.id,
       role: appUser.role,
@@ -471,6 +516,7 @@ async function buildContextForResolvedAppUser(input: {
       platformUserId: appUser.platformUserId,
       identityLinkMode,
       entitlementSource,
+      authorizedOrganizationIds: organizationRestriction.orgIds,
       email: input.email,
       appUserId: appUser.id,
       role: appUser.role,
@@ -488,6 +534,7 @@ async function buildContextForResolvedAppUser(input: {
     platformUserId: appUser.platformUserId,
     identityLinkMode,
     entitlementSource,
+    authorizedOrganizationIds: organizationRestriction.orgIds,
     email: input.email,
     appUserId: appUser.id,
     role: appUser.role,
@@ -534,6 +581,7 @@ async function resolveFromDevFallback(
       platformUserId: null,
       identityLinkMode: "UNRESOLVED",
       entitlementSource: null,
+      authorizedOrganizationIds: [],
       email: null,
       appUserId: null,
       role: null,
@@ -580,6 +628,7 @@ export async function ensureProvisionedUserAndContext(
       platformUserId: null,
       identityLinkMode: null,
       entitlementSource: null,
+      authorizedOrganizationIds: [],
       email: null,
       appUserId: null,
       role: null,
@@ -645,6 +694,7 @@ export async function ensureProvisionedUserAndContext(
     platformUserId: null,
     identityLinkMode: null,
     entitlementSource: null,
+    authorizedOrganizationIds: [],
     email: null,
     appUserId: null,
     role: null,

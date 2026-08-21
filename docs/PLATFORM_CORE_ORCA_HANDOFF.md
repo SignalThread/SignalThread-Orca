@@ -8,9 +8,11 @@
 
 # 1. Executive State
 
-We have completed the Orca repository cleanup, Platform Core auth foundation/cutover, legacy database truth audit, clean database baseline, and provisioning/verification of a brand-new permanent Orca operational Supabase project.
-
-Current milestone state:
+Repository cleanup, Platform Core auth foundation and cutover, legacy schema-truth audit,
+clean database baseline, permanent Orca database provisioning, **and Phase 3 canonical
+organization/event identity adoption** are complete. A real user now authenticates once at
+Platform Core and lands inside an Orca event with no second login and no duplicate
+organization or event selection.
 
 ```text
 ✅ Clean SignalThread-owned Orca repo
@@ -24,13 +26,15 @@ Current milestone state:
 ✅ Prisma parity = zero drift
 ✅ Native PostgreSQL integrity verified
 ✅ Platform Core Auth and Orca operational DB proven separate
+✅ Phase 3 — canonical organization/event ids adopted (no mapping tables)
+✅ Platform organization claims are authoritative
+✅ Server-validated Platform → Orca event handoff
+✅ First real end-to-end Platform login → Orca event, verified against live infrastructure
 
-→ NEXT: Phase 3 — canonical Platform organization/event ID adoption
-→ THEN: Platform → Orca context handoff
-→ THEN: end-to-end Platform login → Orca workflow
+→ NEXT: Platform Core product build-out (see section 11)
 ```
 
-The next chat should **not** redo the database audit or baseline work.
+The next chat should **not** redo the database audit, the baseline, or Phase 3 identity work.
 
 ---
 
@@ -655,59 +659,184 @@ The provisioning task wrote local environment configuration and explicitly repor
 
 ---
 
-# 11. Immediate Next Task — Phase 3
+# 11. Phase 3 — COMPLETED
 
-The next engineering job is:
+Canonical Platform organization/event ID adoption is done and verified end to end against
+live infrastructure.
 
-# Canonical Platform Organization + Event ID Adoption
+## 11.1 The Platform Core contract that actually exists
 
-Do this before building the full Platform launcher/handoff flow.
+Inspected read-only on 2026-08-21. **Platform Core is a bare Supabase project:**
 
-## Phase 3 goals
+```text
+public schema tables      : 0   (probed: organizations, organization_members, events,
+                                 event_access, product_entitlements, users, profiles,
+                                 memberships, entitlements, accounts -> all HTTP 404)
+PostgREST exposed objects : 1   (rpc/rls_auto_enable only)
+GoTrue users at start     : 0
+Auth providers enabled    : email
+```
 
-1. Inspect actual Platform Core schema/data contracts for:
-   - canonical users
-   - organizations
-   - organization membership
-   - events
-   - event access
-   - product entitlements
+There is **no relational organization / event / membership / entitlement registry in
+Platform Core.** Do not write code against table names from older documents.
 
-2. Identify/create controlled Platform test identities:
-   - Platform user
-   - Platform organization
-   - Platform event
-   - Orca entitlement/access
+The only canonical, server-controlled mechanism Platform Core exposes today is
+**Supabase Auth plus `app_metadata` claims**:
 
-3. Seed/provision matching Orca shell/product records using **the exact same IDs**:
-   - `User.platformUserId = Platform user_id`
-   - `Organization.id = Platform organization_id`
-   - `Event.id = Platform event_id`
+```jsonc
+// auth.users.app_metadata  — writable only with a service-role key, signed into the JWT
+{
+  "signalthread": {
+    "products":      ["orca"],   // product entitlement. Orca fails closed without it
+    "organizations": ["<uuid>"], // canonical org ids — AUTHORIZATION INPUT
+    "events":        ["<uuid>"]  // provisioning record only — NOT used for authorization
+  }
+}
+```
 
-4. Make Platform organization context authoritative only after the ID spaces are actually aligned.
+`organizations` is authorization input. `events` is deliberately **not**: a per-event claim
+list does not scale, so Orca authorizes an event by checking that the event's organization
+is Platform-authorized and that the user holds an Orca `EventMember` row.
 
-5. Make Platform event context authoritative through an explicit validated handoff contract.
+Orca never queries Platform Core's database. Everything comes from the verified session.
 
-6. Begin retiring redundant Orca tenancy assumptions:
-   - especially `User.orgId` as access truth
+## 11.2 Canonical ids — adopted directly, no mapping
 
-7. Keep Orca-specific RBAC:
-   - `EventMemberRole`
-   - other Orca product permissions
+```text
+Platform user_id         -> Orca User.platformUserId   (Orca keeps a local User.id)
+Platform organization_id -> Orca Organization.id       (same uuid, IS the primary key)
+Platform event_id        -> Orca Event.id              (same uuid, IS the primary key)
+```
 
-8. Prove authorization boundaries:
-   - valid Platform user + Orca entitlement + org/event access works
-   - wrong org fails
-   - wrong event fails
-   - missing Orca entitlement fails
-   - authenticated-but-unprovisioned identity fails
-   - client-tampered org/event IDs fail
+No mapping tables exist and none were created. Verified in the permanent Orca database:
+124 application tables, zero tables matching `%mapping%` or `%platform%`.
+
+No schema migration was needed — `Organization.id` and `Event.id` were already
+caller-suppliable uuids.
+
+## 11.3 Provisioning tools (both idempotent, dry-run by default)
+
+```text
+web/scripts/platform-provision-test-identity.ts   -> writes Platform Core (GoTrue + claims)
+web/scripts/adopt-platform-canonical-ids.ts       -> writes Orca, consuming those ids
+```
+
+The Orca script **never invents** an organization or event id: omitting one is an error, and
+the file contains no uuid generator. It refuses to merge two identities, refuses to re-point
+an already-linked email, and refuses to move a canonical event between organizations.
+
+Regenerate a test identity with (no secrets in this file — the password is written to a path
+you choose and never printed):
+
+```bash
+cd web
+npx tsx scripts/platform-provision-test-identity.ts \
+  --email <address> --password-out <path> --ids-out <path> --commit
+npx tsx scripts/adopt-platform-canonical-ids.ts \
+  --platform-user-id <uuid> --organization-id <uuid> --event-id <uuid> \
+  --email <address> --event-role EVENT_ADMIN --commit
+```
+
+## 11.4 Organization context is now authoritative
+
+`arePlatformOrganizationClaimsAuthoritative()` returns **true** (was hard-coded `false` in
+Phase 2 because the id spaces were not comparable). Override with
+`PLATFORM_ORG_CLAIMS_AUTHORITATIVE=true|false`.
+
+The model is **ceiling, never grant**:
+
+```text
+accessible = Orca Membership  ∩  Platform organizations claim
+```
+
+- A claim naming an organization Orca does not grant adds nothing.
+- A claim naming only foreign organizations denies (`PLATFORM_ORGANIZATION_CONTEXT_MISMATCH`).
+- Entitled but no organization claim denies **in production only**
+  (`PLATFORM_ORGANIZATION_CLAIM_MISSING`); elsewhere the fixture harness has no org claim.
+- Cookie selection happens strictly *within* that set, so a forged `activeOrgId` cannot widen access.
+
+Applied in exactly one place, before organization selection, and exposed on the resolver
+result as `authorizedOrganizationIds` so no consumer recomputes it.
+
+## 11.5 Event handoff
+
+```text
+GET /platform-entry?event_id=<canonical uuid>
+```
+
+`app/platform-entry/route.ts` + `lib/platform/event-context.ts`. The incoming id is
+**untrusted** and is only a lookup key. Entry requires all of:
+
+1. parses as a uuid                          else 400 `INVALID_EVENT_ID`
+2. event exists in Orca                      else 404 `EVENT_NOT_FOUND`
+3. event.orgId ∈ authorizedOrganizationIds   else 403 `EVENT_OUTSIDE_AUTHORIZED_ORGANIZATION`
+4. Orca `EventMember` admits the user        else 403 `EVENT_MEMBERSHIP_REQUIRED`
+
+On success it sets the organization cookies from the *validated event's* organization and
+redirects to `/events/{id}` — which is what removes the duplicate organization selection.
+The redirect uses a **relative** `Location` on purpose: an absolute one can normalise the
+host (127.0.0.1 → localhost) and the cookies just set would be scoped to a different host.
+
+Unauthenticated entry bounces to Platform Core sign-in preserving the full return URL, so
+the user lands back on the same event after logging in.
+
+## 11.6 Verified end-to-end (live infrastructure, not fixtures)
+
+```text
+1. unauthenticated /platform-entry?event_id=…  -> 307 to Platform Core sign-in (return URL preserved)
+2. authenticate at Platform Core               -> session issued, claims in JWT
+3. /api/me                                     -> 200 OK
+4.   platformUserId  == Platform user_id       -> true
+5.   activeOrgId     == canonical org id       -> true
+6.   identityLinkMode                          -> CANONICAL
+7.   entitlementSource                         -> platform-claims  (a real Platform grant)
+8. /platform-entry?event_id=…                  -> 307 /events/{canonical event id}
+9. /events/{id}                                -> 200, event renders, no second login
+```
+
+Live deny paths, all against the running stack:
+
+```text
+tampered event_id (valid uuid, not an event) -> 404 EVENT_NOT_FOUND
+malformed / missing event_id                 -> 400 INVALID_EVENT_ID
+forged session cookie                        -> 307 bounce (fails closed)
+entitlement removed from claims              -> 403 PLATFORM_ENTITLEMENT_MISSING_PRODUCT
+organization claim changed to a foreign uuid -> 403 PLATFORM_ORGANIZATION_CONTEXT_MISMATCH
+claims restored                              -> 200 / 307 again
+```
+
+## 11.7 `User.orgId` status — TRANSITIONAL, no longer access truth
+
+Phase 2 removed every write. Phase 3 confirms it authorizes nothing.
+
+```text
+AUTHORIZATION    : none. Access = Membership ∩ Platform claim.
+                   Request-level `user.orgId` is context.activeOrgId, NOT the column.
+PRODUCT CONTEXT  : still a required NOT NULL column with an FK to Organization,
+                   set when a user row is created.
+LEGACY COMPAT    : exactly ONE runtime read remains, inside the development-only
+                   DEV_ALLOW_NO_MEMBERSHIP bypass in lib/request-user.ts.
+TEST FIXTURE     : harness sets it when creating users.
+```
+
+Pinned by a regression test that fails if a second read appears. **Not removed**: it is
+NOT NULL with an FK, so dropping it is a schema migration plus a fixture sweep, and it is
+not on the critical path. That is the remaining dependency.
+
+## 11.8 Entitlement status
+
+Enforced and fail-closed. `entitlementSource: platform-claims` observed against live
+Platform Core, so the real grant path works — not just the migration fallback.
+
+Still missing: a **systematic issuer**. Claims are set per-user with a service-role key.
+Nothing keeps them in step with entitlement changes, and there is no Platform UI. That is
+Platform product work, not Orca work.
 
 ---
 
-# 12. Phase 3 Non-Goals
+# 12. Standing Non-Goals
 
-Do not turn Phase 3 into unrelated cleanup.
+These applied to Phase 3 and still apply to the next phase.
 
 Do not:
 
@@ -761,45 +890,19 @@ Platform identity/context must be verifiable server-side.
 
 ---
 
-# 14. `User.orgId` Target
+# 14. `User.orgId` Status
 
-Long-term target:
-
-> `User.orgId` should not be the source of organization-access truth.
-
-Organization membership belongs to Platform Core.
-
-Retire `User.orgId` carefully after finding every runtime dependency.
-
-Do not remove it just because the architecture says it should disappear.
-
-Phase 3 should:
-
-1. inventory reads/writes/assumptions;
-2. replace access decisions with Platform context;
-3. preserve any legitimate product-local use temporarily if necessary;
-4. add regression coverage;
-5. remove only when proven safe.
+**Resolved in Phase 3 — see section 11.7.** It no longer authorizes anything; one
+development-only read remains and the column is still NOT NULL. Removing it is optional
+cleanup, not a blocker.
 
 ---
 
 # 15. Entitlement State
 
-Phase 2 implemented entitlement checking.
-
-Current target architecture:
-
-```text
-Platform Core issues server-controlled Orca entitlement
-→ verified auth state carries it
-→ Orca fails closed without it
-```
-
-There may still be work needed on the **systematic entitlement issuer**.
-
-Do not mistake an available metadata mechanism for a fully finished entitlement-management product.
-
-Phase 3 should determine what minimum Platform-side provisioning is required to create a real end-to-end Orca test identity.
+**Enforced and verified — see section 11.8.** `entitlementSource: platform-claims` was
+observed against live Platform Core. The remaining gap is a systematic issuer, which is
+Platform product work.
 
 ---
 
@@ -914,134 +1017,93 @@ web/prisma.baseline.config.ts
 
 # 20. Tests / Known Baseline
 
-Prior Platform Core focused tests were clean.
+Run from `web/` with `DATABASE_URL` pointing at a database built from the committed
+baseline (`prisma/baseline/20260821120000_orca_clean_baseline/migration.sql`).
 
-Permanent DB provisioning confirmed:
+Baseline on `main`, with a database configured: **12 failing tests.** They are pre-existing
+and unrelated to Platform Core work (budget grid layout, command-center container, timeline
+render-path, docs upload, two matrix-2 DB tests). Always diff failure *names* against that
+baseline before attributing anything to your change.
 
-```text
-Prisma validate                       pass
-Prisma generate                       pass
-Prisma migrate status                 up to date
-Prisma migrate diff                   zero drift
-native integrity                      pass
-application smoke                     pass
-```
-
-The clean-baseline phase full suite reported:
+Last full run (Phase 3 working tree):
 
 ```text
-2593 pass
-12 fail
-7 skipped
+npm run test:summary        2609 pass / 12 fail / 7 skipped   -> identical set to main
+npx tsc --noEmit            clean
+npx eslint lib src app      0 errors / 74 warnings            -> identical to main
+npm run build               exit 0
 ```
 
-Those 12 failures matched the known existing main baseline and were not introduced by the clean baseline.
+Platform Core suites:
 
-Do not automatically treat the same baseline failures as Phase 3 regressions.
-
-Compare against `main`.
+```text
+lib/platform-core-identity-regression.test.ts            Phase 1
+lib/platform-core-auth-boundary-regression.test.ts       Phase 1
+lib/platform-core-token-signing-regression.test.ts       Phase 1
+lib/platform-core-authorization-boundary-regression.test.ts
+lib/platform-core-phase2-cutover-regression.test.ts      Phase 2  (32 tests)
+lib/platform-core-phase2-access-regression.test.ts       Phase 2
+lib/platform-core-phase3-canonical-context.test.ts       Phase 3  (16 tests)
+lib/orca-baseline-native-integrity.test.ts               DB baseline (11 tests)
+```
 
 ---
 
-# 21. Recommended First Actions in the Next Chat
+# 21. NEXT EXACT TASK
 
-Do these in order.
+Phase 3 is done. The identity, organization and event contracts are canonical and proven.
+What is missing is **Platform Core as a product** — it is currently a bare Supabase project
+plus per-user claims set by hand.
 
-## Step 1 — Verify Git
+The next task is Platform Core build-out, in this order:
 
-```bash
-cd ~/Documents/orca-clean
-git status
-git branch --show-current
-git rev-parse --short HEAD
-git rev-parse --short origin/main
-git diff --stat
-git diff --check
-```
+## 21.1 Platform Core organization + event registry (highest value)
 
-Resolve/commit the expected pending database-verification documentation update if still present.
+Today Platform Core has no idea what an organization or an event *is*; it only stores uuids
+inside a user's `app_metadata`. That does not scale past a test identity and gives no
+Platform-side source of truth.
 
-## Step 2 — Verify infrastructure identity
-
-Confirm the intended projects before any action:
+Build, in Platform Core:
 
 ```text
-Platform Core: signalthread-platform-core
-Orca DB:       signalthread-orca
+organizations         (id, name, slug, created_at)
+organization_members  (organization_id, user_id, role)
+events                (id, organization_id, name, starts_at)   <- mints canonical event_id
+product_entitlements  (organization_id | user_id, product_key)
 ```
 
-Do not print secrets.
+with RLS enabled. Then have the entitlement claim be *derived* from those tables rather than
+hand-written, so `app_metadata` becomes a cache of a real record instead of the record itself.
 
-## Step 3 — Have the coding agent audit Phase 3 dependencies
+**Constraint that must not be broken:** Orca still must not query Platform Core's database.
+Claims stay the transport. Adding tables changes who *writes* the claim, not who reads it.
 
-Before implementation, inventory:
+## 21.2 Systematic entitlement issuer
+
+Keep `app_metadata.signalthread.products` in step with `product_entitlements` automatically
+(database trigger, edge function, or admin service). Until this exists, granting Orca access
+means running a script with a service-role key.
+
+## 21.3 Platform launcher UI
+
+**Not built.** The backend handoff contract is verified, but nothing in Platform Core renders
+a "Open in Orca" button. Building it means: list the user's events, link each to
+`{ORCA_URL}/platform-entry?event_id={id}`. No Orca change is required — the route already
+validates everything.
+
+## 21.4 Orca-callable invitation endpoint
+
+Still absent (Phase 2 gated Orca's own invite route to 410). Needed before Orca can invite
+anyone.
+
+## 21.5 Optional cleanup, not blocking
 
 ```text
-Organization.id
-Event.id
-User.orgId
-User.platformUserId
-Membership
-EventMember
-current event/org selection
-Platform claims parsing
-arePlatformOrganizationClaimsAuthoritative()
-Platform entitlement checks
-login callback
-Platform return-to/context handling
+- drop User.orgId (NOT NULL + FK; needs a migration and a fixture sweep)
+- retire the transitional email identity bridge once every user is linked
+- consolidate the duplicate prisma/ and web/prisma/ trees
+- archive the 84-file legacy migration chain (20 test files read it as fixtures)
 ```
-
-The audit should be targeted and immediately feed implementation; do not create another giant architecture archaeology project.
-
-## Step 4 — Implement canonical IDs
-
-Use the fresh empty DB to adopt Platform organization/event IDs directly.
-
-## Step 5 — Test Platform → Orca identity/context
-
-Prove happy path and failure paths.
-
----
-
-# 22. Definition of Phase 3 Success
-
-Phase 3 succeeds when:
-
-```text
-Platform user_id is the canonical authenticated identity
-        ↓
-Orca User.platformUserId matches it
-
-Platform organization_id
-        ↓
-Orca Organization.id matches it
-
-Platform event_id
-        ↓
-Orca Event.id matches it
-
-Platform access + Orca entitlement validated
-        ↓
-Orca-specific EventMemberRole validated
-```
-
-And:
-
-```text
-wrong organization → rejected
-wrong event → rejected
-missing entitlement → rejected
-unknown Platform identity → rejected
-tampered client context → rejected
-```
-
-No duplicate local canonical org/event IDs.
-
-No email identity matching.
-
-No `DEFAULT_ORG_ID`.
-
-No direct Platform DB dependency in Orca runtime.
 
 ---
 
@@ -1151,19 +1213,20 @@ The chat should never be the only place where a critical architecture decision o
 # 25. Suggested First Message for the Next Chat
 
 ```text
-We are continuing the real SignalThread Platform Core → Orca migration.
+Read docs/PLATFORM_CORE_ORCA_HANDOFF.md first, then verify it against current code and Git.
 
-The canonical repo is:
-~/Documents/orca-clean
+Phases 1-3 are COMPLETE. Do not redo them:
+  - canonical identity, organization and event ids are adopted (no mapping tables)
+  - Platform organization claims are authoritative
+  - the Platform -> Orca event handoff is server-validated and proven end to end
 
-Read the current handoff and current code before doing anything:
-docs/PLATFORM_CORE_ORCA_HANDOFF.md
+Current state:
+  repo   ~/Documents/orca-clean, branch main
+  Orca DB          signalthread-orca          qgxvtgnzptepimuawnku  us-east-2
+  Platform Core    signalthread-platform-core wtbnpeluwhjjqccdofxd  us-east-2
 
-We have completed Platform Core Phase 1/2, the legacy DB audit, clean baseline, and the permanent signalthread-orca operational database.
-
-The next phase is canonical Platform organization/event ID adoption.
-
-First verify Git and the handoff against current code. Do not redo previous phases, do not touch the legacy Orca DB, and do not start Voice/LR/Housing/Registration work.
+Your task is section 21 of the handoff: Platform Core build-out, starting with the
+organization/event registry (21.1). Orca must still never query Platform Core's database.
 ```
 
 ---
