@@ -181,7 +181,7 @@ Catalog facts compared: columns (type, nullability, default), enum labels with o
 | Foreign keys | 278 | 278 |
 | Unique constraints | 13 | 13 |
 | Check constraints | 27 | 27 |
-| Indexes | 501 | 504 |
+| Indexes | 501 | 503 |
 | Partial unique indexes | 6 | 6 |
 | Functions / triggers | 2 / 2 | 2 / 2 |
 | Views / sequences / RLS policies | 0 / 0 / 0 | 0 / 0 / 0 |
@@ -252,9 +252,159 @@ Only items genuinely deferred:
 ## 11. Next phase
 
 ```
-Create the permanent new Orca operational database
-  → apply this verified baseline (prisma.baseline.config.ts)
-  → introduce Platform canonical IDs
+Create the permanent new Orca operational database   ← DONE, see section 12
+  → apply this verified baseline (prisma.baseline.config.ts)   ← DONE
+  → introduce Platform canonical IDs                  ← next task
 ```
 
-Not performed here. This task ends with the baseline proven against a disposable database. The permanent database was not created, no cutover was performed, and no production configuration was changed.
+The first two steps were completed on 2026-08-21 and are recorded in section 12. Canonical
+Platform organization/event ID adoption has not begun.
+
+---
+
+## 12. Permanent Orca operational database
+
+- **Date provisioned:** 2026-08-21
+- **Verdict:** **PERMANENT ORCA DB VERIFIED**
+
+The verified baseline has been installed into the permanent Orca operational database. This
+section records the provisioning outcome. It contains no credentials.
+
+### 12.1 The database
+
+| Property | Value |
+|---|---|
+| Provider | Supabase |
+| Organization | `SignalThread` (`yldwjhbvgtqoimcqerlp`) |
+| Project name | `signalthread-orca` |
+| Project ref | `qgxvtgnzptepimuawnku` |
+| Region | `us-east-2` (East US, Ohio) |
+| PostgreSQL | 17.6 (engine 17, release `17.6.1.155`) |
+| Application schema | `public` |
+| Connection path | Supavisor session pooler, `aws-0-us-east-2.pooler.supabase.com:5432` |
+
+Region rationale: co-located with Platform Core, because every authenticated Orca request
+calls Platform Core for `getUser()` **and** queries the Orca database. The legacy database's
+region was not a factor — it lives in a different Supabase account and no data is migrated
+from it.
+
+Note: the project's direct host (`db.<ref>.supabase.co`) resolves to IPv6 only. The session
+pooler is used instead, which is also what the application's Prisma adapter expects.
+
+### 12.2 Separation from other databases
+
+| Database | Project ref | Relationship |
+|---|---|---|
+| **Orca operational** | `qgxvtgnzptepimuawnku` | `DATABASE_URL` points here |
+| **Platform Core auth** | `wtbnpeluwhjjqccdofxd` | `NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_*` points here. Orca holds **no** Platform Core `DATABASE_URL` |
+| **Legacy Orca ("Planner Dash")** | `qgqqizrpdkpjohvpkdgu` | Different Supabase **account**. Not referenced by any Orca configuration |
+
+Every mutating command was gated behind a fingerprint guard that prints only
+host / port / database / project-ref and refuses any ref other than the Orca project. The
+guard was demonstrated rejecting both the legacy and the Platform Core refs before first use.
+
+### 12.3 Baseline installation
+
+```
+web/prisma/baseline/20260821120000_orca_clean_baseline/migration.sql
+applied with: npx prisma migrate deploy --config prisma.baseline.config.ts
+```
+
+The legacy 84-migration chain was not executed, and no legacy `_prisma_migrations` rows were
+copied.
+
+| Check | Result |
+|---|---|
+| Migration ledger | exactly **1** row: `20260821120000_orca_clean_baseline`, `applied_steps_count=1`, finished, not rolled back |
+| `prisma migrate status` | "Database schema is up to date!" |
+| `prisma validate` | valid |
+| `prisma generate` | client generated (v7.9.1) |
+| `prisma migrate diff` vs reconciled schema | **empty — exit code 0** |
+
+### 12.4 Schema parity
+
+The permanent database was compared against a local reference database built from the same
+committed baseline file, across the same catalog dimensions used to verify the baseline
+originally (columns/types/nullability/defaults, enum labels with ordinal order, every
+constraint definition, every index definition including partial predicates, function-body
+MD5s, trigger definitions).
+
+**2,948 catalog facts on each side — identical, zero differences.**
+
+| Object | Expected | Permanent DB |
+|---|---:|---:|
+| Application tables | 124 | **124** |
+| Enums | 112 | **112** |
+| Primary keys | 124 | **124** |
+| Foreign keys | 278 | **278** |
+| Unique constraints | 13 | **13** |
+| Check constraints | 27 | **27** |
+| Indexes | 503 | **503** |
+| Partial unique indexes | 6 | **6** |
+| Functions / triggers | 2 / 2 | **2 / 2** |
+| Application rows | 0 | **0** |
+
+Required-object spot checks all present: Supplies family (7 tables), Signage family
+(8 tables including `SignageSignSession`), `MatrixRowSpeaker`, `MatrixRowStaffAssignment`,
+`EventPerson.phone`, `EventPerson.notes`, `User.platformUserId`, and `gen_random_uuid()`.
+
+### 12.5 Native integrity
+
+`web/lib/orca-baseline-native-integrity.test.ts` deliberately refuses to run against anything
+other than an approved local disposable database, so that guard was **not** weakened to point
+it at production. Instead:
+
+- The full suite ran against a local database built from the same committed baseline file:
+  **11 / 11 pass**.
+- A separate probe ran directly against the permanent database inside a transaction that is
+  always rolled back, proving the permanent database itself enforces:
+  - trigger `enforce_supply_event_scope` rejects a cross-event supply item
+  - trigger `protect_system_supply_templates` rejects update **and** delete of a system row
+  - partial unique index `SeatingAssignment_event_attendee_event_level_key` enforces
+  - check constraints reject invalid supplies, terminology, timeline and signage rows
+
+After the probe the database was re-counted: **0 application rows across all 124 tables**, and
+the ledger still holds exactly 1 row. No fixtures were left behind.
+
+### 12.6 Application smoke
+
+Local app configured against the new database (`web/.env.local`, gitignored, never committed):
+
+| Check | Result |
+|---|---|
+| Prisma initialises through the real runtime path | yes — datasource resolved to the Orca pooler host |
+| Queries the new empty database | 13 model families queried, all return 0 |
+| Recovered families reachable via the client | `SupplyItem`, `SignageSign`, `SignageSignSession`, `MatrixRowSpeaker` all queryable |
+| `User.platformUserId` queryable | yes |
+| Auth authority resolution | posture `OK`, source **`platform-core`** |
+| Auth project vs database project | `wtbnpeluwhjjqccdofxd` vs `qgxvtgnzptepimuawnku` — **separate** |
+| `GET /api/me` | HTTP 401, `UNAUTHENTICATED` / `DEV_USER_NOT_FOUND` — correct for an empty database with no session |
+| `GET /login` | HTTP 200, renders the Platform Core entry page ("Orca no longer signs users in directly") |
+| `GET /dashboard` | HTTP 307 redirect to `/login` |
+| Prisma/schema errors in the server log | **0** |
+
+`/login` also reports that Platform Core sign-in routing is not configured, which is expected:
+`NEXT_PUBLIC_PLATFORM_CORE_APP_URL` is a deployment-routing value, not a database concern.
+
+### 12.7 Environment contract applied
+
+`web/.env.local` holds `DATABASE_URL` (Orca), the two
+`NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_*` auth values (Platform Core), and a freshly generated
+`SPEAKER_INTAKE_TOKEN_SECRET`. `DIRECT_URL` was **not** added — the codebase still has zero
+references to it. The file is covered by `web/.gitignore` (`.env*`) and does not appear in
+`git status`.
+
+### 12.8 Untouched systems
+
+- **Legacy Orca database** — UNTOUCHED. No connection was made to it in this task; the guard
+  refused its ref, and the Supabase CLI session is authenticated to a different account that
+  cannot reach it.
+- **Platform Core database** — UNTOUCHED. Only its *anon API key* was read through the
+  Management API. No database connection, no DDL, no DML, no configuration change.
+
+### 12.9 Not done here
+
+Canonical Platform organization/event ID adoption has not begun. `Organization.id` and
+`Event.id` remain locally generated, `User.orgId` is intact, organization claims are still
+non-authoritative, and no Platform organizations or events were seeded. The database is empty
+and is a stable checkpoint for that next phase.
