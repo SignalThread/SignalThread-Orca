@@ -56,6 +56,43 @@ function withEnv<T>(overrides: Record<string, string | undefined>, run: () => T)
   }
 }
 
+async function withEnvAsync<T>(
+  overrides: Record<string, string | undefined>,
+  run: () => Promise<T>,
+): Promise<T> {
+  const previous = new Map<string, string | undefined>();
+  for (const [key, value] of Object.entries(overrides)) {
+    previous.set(key, process.env[key]);
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  try {
+    return await run();
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+/**
+ * Pin the email-bridge posture for a single test.
+ *
+ * `PLATFORM_IDENTITY_EMAIL_BRIDGE` is read at call time by `isEmailIdentityBridgeEnabled()`,
+ * and it is set to `false` in the repository `.env.local` because that is the intended
+ * production posture. A test that inherited that ambient value would pass or fail depending
+ * on the developer's environment, so each test below declares the mode it exercises and
+ * restores the previous value afterwards.
+ */
+function withEmailBridgeEnabled<T>(run: () => Promise<T>): Promise<T> {
+  return withEnvAsync({ PLATFORM_IDENTITY_EMAIL_BRIDGE: "true" }, run);
+}
+
+function withEmailBridgeDisabled<T>(run: () => Promise<T>): Promise<T> {
+  return withEnvAsync({ PLATFORM_IDENTITY_EMAIL_BRIDGE: "false" }, run);
+}
+
 function sourceBetween(source: string, startMarker: string, endMarker: string): string {
   const start = source.indexOf(startMarker);
   assert.notEqual(start, -1, `missing source marker: ${startMarker}`);
@@ -284,23 +321,25 @@ test("the email bridge links a legacy row once, then resolves canonically", asyn
   if (!harness) return;
 
   try {
-    const organization = await harness.createOrganization();
-    const user = await harness.createUser({ orgId: organization.id, role: UserRole.MEMBER });
-    const platformUserId = randomUUID();
+    await withEmailBridgeEnabled(async () => {
+      const organization = await harness.createOrganization();
+      const user = await harness.createUser({ orgId: organization.id, role: UserRole.MEMBER });
+      const platformUserId = randomUUID();
 
-    const first = await resolveAppUserByPlatformIdentity({ platformUserId, email: user.email });
-    assert.equal(first.status, "RESOLVED");
-    if (first.status !== "RESOLVED") return;
-    assert.equal(first.appUser.id, user.id);
-    assert.equal(first.linkMode, "EMAIL_BRIDGE_LINKED");
-    assert.equal(first.appUser.platformUserId, platformUserId);
+      const first = await resolveAppUserByPlatformIdentity({ platformUserId, email: user.email });
+      assert.equal(first.status, "RESOLVED");
+      if (first.status !== "RESOLVED") return;
+      assert.equal(first.appUser.id, user.id);
+      assert.equal(first.linkMode, "EMAIL_BRIDGE_LINKED");
+      assert.equal(first.appUser.platformUserId, platformUserId);
 
-    // The claim is persisted, so the second call no longer depends on email at all.
-    const second = await resolveAppUserByPlatformIdentity({ platformUserId, email: null });
-    assert.equal(second.status, "RESOLVED");
-    if (second.status !== "RESOLVED") return;
-    assert.equal(second.appUser.id, user.id);
-    assert.equal(second.linkMode, "CANONICAL");
+      // The claim is persisted, so the second call no longer depends on email at all.
+      const second = await resolveAppUserByPlatformIdentity({ platformUserId, email: null });
+      assert.equal(second.status, "RESOLVED");
+      if (second.status !== "RESOLVED") return;
+      assert.equal(second.appUser.id, user.id);
+      assert.equal(second.linkMode, "CANONICAL");
+    });
   } finally {
     await harness.cleanup();
   }
@@ -311,29 +350,31 @@ test("a matching email belonging to a different platform identity is refused, no
   if (!harness) return;
 
   try {
-    const organization = await harness.createOrganization();
-    const user = await harness.createUser({ orgId: organization.id, role: UserRole.MEMBER });
-    const originalPlatformUserId = randomUUID();
-    await getPrisma().user.update({
-      where: { id: user.id },
-      data: { platformUserId: originalPlatformUserId },
-    });
+    await withEmailBridgeEnabled(async () => {
+      const organization = await harness.createOrganization();
+      const user = await harness.createUser({ orgId: organization.id, role: UserRole.MEMBER });
+      const originalPlatformUserId = randomUUID();
+      await getPrisma().user.update({
+        where: { id: user.id },
+        data: { platformUserId: originalPlatformUserId },
+      });
 
-    const resolution = await resolveAppUserByPlatformIdentity({
-      platformUserId: randomUUID(),
-      email: user.email,
-    });
+      const resolution = await resolveAppUserByPlatformIdentity({
+        platformUserId: randomUUID(),
+        email: user.email,
+      });
 
-    assert.equal(resolution.status, "CONFLICT");
-    if (resolution.status !== "CONFLICT") return;
-    assert.equal(resolution.reason, "PLATFORM_IDENTITY_CONFLICT");
+      assert.equal(resolution.status, "CONFLICT");
+      if (resolution.status !== "CONFLICT") return;
+      assert.equal(resolution.reason, "PLATFORM_IDENTITY_CONFLICT");
 
-    // The existing link is untouched.
-    const reread = await getPrisma().user.findUnique({
-      where: { id: user.id },
-      select: { platformUserId: true },
+      // The existing link is untouched.
+      const reread = await getPrisma().user.findUnique({
+        where: { id: user.id },
+        select: { platformUserId: true },
+      });
+      assert.equal(reread?.platformUserId, originalPlatformUserId);
     });
-    assert.equal(reread?.platformUserId, originalPlatformUserId);
   } finally {
     await harness.cleanup();
   }
@@ -347,18 +388,13 @@ test("with the bridge disabled, a matching email no longer resolves an unlinked 
     const organization = await harness.createOrganization();
     const user = await harness.createUser({ orgId: organization.id, role: UserRole.MEMBER });
 
-    const previous = process.env.PLATFORM_IDENTITY_EMAIL_BRIDGE;
-    process.env.PLATFORM_IDENTITY_EMAIL_BRIDGE = "false";
-    try {
+    await withEmailBridgeDisabled(async () => {
       const resolution = await resolveAppUserByPlatformIdentity({
         platformUserId: randomUUID(),
         email: user.email,
       });
       assert.equal(resolution.status, "NOT_FOUND");
-    } finally {
-      if (previous === undefined) delete process.env.PLATFORM_IDENTITY_EMAIL_BRIDGE;
-      else process.env.PLATFORM_IDENTITY_EMAIL_BRIDGE = previous;
-    }
+    });
 
     // Nothing was written while the bridge was off.
     const reread = await getPrisma().user.findUnique({
@@ -393,20 +429,22 @@ test("linking is idempotent under repeated resolution", async (t) => {
   if (!harness) return;
 
   try {
-    const organization = await harness.createOrganization();
-    const user = await harness.createUser({ orgId: organization.id, role: UserRole.MEMBER });
-    const platformUserId = randomUUID();
+    await withEmailBridgeEnabled(async () => {
+      const organization = await harness.createOrganization();
+      const user = await harness.createUser({ orgId: organization.id, role: UserRole.MEMBER });
+      const platformUserId = randomUUID();
 
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const resolution = await resolveAppUserByPlatformIdentity({ platformUserId, email: user.email });
-      assert.equal(resolution.status, "RESOLVED");
-      if (resolution.status !== "RESOLVED") return;
-      assert.equal(resolution.appUser.id, user.id);
-      assert.equal(resolution.appUser.platformUserId, platformUserId);
-    }
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const resolution = await resolveAppUserByPlatformIdentity({ platformUserId, email: user.email });
+        assert.equal(resolution.status, "RESOLVED");
+        if (resolution.status !== "RESOLVED") return;
+        assert.equal(resolution.appUser.id, user.id);
+        assert.equal(resolution.appUser.platformUserId, platformUserId);
+      }
 
-    const linkedCount = await getPrisma().user.count({ where: { platformUserId } });
-    assert.equal(linkedCount, 1, "exactly one Orca row may hold a given platform identity");
+      const linkedCount = await getPrisma().user.count({ where: { platformUserId } });
+      assert.equal(linkedCount, 1, "exactly one Orca row may hold a given platform identity");
+    });
   } finally {
     await harness.cleanup();
   }
@@ -420,9 +458,7 @@ test("with the bridge off, an unlinked account is reported rather than duplicate
     const organization = await harness.createOrganization();
     const user = await harness.createUser({ orgId: organization.id, role: UserRole.MEMBER });
 
-    const previous = process.env.PLATFORM_IDENTITY_EMAIL_BRIDGE;
-    process.env.PLATFORM_IDENTITY_EMAIL_BRIDGE = "false";
-    try {
+    await withEmailBridgeDisabled(async () => {
       // Resolution finds nothing canonical, and the bridge is off.
       const resolution = await resolveAppUserByPlatformIdentity({
         platformUserId: randomUUID(),
@@ -434,10 +470,7 @@ test("with the bridge off, an unlinked account is reported rather than duplicate
       // email index. request-user reports PLATFORM_IDENTITY_NOT_LINKED instead.
       const rows = await getPrisma().user.count({ where: { email: user.email } });
       assert.equal(rows, 1);
-    } finally {
-      if (previous === undefined) delete process.env.PLATFORM_IDENTITY_EMAIL_BRIDGE;
-      else process.env.PLATFORM_IDENTITY_EMAIL_BRIDGE = previous;
-    }
+    });
   } finally {
     await harness.cleanup();
   }

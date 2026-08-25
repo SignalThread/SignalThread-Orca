@@ -56,6 +56,24 @@ async function withNodeEnvAsync<T>(value: string, run: () => Promise<T>): Promis
   }
 }
 
+/**
+ * Pin the entitlement mode for one assertion.
+ *
+ * `resolveEntitlementMode()` reads `PLATFORM_ENTITLEMENT_MODE` at call time and falls back to
+ * `migration` outside production. The repository `.env.local` sets `claims`, which is the
+ * intended production posture, so a test that left the mode ambient would assert a different
+ * branch depending on whether that file happened to be loaded. Tests that pass `claims: null`
+ * are mode-sensitive and must say which branch they exercise.
+ */
+function withEntitlementMode<T>(mode: string, run: () => T): T {
+  const previous = applyEnv({ PLATFORM_ENTITLEMENT_MODE: mode });
+  try {
+    return run();
+  } finally {
+    restoreEnv(previous);
+  }
+}
+
 function withNodeEnv<T>(value: string, run: () => T): T {
   const previous = applyEnv({ NODE_ENV: value });
   try {
@@ -198,10 +216,14 @@ test("a user with no membership is denied and gains none as a side effect", asyn
 
     assert.equal(await countMemberships(orphan.id), 0);
 
-    const decision = resolveOrcaEntitlement({
-      claims: null,
-      subject: { platformUserId, hasProvisionedOrcaAccess: false },
-    });
+    // Migration mode is the branch under test: entry requires Orca access a human already
+    // provisioned, so an orphan row is denied without being silently promoted.
+    const decision = withEntitlementMode("migration", () =>
+      resolveOrcaEntitlement({
+        claims: null,
+        subject: { platformUserId, hasProvisionedOrcaAccess: false },
+      }),
+    );
     assert.equal(decision.status, "DENIED");
     if (decision.status !== "DENIED") return;
     assert.equal(decision.reason, "ORCA_ACCESS_NOT_PROVISIONED");
