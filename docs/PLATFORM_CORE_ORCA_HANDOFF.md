@@ -64,6 +64,16 @@ SignalThread SSH alias:
 github-signalthread
 ```
 
+Canonical application path (Monorepo Phase 1, LOOP 1):
+
+```text
+apps/orca/          <- Orca; was web/
+packages/signalthread-ui/
+```
+
+The repository is an npm workspace root (`workspaces: ["apps/*", "packages/*"]`). Orca remains
+independently deployable; see `docs/DEPLOYMENT_BOUNDARIES.md`.
+
 Important clean-baseline commit:
 
 ```text
@@ -230,7 +240,7 @@ PERMANENT ORCA DB VERIFIED
 Clean baseline:
 
 ```text
-web/prisma/baseline/20260821120000_orca_clean_baseline/migration.sql
+apps/orca/prisma/baseline/20260821120000_orca_clean_baseline/migration.sql
 ```
 
 Mirror:
@@ -242,7 +252,7 @@ prisma/baseline/20260821120000_orca_clean_baseline/migration.sql
 Canonical Prisma schema:
 
 ```text
-web/prisma/schema.prisma
+apps/orca/prisma/schema.prisma
 ```
 
 Mirror:
@@ -254,7 +264,7 @@ prisma/schema.prisma
 Baseline config:
 
 ```text
-web/prisma.baseline.config.ts
+apps/orca/prisma.baseline.config.ts
 ```
 
 Verified permanent schema:
@@ -463,20 +473,20 @@ Do not re-couple product token signing to auth credentials.
 Key files:
 
 ```text
-web/lib/platform/identity.ts
-web/lib/request-user.ts
-web/src/lib/supabase/auth-authority.ts
-web/src/server/security/product-token-secrets.ts
-web/scripts/backfill-platform-user-ids.ts
+apps/orca/lib/platform/identity.ts
+apps/orca/lib/request-user.ts
+apps/orca/src/lib/supabase/auth-authority.ts
+apps/orca/src/server/security/product-token-secrets.ts
+apps/orca/scripts/backfill-platform-user-ids.ts
 ```
 
 Tests:
 
 ```text
-web/lib/platform-core-auth-boundary-regression.test.ts
-web/lib/platform-core-authorization-boundary-regression.test.ts
-web/lib/platform-core-identity-regression.test.ts
-web/lib/platform-core-token-signing-regression.test.ts
+apps/orca/lib/platform-core-auth-boundary-regression.test.ts
+apps/orca/lib/platform-core-authorization-boundary-regression.test.ts
+apps/orca/lib/platform-core-identity-regression.test.ts
+apps/orca/lib/platform-core-token-signing-regression.test.ts
 ```
 
 ---
@@ -511,8 +521,8 @@ legacy Orca Supabase as auth authority
 Entitlement boundary exists in:
 
 ```text
-web/lib/platform/entitlements.ts
-web/lib/platform/entry.ts
+apps/orca/lib/platform/entitlements.ts
+apps/orca/lib/platform/entry.ts
 ```
 
 Trusted entitlement source:
@@ -717,8 +727,8 @@ caller-suppliable uuids.
 ## 11.3 Provisioning tools (both idempotent, dry-run by default)
 
 ```text
-web/scripts/platform-provision-test-identity.ts   -> writes Platform Core (GoTrue + claims)
-web/scripts/adopt-platform-canonical-ids.ts       -> writes Orca, consuming those ids
+apps/orca/scripts/platform-provision-test-identity.ts   -> writes Platform Core (GoTrue + claims)
+apps/orca/scripts/adopt-platform-canonical-ids.ts       -> writes Orca, consuming those ids
 ```
 
 The Orca script **never invents** an organization or event id: omitting one is an error, and
@@ -926,24 +936,38 @@ For controlled testing, use an explicit Platform-managed test/provisioning path.
 
 # 17. Prisma State
 
-There are still two mirrored Prisma trees:
+**Consolidated in Monorepo Phase 1, LOOP 2.** There is now exactly one active Prisma tree:
 
 ```text
-prisma/
-web/prisma/
+apps/orca/prisma/
+  schema.prisma      <- the only schema.prisma in the repository
+  baseline/          <- the only active migration source (1 migration)
+  seed.ts
 ```
 
-`web/prisma` is the canonical web runtime/generation path.
+The pre-baseline 83-migration chain is historical evidence and regression fixtures only:
 
-The clean baseline is mirrored into both because other tooling/tests still consume the root copy.
+```text
+apps/orca/test-fixtures/legacy-orca-migrations/
+```
 
-Do not casually delete the root tree.
+`apps/orca/prisma/` deliberately contains **no `migrations/` directory**, and the fixture
+directory's `migration_lock.toml` is renamed `.historical`, so neither `prisma.config.ts` nor a
+bare `prisma migrate` can discover the legacy chain. Both `prisma.config.ts` and
+`prisma.baseline.config.ts` point at `prisma/baseline`.
+
+> Previously `prisma.config.ts` — the default config — pointed `migrations.path` at the legacy
+> chain, so a plain `prisma migrate deploy` would have replayed a chain the schema-truth audit
+> says can never reconstruct the current schema. That hazard is now closed.
+
+Verified at consolidation: baseline `migration.sql` checksum unchanged
+(`9dc4e7ff44cf3c89cef02ed71fa85acadaf2c82d7da999549771f33490022558`), all 84 legacy files
+byte-identical, `migrate diff --exit-code` = 0 against both the existing and a freshly-built
+database.
 
 Deferred cleanup:
 
 ```text
-duplicate Prisma-tree consolidation
-legacy migration fixture/archive cleanup
 MatrixRowSpeaker retirement decision
 MatrixRowStaffAssignment retirement decision
 unused legacy timeline enums
@@ -984,6 +1008,11 @@ docs/PLATFORM_CORE_INTEGRATION_AUDIT.md
 docs/PLATFORM_CORE_MIGRATION_PHASE_1.md
 docs/PLATFORM_CORE_MIGRATION_PHASE_2.md
 docs/ORCA_CLEAN_DATABASE_BASELINE.md
+docs/DEPLOYMENT_BOUNDARIES.md          <- monorepo failure-domain + Vercel config
+docs/MONOREPO_PHASE1_PLAN.md
+docs/MONOREPO_PHASE1_PROMPTS.md
+docs/LOOP_CONTROLLER.md
+apps/orca/test-fixtures/legacy-orca-migrations/README.md
 ```
 
 Legacy schema audit, if still needed as historical evidence:
@@ -995,44 +1024,50 @@ Legacy schema audit, if still needed as historical evidence:
 Important current files:
 
 ```text
-web/lib/platform/identity.ts
-web/lib/request-user.ts
-web/lib/platform/entitlements.ts
-web/lib/platform/entry.ts
-web/lib/platform/invitations.ts
+apps/orca/lib/platform/identity.ts
+apps/orca/lib/request-user.ts
+apps/orca/lib/platform/entitlements.ts
+apps/orca/lib/platform/entry.ts
+apps/orca/lib/platform/invitations.ts
 
-web/src/lib/supabase/auth-authority.ts
-web/src/server/security/product-token-secrets.ts
+apps/orca/src/lib/supabase/auth-authority.ts
+apps/orca/src/server/security/product-token-secrets.ts
 
-web/app/(public)/login/
-web/app/auth/callback/route.ts
-web/app/(shell)/_components/logout-button.tsx
+apps/orca/app/(public)/login/
+apps/orca/app/auth/callback/route.ts
+apps/orca/app/(shell)/_components/logout-button.tsx
 
-web/prisma/schema.prisma
-web/prisma/baseline/20260821120000_orca_clean_baseline/migration.sql
-web/prisma.baseline.config.ts
+apps/orca/prisma/schema.prisma
+apps/orca/prisma/baseline/20260821120000_orca_clean_baseline/migration.sql
+apps/orca/prisma.baseline.config.ts
 ```
 
 ---
 
 # 20. Tests / Known Baseline
 
-Run from `web/` with `DATABASE_URL` pointing at a database built from the committed
-baseline (`prisma/baseline/20260821120000_orca_clean_baseline/migration.sql`).
+Run from `apps/orca/` with `DATABASE_URL` pointing at a database built from the committed
+baseline (`apps/orca/prisma/baseline/20260821120000_orca_clean_baseline/migration.sql`).
 
 Baseline on `main`, with a database configured: **12 failing tests.** They are pre-existing
 and unrelated to Platform Core work (budget grid layout, command-center container, timeline
 render-path, docs upload, two matrix-2 DB tests). Always diff failure *names* against that
 baseline before attributing anything to your change.
 
-Last full run (Phase 3 working tree):
+Last full run (Monorepo Phase 1 working tree, after LOOP 4):
 
 ```text
-npm run test:summary        2609 pass / 12 fail / 7 skipped   -> identical set to main
+npm run test:summary        2611 pass / 12 fail / 7 skipped   -> identical failure set to main
 npx tsc --noEmit            clean
 npx eslint lib src app      0 errors / 74 warnings            -> identical to main
-npm run build               exit 0
+npm run build               exit 0  (108/108 pages)
+npm ci && npm run build --workspace apps/orca   exit 0  -> clean-install deploy path
 ```
+
+Two budget journey tests (`budget-group-active-summary`, `budget-filtered-export`) are
+order/state-sensitive: they fail against a database carrying accumulated fixture data and pass
+both in isolation and against a freshly-built baseline database. Pre-existing, unrelated to the
+monorepo work — rebuild the test database before attributing them to a change.
 
 Platform Core suites:
 
@@ -1049,7 +1084,109 @@ lib/orca-baseline-native-integrity.test.ts               DB baseline (11 tests)
 
 ---
 
+# 20a. Monorepo Phase 1 — Verified State
+
+Branch `platform-monorepo-phase-1`. Schema mode LOCKED throughout: `schema.prisma` is
+byte-identical to its pre-move content, no migration was created, and nothing was run against
+`signalthread-orca`, Platform Core, or the legacy Orca database.
+
+```text
+signalthread/                     npm workspace root
+  apps/orca/                      Orca (was web/) -- the canonical application
+    prisma/schema.prisma          the only schema.prisma in the repository
+    prisma/baseline/              the only active migration source (1 migration)
+    prisma/seed.ts
+    test-fixtures/legacy-orca-migrations/   83 historical migrations, fixtures only
+    vercel.json
+  packages/signalthread-ui/       shared presentation package
+  scripts/check-import-boundaries.mjs
+  package-lock.json               single reproducible workspace lockfile
+```
+
+| Loop | Outcome |
+|---|---|
+| 1 — Move Orca to `apps/orca` | VERIFIED. 1226 files relocated with history. All 740 packages Orca resolves match pre-move versions exactly. |
+| 2 — Consolidate Prisma | VERIFIED. One schema, one baseline, legacy chain isolated and unreachable as a migration source. |
+| 3 — Deployment isolation | VERIFIED. `npm ci` + workspace build proven; failure-domain rule documented. |
+| 4 — Monorepo guardrails | VERIFIED. Root commands, enforced import boundaries, no active stale `web/` dependency. |
+| 5 — Cleanup + full verification | VERIFIED. Orphan root `app/` removed; full suite at exact baseline parity. |
+
+Final validation (LOOP 5):
+
+```text
+prisma validate            valid
+prisma generate            client generated (v7.9.1)
+npx tsc --noEmit           clean
+npx eslint lib src app     0 errors / 74 warnings      -> identical to main
+npm run build              exit 0, 108/108 pages
+Platform Core Phase 1/2/3  105 / 105 pass
+native baseline integrity   11 /  11 pass
+journeys                    18 /  18 pass
+harness                      8 /   8 pass
+npm run test:summary       2613 pass / 12 fail / 7 skipped
+                           -> failure set IDENTICAL to main; zero new, zero fixed
+```
+
+Behaviour proof: Platform Core remains the primary auth authority (legacy Orca Supabase stays a
+lower-priority fallback), `DATABASE_URL` still resolves to the Supabase-hosted Orca operational
+database, `User.platformUserId` is `@unique` and indexed, `/platform-entry` is present, and
+canonical org/event authorization, entitlement, `EventMemberRole` decisiveness, and fail-closed
+behaviour on tampered context are all covered by the 105 passing Platform Core tests.
+
+### Vercel — exact settings
+
+| Setting | Value |
+|---|---|
+| Root Directory | `apps/orca` — **manual dashboard change required after merge** |
+| Include files outside Root Directory | Enabled |
+| Framework | Next.js (`apps/orca/vercel.json`) |
+| Install Command | leave empty; Vercel installs from the workspace root |
+| Build Command | `npm run build` |
+| Output Directory | `.next` |
+
+### Repository name
+
+`SignalThread/SignalThread-Orca` — rename **DEFERRED**, deliberately. Merging already requires
+one manual Vercel change; stacking a rename would make a failed deploy ambiguous. Nothing in the
+repository depends on the name, and the `github-signalthread` SSH alias is host-level and
+unaffected. Exact rename procedure: `docs/DEPLOYMENT_BOUNDARIES.md` §7.
+
+Root commands:
+
+```text
+npm run dev:orca | build:orca | test:orca | lint:orca | typecheck:orca
+npm run typecheck | lint | test | build          across all workspaces
+npm run check                                    typecheck + lint + test
+npm run boundaries                               enforce apps/* !-> apps/*
+```
+
+Import boundary — `apps/*` may import `packages/*`, never another `apps/*`. Enforced by
+`scripts/check-import-boundaries.mjs` and asserted by
+`apps/orca/lib/monorepo-import-boundaries.test.ts`, so it runs in the normal suite.
+
+**Manual step required after merge:** Vercel Root Directory must change `web` -> `apps/orca`
+with "Include files outside Root Directory" enabled. The old path no longer exists, so the
+build fails until this is done. Exact values: `docs/DEPLOYMENT_BOUNDARIES.md`.
+
+---
+
 # 21. NEXT EXACT TASK
+
+## 21.0 First: land the monorepo (blocking, operational)
+
+Monorepo Phase 1 is complete and verified on branch `platform-monorepo-phase-1`, **uncommitted**.
+Before any Platform Core build-out:
+
+1. Review and commit the branch, then open a PR.
+2. On merge, immediately change the Vercel Root Directory `web` → `apps/orca` and confirm
+   "Include files outside Root Directory" is enabled. **The old path no longer exists — the build
+   fails until this is done.** Exact values in `docs/DEPLOYMENT_BOUNDARIES.md`.
+3. Verify one green deploy and a live Platform Core → Orca login before starting anything else.
+4. Only after that deploy is green, consider the deferred repository rename.
+
+Everything below is the product work that follows.
+
+---
 
 Phase 3 is done. The identity, organization and event contracts are canonical and proven.
 What is missing is **Platform Core as a product** — it is currently a bare Supabase project
@@ -1101,8 +1238,17 @@ anyone.
 ```text
 - drop User.orgId (NOT NULL + FK; needs a migration and a fixture sweep)
 - retire the transitional email identity bridge once every user is linked
-- consolidate the duplicate prisma/ and web/prisma/ trees
-- archive the 84-file legacy migration chain (20 test files read it as fixtures)
+- fix the pre-existing type errors in apps/orca/prisma/seed.ts, then remove its
+  tsconfig exclusion (it was never typechecked before the monorepo move)
+- de-flake budget-group-active-summary / budget-filtered-export (order/state sensitive)
+```
+
+Completed by Monorepo Phase 1, LOOP 2 — no longer outstanding:
+
+```text
+- consolidate the duplicate prisma/ and web/prisma/ trees            DONE
+- archive the 84-file legacy migration chain                         DONE
+  -> apps/orca/test-fixtures/legacy-orca-migrations/ (23 test files read it as fixtures)
 ```
 
 ---

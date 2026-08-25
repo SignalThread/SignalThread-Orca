@@ -7,12 +7,11 @@ node_modules/
 .next/
 packages/*/dist/
 
-web/test-results/
-web/playwright-report/
+apps/orca/test-results/
+apps/orca/playwright-report/
 
 .DS_Store
 
-.DS_Store
 .vercel/
 
 # Claude Code local state
@@ -21,5 +20,5 @@ web/playwright-report/
 .env*
 
 # Generated local simulation artifacts
-web/tmp/
-web/roomset-sim-results.json
+apps/orca/tmp/
+apps/orca/roomset-sim-results.json

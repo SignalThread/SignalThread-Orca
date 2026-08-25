@@ -1,16 +1,28 @@
 {
   "private": true,
   "workspaces": [
+    "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "help:manifest": "node web/scripts/help-docs.mjs --write-manifest",
-    "help:generate": "node web/scripts/help-generate.mjs",
-    "help:validate": "node web/scripts/help-docs.mjs",
+    "dev:orca": "npm --workspace apps/orca run dev",
+    "build:orca": "npm --workspace apps/orca run build",
+    "test:orca": "npm --workspace apps/orca run test:summary",
+    "lint:orca": "npm --workspace apps/orca run lint",
+    "typecheck:orca": "npm --workspace apps/orca run typecheck",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test:summary --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "boundaries": "node scripts/check-import-boundaries.mjs",
+    "help:manifest": "node apps/orca/scripts/help-docs.mjs --write-manifest",
+    "help:generate": "node apps/orca/scripts/help-generate.mjs",
+    "help:validate": "node apps/orca/scripts/help-docs.mjs",
     "help:check": "npm run help:manifest && npm run help:generate && npm run help:validate",
-    "help:screenshots": "npm --prefix web run help:screenshots",
-    "prisma:seed": "ts-node prisma/seed.ts",
-    "test:marketing-email-smoke": "npm --prefix web run test:marketing-email-smoke"
+    "help:screenshots": "npm --workspace apps/orca run help:screenshots",
+    "prisma:seed": "npm --workspace apps/orca run prisma:seed",
+    "test:marketing-email-smoke": "npm --workspace apps/orca run test:marketing-email-smoke"
   },
   "dependencies": {
     "@prisma/client": "^7.4.2",
@@ -23,5 +35,6 @@
     "tailwindcss": "^4.2.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
-  }
+  },
+  "name": "signalthread"
 }

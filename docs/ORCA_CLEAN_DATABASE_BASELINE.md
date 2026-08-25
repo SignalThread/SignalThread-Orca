@@ -152,7 +152,9 @@ prisma/baseline/20260821120000_orca_clean_baseline/migration.sql       (mirror)
 DATABASE_URL=<new-empty-db> npx prisma migrate deploy --config prisma.baseline.config.ts
 ```
 
-`web/prisma.baseline.config.ts` points Prisma at `prisma/baseline` — a migrations root containing **only** the baseline — so a new database gets one coherent forward-only chain and a fresh ledger. `prisma.config.ts` still points at the legacy `prisma/migrations` chain, which is retained for history and test fixtures and must never be replayed.
+`apps/orca/prisma.baseline.config.ts` points Prisma at `prisma/baseline` — a migrations root containing **only** the baseline — so a new database gets one coherent forward-only chain and a fresh ledger.
+
+> **Updated by the monorepo Prisma consolidation.** `prisma.config.ts` used to point at the legacy `prisma/migrations` chain, so a plain `prisma migrate deploy` would have replayed it. Both configs now point at `prisma/baseline`, and the legacy chain has moved to `apps/orca/test-fixtures/legacy-orca-migrations/` — retained as history and regression fixtures, and no longer reachable as a migration source. There is no `migrations/` directory inside `apps/orca/prisma/`.
 
 Excluded from the baseline: legacy application data, the 91-row legacy `_prisma_migrations` ledger, `CREATE SCHEMA public`, session `SET`/psql meta-commands, Supabase auth tables, Platform Core tables, and sibling-product tables.
 
@@ -202,7 +204,7 @@ Parity also holds across PostgreSQL versions: the source is 17.6 and the candida
 
 ## 9. Test results
 
-All commands run from `web/` with `DATABASE_URL` pointing at `orca_baseline_validation`.
+All commands run from `apps/orca/` with `DATABASE_URL` pointing at `orca_baseline_validation`.
 
 | Command | Result |
 |---|---|

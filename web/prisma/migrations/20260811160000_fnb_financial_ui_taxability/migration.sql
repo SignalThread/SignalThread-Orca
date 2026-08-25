@@ -1,2 +1,0 @@
-ALTER TABLE "EventFnbCatalogItem"
-ADD COLUMN "taxable" BOOLEAN NOT NULL DEFAULT true;
