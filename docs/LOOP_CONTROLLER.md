@@ -126,9 +126,11 @@ OPEN
 
 **The active schema mode is whatever the human's starting instruction, plan document, or prompt document specifies. This section does not itself grant permission.** Earlier revisions of this file hard-coded "the schema is open", which silently overrode a stricter mode supplied by the human. Read the mode first, then apply the matching rule below.
 
+A phase may set **different modes for different databases**. SignalThread Platform App Phase 1 did exactly that: Platform Core (`wtbnpeluwhjjqccdofxd`) was `OPEN`, while the Orca operational schema (`qgxvtgnzptepimuawnku`) stayed `LOCKED`. A mode granted for one database never extends to another, and the legacy Orca database is never a valid target.
+
 #### If the mode is `LOCKED`
 
-No database schema changes of any kind. Do not add, alter, rename, or remove models, fields, relations, indexes, or constraints. Do not author or run migrations. Do not run `prisma migrate`, `prisma db push`, or any command that mutates a database.
+No database schema changes of any kind. Do not add, alter, rename, or remove models, fields, relations, indexes, or constraints. Do not author or run migrations. Do not run `prisma migrate`, `prisma db push`, or any command that mutates that database.
 
 Prisma *files* may still be moved or reorganised when a prompt calls for repository restructuring, provided the resulting schema is byte-equivalent in meaning and no migration is created. If the active prompt cannot be completed without a schema change, that is a hard stop — report it rather than widening the mode.
 
@@ -140,9 +142,11 @@ Only additive, non-destructive changes: new tables, new nullable columns, new re
 
 Schema changes are allowed when they are required to complete the active prompt and align with the plan. Do not stop just because a prompt requires new models, fields, relations, indexes, migrations, or generated client updates.
 
+Before any migration, positively verify the target project ref matches the database the mode was granted for.
+
 When schema changes are needed (`ADDITIVE_ALLOWED` / `OPEN` only):
 
-- Update every schema copy used by the repo.
+- Update the schema. Orca has exactly **one** active schema (`apps/orca/prisma/schema.prisma`) and one active baseline (`apps/orca/prisma/baseline/`); the pre-baseline chain under `apps/orca/test-fixtures/legacy-orca-migrations/` is history and test fixtures, never a migration source. Do not reintroduce a second authoritative schema copy.
 - Create the required migration file.
 - Keep migrations production-safe.
 - Preserve existing data through nullable fields, backfills, compatibility fields, or staged changes.
@@ -287,6 +291,16 @@ The default limit is explicitly overridden for the five-loop monorepo restructur
 
 The override applies **only** to files genuinely required by those five loops. It is not
 permission to broaden scope, and every other guardrail in this document still applies.
+
+### Standing override — SignalThread Platform App Phase 1
+
+The default limit is also overridden for the five-loop Platform build described in
+`docs/loop/Platform App Phase 1 Brief.md` / `docs/loop/Platform App Phase 1 Prompt.md`. Creating
+`apps/platform`, the Platform Core registry, provisioning, and the launcher inherently touches far
+more than 14 files.
+
+The same restriction applies: only files genuinely required by the active loop, and every other
+guardrail still holds.
 
 ## Stop Format After Each Prompt
 

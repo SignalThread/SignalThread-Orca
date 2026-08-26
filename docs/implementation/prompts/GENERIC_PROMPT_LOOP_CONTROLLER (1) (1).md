@@ -1,3 +1,13 @@
+> **SUPERSEDED — DO NOT USE OR COPY FROM THIS FILE.**
+>
+> This is an archived snapshot of an older loop controller. The canonical controller is
+> [`docs/LOOP_CONTROLLER.md`](../../LOOP_CONTROLLER.md).
+>
+> This snapshot still contains the line "The schema is open for this implementation", which
+> hard-codes an open schema mode and silently overrides a stricter mode supplied by the human.
+> That defect has already been reintroduced once by copying a stale controller forward. Kept
+> only as a historical record of what an earlier prompt run was given.
+
 # Generic Prompt Loop Controller
 
 Use this document when you want an agent to work through a plan document and a prompt document in sequence without drifting, skipping steps, or broadening scope.
