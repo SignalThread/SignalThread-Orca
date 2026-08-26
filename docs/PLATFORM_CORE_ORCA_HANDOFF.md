@@ -1170,9 +1170,112 @@ build fails until this is done. Exact values: `docs/DEPLOYMENT_BOUNDARIES.md`.
 
 ---
 
+# 20b. Platform App Phase 1 — Verified State (5 loops)
+
+Branch `platform-app-phase-1`. Uncommitted at time of writing.
+
+## What now exists
+
+**`apps/platform`** — an independent Next.js app on port 3001 locally, `app.signalthread.ai`
+in production. Real email+password sign-in against Platform Core (the only enabled auth
+provider — verified live, no OAuth/phone/SAML), `/signin`, `/signout`, auth callback,
+authenticated shell, `/home` launcher, `/admin` console. Middleware verifies with
+`getUser()` and fails closed.
+
+**Platform Core relational registry**, deployed to `wtbnpeluwhjjqccdofxd` via four tracked
+migrations under `apps/platform/supabase/migrations/`:
+
+```text
+organizations · organization_memberships · events · event_memberships
+products · organization_product_entitlements · platform_admins
+```
+
+RLS enabled **and forced** on all seven. Reads are org-scoped; there are **no
+insert/update/delete policies at all** on membership, entitlement, or admin tables — with
+RLS forced, absent policy denies, so provisioning is necessarily the service-role path.
+Proven live: **10/10** RLS assertions via `npm run verify:rls`.
+
+## The claim contract (do not change without re-verifying Orca)
+
+```json
+{ "signalthread": { "v": 1,
+    "access": [ { "organization_id": "...", "organization_role": "ADMIN", "products": ["orca"] } ],
+    "platform_admin": false, "synced_at": "<iso>" } }
+```
+
+An organization the user belongs to **without** an entitlement still appears, with
+`products: []`. That emptiness is load-bearing: it is how Orca distinguishes
+`PLATFORM_ORG_NOT_MEMBER` from `PLATFORM_PRODUCT_NOT_ENTITLED`. **No event ids in the JWT.**
+
+Structured claims are authoritative whenever `access` is present; legacy flat claims are
+migration-only and are ignored entirely beside a structured claim, so they cannot widen
+authorization. Legacy claims never confer Platform admin.
+
+**Bug fixed in LOOP 3:** Orca previously granted whenever `products` contained `orca`
+anywhere, then used *every* claimed organization as the ceiling. An entitlement held by one
+org produced a ceiling covering all of them. Entitlement is now decided per organization.
+
+## Claim staleness
+
+Claims live in the access token, so a re-derivation reaches a live session only on refresh —
+worst case one token lifetime (3600s observed). `synced_at` is stamped on every claim;
+`assessClaimFreshness` in `apps/orca/lib/platform/entitlements.ts` reports FRESH/STALE/UNKNOWN
+against the optional `PLATFORM_CLAIM_MAX_AGE_SECONDS`. Unset by default. The admin UI states
+explicitly when a refresh is required and offers a refresh button.
+
+## Verified end-to-end in a real browser
+
+`/signin` → Platform home → organization → event → **Open Orca** → Orca `/platform-entry`
+→ `/events/<canonical id>` rendering the same event. **No second login** (both apps share the
+Platform Core authority and cookies ignore port), no duplicate event selection.
+
+Denials proven: foreign event → `EVENT_OUTSIDE_AUTHORIZED_ORGANIZATION`; unknown event →
+`EVENT_NOT_FOUND`; unentitled user hand-crafting the URL to their *own* event →
+`PLATFORM_ENTITLEMENT_MISSING_PRODUCT`. The event id is a navigation hint, never authorization.
+
+## Test fixtures in Platform Core — REMOVABLE, and blocking a real bootstrap
+
+Every identity and registry row in Platform Core is a Phase 1 fixture. **There is no
+production data.**
+
+```text
+platform-phase1-admin@signalthread.test        ADMIN of acme-events, PLATFORM ADMIN
+platform-phase1-orga-member@signalthread.test  MEMBER of acme-events
+platform-phase1-orgb@signalthread.test         MEMBER of globex-summits (no entitlement)
+orca-phase3@signalthread.test                  MEMBER of acme-events (re-provisioned in LOOP 3)
+
+organizations: acme-events, globex-summits
+events:        acme-2026, globex-2026
+entitlements:  acme-events/orca ACTIVE · globex-summits/orca SUSPENDED
+```
+
+Passwords are in `.local-secrets/` (gitignored); `orca-phase3`'s was lost when a session
+scratchpad was cleaned.
+
+`apps/platform/scripts/cleanup-test-fixtures.mjs` removes them (`--apply`; dry run by
+default). **It deliberately refuses to run while the only Platform admin is a fixture**,
+because deleting them would leave Platform Core with no administrator and no back door —
+`requirePlatformAdmin` reads the canonical table. Provision a real admin first.
+
+Production bootstrap must not depend on any of these rows.
+
 # 21. NEXT EXACT TASK
 
-## 21.0 First: land the monorepo (blocking, operational)
+## 21.0 First: provision a real Platform admin, then land both branches (blocking)
+
+Platform Core currently has **no non-fixture administrator**. Before any production use:
+
+1. Create a real Platform identity (a person, not `@signalthread.test`).
+2. Insert them into `public.platform_admins` with the service role.
+3. Run `node apps/platform/scripts/sync-claims.mjs <email>` so their claim carries
+   `platform_admin: true`.
+4. Only then run `apps/platform/scripts/cleanup-test-fixtures.mjs --apply`. It refuses
+   until step 2 is done.
+
+Then land `platform-monorepo-phase-1` and `platform-app-phase-1`, and create the separate
+Vercel project for `apps/platform` per `docs/DEPLOYMENT_BOUNDARIES.md` §4b.
+
+## 21.0a Then: land the monorepo (blocking, operational)
 
 Monorepo Phase 1 is complete and verified on branch `platform-monorepo-phase-1`, **uncommitted**.
 Before any Platform Core build-out:

@@ -106,7 +106,7 @@ test("a linked Platform user with provisioned access resolves and is entitled", 
     assert.equal(resolution.linkMode, "CANONICAL");
 
     const entitlement = resolveOrcaEntitlement({
-      claims: { products: ["orca"], organizations: [] },
+      claims: { version: 1, access: [], legacy: false, platformAdmin: false, developmentBypass: true },
       subject: {
         platformUserId: resolution.appUser.platformUserId,
         hasProvisionedOrcaAccess: (await countMemberships(owner.user.id)) > 0,
@@ -140,7 +140,7 @@ test("an authenticated Platform user without Orca entitlement is rejected", asyn
     assert.equal(membershipCount > 0, true, "this user really does have Orca membership");
 
     const entitlement = resolveOrcaEntitlement({
-      claims: { products: ["voice"], organizations: [] },
+      claims: { version: 1, access: [], legacy: false, platformAdmin: false },
       subject: { platformUserId, hasProvisionedOrcaAccess: membershipCount > 0 },
     });
     assert.equal(entitlement.status, "DENIED");
@@ -361,7 +361,7 @@ test("Platform entitlement does not substitute for Orca event access", async (t)
     // Fully entitled to Orca by Platform Core, including an organization claim naming the
     // event's organization. Orca authorization is still the decider.
     const entitlement = resolveOrcaEntitlement({
-      claims: { products: ["orca"], organizations: [roles.organization.id] },
+      claims: { version: 1, access: [roles.organization.id].map((organizationId: string) => ({ organizationId, organizationRole: "MEMBER", products: ["orca"] })), legacy: false, platformAdmin: false },
       subject: {
         platformUserId,
         hasProvisionedOrcaAccess: (await countMemberships(outsider.user.id)) > 0,

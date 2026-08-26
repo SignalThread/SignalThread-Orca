@@ -96,6 +96,92 @@ project's own dashboard settings — never from a file in the repository.
 | `DEFAULT_ORG_ID` | Retired in Platform Core Phase 2. Guardrail tests assert it stays out of identity and access resolution. |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Legacy Orca auth authority. Retained **only** as the documented lower-priority fallback in `src/lib/supabase/auth-authority.ts`, with regression coverage. Do not promote to primary; Platform Core is the authority. |
 
+## 4b. Platform — exact Vercel configuration (Phase 1)
+
+`apps/platform` is an **independent Vercel project** in the same GitHub monorepo. It is
+never coupled to Orca's project: either app can be redeployed or rolled back alone.
+
+| Setting | Value |
+|---|---|
+| Git repository | the same monorepo |
+| Root Directory | `apps/platform` |
+| Include files outside root | **enabled** (needed: npm workspaces hoist to the repo root, and `packages/signalthread-ui` is a workspace dependency) |
+| Framework preset | Next.js |
+| Install Command | leave as default (`npm install` from the repository root) |
+| Build Command | leave as default (`next build`) |
+| Output Directory | leave as default |
+| Node version | 20.x or later |
+| Production domain | `app.signalthread.ai` |
+
+`apps/orca` keeps its own separate project with Root Directory `apps/orca`, later on
+`orca.signalthread.ai`. Do not merge the two projects.
+
+### Required environment variables — Platform
+
+Set these in the Vercel project, not in any committed file.
+
+**Client-exposed (inlined into the browser bundle — never put a secret here):**
+
+```text
+NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_URL     https://wtbnpeluwhjjqccdofxd.supabase.co
+NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_ANON_KEY  <Platform Core anon key>
+NEXT_PUBLIC_PLATFORM_APP_URL               https://app.signalthread.ai
+NEXT_PUBLIC_ORCA_APP_URL                   https://orca.signalthread.ai
+```
+
+**Server-only (must NOT carry a `NEXT_PUBLIC_` prefix):**
+
+```text
+PLATFORM_CORE_SERVICE_ROLE_KEY             <Platform Core service-role key>
+```
+
+Optional:
+
+```text
+PLATFORM_CORE_PROJECT_REF                  wtbnpeluwhjjqccdofxd   (defaults to this)
+```
+
+`NEXT_PUBLIC_PLATFORM_APP_URL` is the **frontend**; `NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_URL`
+is the **auth/API project**. They are different services. Setting the frontend variable to a
+Supabase URL is rejected at runtime rather than used, because that mistake previously sent
+users to `https://<ref>.supabase.co/signin`, which answers `{"error":"requested path is invalid"}`.
+
+### Local development env boundary
+
+Local development uses gitignored files that never reach Vercel:
+
+| File | Purpose | Loaded in production build? |
+|---|---|---|
+| `apps/platform/.env.local` | Platform local config incl. the server-only service-role key | yes, locally — never uploaded |
+| `apps/orca/.env.local` | Orca local config | yes, locally — never uploaded |
+| `apps/orca/.env.development.local` | **Local verification only.** Points Orca at a disposable local Postgres seeded with canonical Platform ids, so the Platform → Orca handoff can be exercised without touching `signalthread-orca` | **no** — Next.js loads `.env.development.local` only when `NODE_ENV=development`; verified empirically with a marker value that did not appear in a production build |
+
+None of these are tracked (`.env*` is gitignored in both apps), none are staged, and no
+deployment reads them. Vercel environment variables are the only production source.
+
+## 4c. Failure-domain review (Phase 1, audited)
+
+What is true, verified by inspecting the code rather than asserted:
+
+| Scenario | Effect | Evidence |
+|---|---|---|
+| Platform frontend outage | Orca keeps serving. Only the launcher is unavailable; users with an Orca URL and a live session continue working | Orca imports nothing from `apps/platform` and never queries the Platform Core registry |
+| Orca outage | Platform and future products unaffected | Platform never opens Orca's database; the launcher renders a link, and a dead link degrades one card |
+| Platform Core **Postgres** outage | Orca keeps serving existing sessions: authorization rides in the JWT claim, not a live query | Orca reads `app_metadata`, never `organization_memberships` / `organization_product_entitlements` |
+| Platform Core **Auth** outage | **Shared blast radius.** New sign-ins fail everywhere, and Orca request resolution fails too | `apps/orca/lib/request-user.ts:646` calls `supabase.auth.getUser()`, a network verification, on canonical request resolution |
+
+### What must NOT be claimed yet
+
+Central Auth remains an intentional shared dependency, and Orca verifies each request
+against it. **Do not claim full offline-auth resilience.** Making that claim true requires
+local JWT verification with JWKS caching, deliberate token lifetimes, and graceful
+degradation — a separate shared-auth hardening phase. Phase 1 deliberately did not add a
+custom auth verifier, because getting that wrong fails open.
+
+The claim contract limits the damage in one direction only: because authorization travels
+in the token, an Auth *database* problem does not immediately revoke access for live
+sessions. That is a different property from surviving an Auth *service* outage.
+
 ## 5. Database ownership
 
 | Database | Owner | Purpose |

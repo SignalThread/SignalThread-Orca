@@ -79,7 +79,7 @@ test("a Platform organization claim narrows Orca access to the intersection", ()
   withEnv({}, () => {
     const result = restrictOrganizationsToPlatformClaims({
       accessibleOrgIds: [ORG_A, ORG_B],
-      claims: { products: ["orca"], organizations: [ORG_A] },
+      claims: { version: 1, access: [ORG_A].map((organizationId: string) => ({ organizationId, organizationRole: "MEMBER", products: ["orca"] })), legacy: false, platformAdmin: false },
     });
     assert.equal(result.status, "RESTRICTED");
     if (result.status !== "RESTRICTED") return;
@@ -92,7 +92,7 @@ test("a Platform claim can never GRANT an organization Orca does not already all
     const unknownOrg = randomUUID();
     const result = restrictOrganizationsToPlatformClaims({
       accessibleOrgIds: [ORG_A],
-      claims: { products: ["orca"], organizations: [ORG_A, unknownOrg] },
+      claims: { version: 1, access: [ORG_A, unknownOrg].map((organizationId: string) => ({ organizationId, organizationRole: "MEMBER", products: ["orca"] })), legacy: false, platformAdmin: false },
     });
     assert.equal(result.status, "RESTRICTED");
     if (result.status !== "RESTRICTED") return;
@@ -106,7 +106,7 @@ test("wrong organization: a claim naming only foreign organizations denies outri
   withEnv({}, () => {
     const result = restrictOrganizationsToPlatformClaims({
       accessibleOrgIds: [ORG_A],
-      claims: { products: ["orca"], organizations: [ORG_B] },
+      claims: { version: 1, access: [ORG_B].map((organizationId: string) => ({ organizationId, organizationRole: "MEMBER", products: ["orca"] })), legacy: false, platformAdmin: false },
     });
     assert.equal(result.status, "DENIED");
     if (result.status !== "DENIED") return;
@@ -118,7 +118,7 @@ test("entitled but no organization claim fails closed in production only", () =>
   withEnv({ NODE_ENV: "production" }, () => {
     const result = restrictOrganizationsToPlatformClaims({
       accessibleOrgIds: [ORG_A],
-      claims: { products: ["orca"], organizations: [] },
+      claims: { version: 1, access: [], legacy: false, platformAdmin: false, developmentBypass: true },
     });
     assert.equal(result.status, "DENIED");
     if (result.status !== "DENIED") return;
@@ -128,7 +128,7 @@ test("entitled but no organization claim fails closed in production only", () =>
   withEnv({ NODE_ENV: "development" }, () => {
     const result = restrictOrganizationsToPlatformClaims({
       accessibleOrgIds: [ORG_A],
-      claims: { products: ["orca"], organizations: [] },
+      claims: { version: 1, access: [], legacy: false, platformAdmin: false, developmentBypass: true },
     });
     assert.equal(result.status, "UNRESTRICTED");
   });
@@ -139,7 +139,7 @@ test("a tampered client organization id cannot widen access", () => {
     // Platform grants ORG_A only; Orca can reach both.
     const restriction = restrictOrganizationsToPlatformClaims({
       accessibleOrgIds: [ORG_A, ORG_B],
-      claims: { products: ["orca"], organizations: [ORG_A] },
+      claims: { version: 1, access: [ORG_A].map((organizationId: string) => ({ organizationId, organizationRole: "MEMBER", products: ["orca"] })), legacy: false, platformAdmin: false },
     });
     assert.equal(restriction.status, "RESTRICTED");
     if (restriction.status !== "RESTRICTED") return;

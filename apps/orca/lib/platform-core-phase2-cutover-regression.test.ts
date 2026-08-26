@@ -10,7 +10,6 @@ import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import {
   createDevelopmentEntitlementClaims,
-  getOrcaProductKey,
   isEntitlementDenialWaivableInDevelopment,
   readEntitlementClaims,
   resolveEntitlementMode,
@@ -338,7 +337,7 @@ test("authentication alone never grants entry in production", () => {
 test("Platform Core claims are authoritative in both directions", () => {
   withEnv({ NODE_ENV: "production" }, () => {
     const granted = resolveOrcaEntitlement({
-      claims: { products: ["orca"], organizations: [PLATFORM_ORG_ID] },
+      claims: { version: 1, access: [PLATFORM_ORG_ID].map((organizationId: string) => ({ organizationId, organizationRole: "MEMBER", products: ["orca"] })), legacy: false, platformAdmin: false },
       subject: { platformUserId: null, hasProvisionedOrcaAccess: false },
     });
     assert.equal(granted.status, "GRANTED");
@@ -348,7 +347,7 @@ test("Platform Core claims are authoritative in both directions", () => {
 
     // Entitled to a different product only.
     const denied = resolveOrcaEntitlement({
-      claims: { products: ["voice"], organizations: [] },
+      claims: { version: 1, access: [], legacy: false, platformAdmin: false },
       subject: { platformUserId: LINKED_PLATFORM_USER_ID, hasProvisionedOrcaAccess: true },
     });
     assert.equal(denied.status, "DENIED");
@@ -451,14 +450,56 @@ test("entitlements are read from server-controlled app_metadata only", () => {
   assert.equal(readEntitlementClaims(null), null);
   assert.equal(readEntitlementClaims({}), null);
   assert.equal(readEntitlementClaims({ signalthread: {} }), null);
+  // Legacy flat claims still parse, projected into the org-scoped shape. With no
+  // organizations named there is nothing to scope to, so `access` is empty and the
+  // claim entitles nothing -- legacy cannot widen anything.
   assert.deepEqual(readEntitlementClaims({ signalthread: { products: ["Orca"] } }), {
-    products: ["orca"],
-    organizations: [],
+    version: 0,
+    access: [],
+    legacy: true,
+    platformAdmin: false,
+    syncedAt: null,
   });
   assert.deepEqual(readEntitlementClaims({ signalthread: { products: [1, "orca", null] } }), {
-    products: ["orca"],
-    organizations: [],
+    version: 0,
+    access: [],
+    legacy: true,
+    platformAdmin: false,
+    syncedAt: null,
   });
+
+  // A legacy claim naming organizations projects the product list onto each of them.
+  assert.deepEqual(
+    readEntitlementClaims({ signalthread: { products: ["orca"], organizations: ["org-1"] } }),
+    {
+      version: 0,
+      access: [{ organizationId: "org-1", organizationRole: "", products: ["orca"] }],
+      legacy: true,
+      platformAdmin: false,
+      syncedAt: null,
+    },
+  );
+
+  // The structured contract is authoritative whenever `access` is present: a legacy
+  // `products` array sitting beside it is ignored entirely rather than merged.
+  assert.deepEqual(
+    readEntitlementClaims({
+      signalthread: {
+        v: 1,
+        products: ["orca", "housing"],
+        organizations: ["org-legacy"],
+        access: [{ organization_id: "org-1", organization_role: "ADMIN", products: ["ORCA"] }],
+        platform_admin: true,
+      },
+    }),
+    {
+      version: 1,
+      access: [{ organizationId: "org-1", organizationRole: "ADMIN", products: ["orca"] }],
+      legacy: false,
+      platformAdmin: true,
+      syncedAt: null,
+    },
+  );
 
   // user_metadata is user-editable and must never be *read* for access decisions
   // (naming it in a comment explaining why is fine).
@@ -473,7 +514,7 @@ test("the development entitlement can never apply in production", () => {
   });
   withEnv({ NODE_ENV: "development" }, () => {
     const claims = createDevelopmentEntitlementClaims();
-    assert.equal(claims?.products.includes(getOrcaProductKey()), true);
+    assert.equal(claims?.developmentBypass, true);
   });
 });
 

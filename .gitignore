@@ -22,3 +22,6 @@ apps/orca/playwright-report/
 # Generated local simulation artifacts
 apps/orca/tmp/
 apps/orca/roomset-sim-results.json
+
+# Local-only development credentials. Never committed.
+.local-secrets/

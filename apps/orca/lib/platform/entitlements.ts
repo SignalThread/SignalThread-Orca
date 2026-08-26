@@ -43,9 +43,33 @@
 
 export type EntitlementMode = "claims" | "migration";
 
-export type PlatformEntitlementClaims = Readonly<{
+/** One organization's access as named by Platform Core. */
+export type OrgScopedAccess = Readonly<{
+  organizationId: string;
+  organizationRole: string;
+  /** Product keys entitled to this organization. Empty means member-but-not-entitled. */
   products: readonly string[];
-  organizations: readonly string[];
+}>;
+
+export type PlatformEntitlementClaims = Readonly<{
+  /** 1 = structured org-scoped contract. 0 = legacy flat arrays. */
+  version: number;
+  access: readonly OrgScopedAccess[];
+  /** True when this was projected from the legacy flat shape. */
+  legacy: boolean;
+  /** Platform admin authority. Derived from canonical state only, never from legacy claims. */
+  platformAdmin: boolean;
+  /** ISO timestamp Platform Core derived this claim, when it supplied one. */
+  syncedAt?: string | null;
+  /**
+   * Set only by `createDevelopmentEntitlementClaims`, which returns null in production.
+   *
+   * The development identity fallback needs to satisfy the entry gate without naming an
+   * organization. Rather than reintroducing a product list that is not organization-scoped,
+   * the bypass is marked explicitly: `readEntitlementClaims` never sets this, so no claim
+   * arriving from Platform Core can carry it.
+   */
+  developmentBypass?: boolean;
 }> | null;
 
 export type EntitlementSubject = Readonly<{
@@ -65,7 +89,14 @@ export type EntitlementDecision =
   | {
       status: "GRANTED";
       source: EntitlementGrantSource;
-      /** Canonical organization ids named by the claims, when present. */
+      /**
+       * Organizations in which this product is actually entitled -- the ceiling Orca
+       * narrows its own access against.
+       *
+       * This used to be every organization the claim mentioned, which meant an
+       * entitlement held by one organization produced a ceiling covering all of
+       * them. It is now only the entitled subset.
+       */
       organizationIds: readonly string[];
     }
   | {
@@ -118,13 +149,58 @@ export function readEntitlementClaims(appMetadata: unknown): PlatformEntitlement
   }
 
   const scoped = namespace as Record<string, unknown>;
+
+  // Structured org-scoped contract. Authoritative whenever present: if Platform Core
+  // speaks the current language, the legacy arrays beside it are ignored entirely,
+  // which is what stops a stale flat claim widening anything.
+  if (Array.isArray(scoped.access)) {
+    const access: OrgScopedAccess[] = [];
+    for (const entry of scoped.access) {
+      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+      const row = entry as Record<string, unknown>;
+      const organizationId = typeof row.organization_id === "string" ? row.organization_id.trim() : "";
+      if (!organizationId) continue;
+      access.push({
+        organizationId,
+        organizationRole:
+          typeof row.organization_role === "string" ? row.organization_role.trim() : "",
+        products: toStringArray(row.products).map((product) => product.toLowerCase()),
+      });
+    }
+    return {
+      version: typeof scoped.v === "number" ? scoped.v : 1,
+      access,
+      legacy: false,
+      platformAdmin: scoped.platform_admin === true,
+      syncedAt: typeof scoped.synced_at === "string" ? scoped.synced_at : null,
+    };
+  }
+
+  // Legacy flat contract: two independent arrays that cannot express per-organization
+  // entitlement. Retained only so sessions issued before the cutover keep working.
   if (!("products" in scoped) && !("organizations" in scoped)) {
     return null;
   }
 
+  const products = toStringArray(scoped.products).map((product) => product.toLowerCase());
+  const organizations = toStringArray(scoped.organizations);
+
   return {
-    products: toStringArray(scoped.products).map((product) => product.toLowerCase()),
-    organizations: toStringArray(scoped.organizations),
+    version: 0,
+    // The legacy shape genuinely cannot say which organization an entitlement belongs
+    // to, so every named organization is projected with the named products. That is
+    // the literal meaning of the old contract and no wider -- and because a structured
+    // claim short-circuits above, this projection can never add to one.
+    access: organizations.map((organizationId) => ({
+      organizationId,
+      organizationRole: "",
+      products,
+    })),
+    legacy: true,
+    // Legacy claims never confer Platform admin authority.
+    platformAdmin: false,
+    // The legacy contract carries no derivation timestamp.
+    syncedAt: null,
   };
 }
 
@@ -137,20 +213,75 @@ export function readEntitlementClaims(appMetadata: unknown): PlatformEntitlement
 export function resolveOrcaEntitlement(input: {
   claims: PlatformEntitlementClaims;
   subject: EntitlementSubject;
+  /**
+   * The organization the request is scoped to.
+   *
+   * When supplied, entitlement is decided for that organization alone, which is the
+   * only correct question: the same user can be entitled in one organization and not
+   * in another. When omitted this answers the entry-gate question -- "may this account
+   * open Orca at all" -- and returns every entitled organization as the ceiling.
+   */
+  organizationId?: string | null;
 }): EntitlementDecision {
   const productKey = getOrcaProductKey();
   const mode = resolveEntitlementMode();
 
   if (input.claims) {
-    if (input.claims.products.includes(productKey.toLowerCase())) {
+    const wanted = productKey.toLowerCase();
+    const target = input.claims.access.filter(
+      (entry) => entry.products.includes(wanted),
+    );
+
+    if (input.organizationId) {
+      const scoped = input.claims.access.find(
+        (entry) => entry.organizationId === input.organizationId,
+      );
+
+      if (!scoped) {
+        // The claim never mentions this organization: the user is not a member of it.
+        return {
+          status: "DENIED",
+          reason: "PLATFORM_ORG_NOT_MEMBER",
+          hint: "This account is not a member of that organization in SignalThread Platform Core.",
+        };
+      }
+
+      if (!scoped.products.includes(wanted)) {
+        // Member, but the organization holds no entitlement to this product. A
+        // distinct answer from "not a member": the remedy is an entitlement grant,
+        // not a membership.
+        return {
+          status: "DENIED",
+          reason: "PLATFORM_PRODUCT_NOT_ENTITLED",
+          hint: `That organization is not entitled to ${productKey}. Request access in SignalThread Platform Core.`,
+        };
+      }
+
       return {
         status: "GRANTED",
         source: "platform-claims",
-        organizationIds: input.claims.organizations,
+        organizationIds: [scoped.organizationId],
       };
     }
 
-    // Platform Core spoke and did not include this product. Always authoritative.
+    if (target.length > 0) {
+      return {
+        status: "GRANTED",
+        source: "platform-claims",
+        // Only the entitled organizations, never every organization named by the claim.
+        organizationIds: target.map((entry) => entry.organizationId),
+      };
+    }
+
+    // The development identity fallback entitles the product without naming an
+    // organization. Guarded twice: the marker is only ever set by the dev fallback,
+    // and that function already returns null in production -- this second check means
+    // a forged marker still cannot grant entry in a production build.
+    if (input.claims.developmentBypass === true && !isProduction()) {
+      return { status: "GRANTED", source: "platform-claims", organizationIds: [] };
+    }
+
+    // Platform Core spoke and did not entitle this product anywhere. Always authoritative.
     return {
       status: "DENIED",
       reason: "PLATFORM_ENTITLEMENT_MISSING_PRODUCT",
@@ -187,6 +318,60 @@ export function resolveOrcaEntitlement(input: {
   return { status: "GRANTED", source: "migration-provisioned", organizationIds: [] };
 }
 
+/**
+ * How long a claim may be trusted after Platform Core derived it.
+ *
+ * `app_metadata` is embedded in the access token at issue time. When Platform Core
+ * re-derives a claim -- an entitlement granted or revoked, a membership changed --
+ * sessions already holding a token keep the OLD claim until that token is refreshed.
+ * Supabase refreshes automatically when the access token expires (one hour by
+ * default), so the worst-case staleness window is one token lifetime.
+ *
+ * That window is acceptable for grants (a user waits at most an hour for new access)
+ * but not always for revocations. `PLATFORM_CLAIM_MAX_AGE_SECONDS` lets a deployment
+ * bound it explicitly: past that age the claim is treated as unusable and the user
+ * must present a refreshed token.
+ *
+ * Unset means "trust the token lifetime", which is the default and changes nothing.
+ */
+export function getClaimMaxAgeSeconds(): number | null {
+  const raw = process.env.PLATFORM_CLAIM_MAX_AGE_SECONDS?.trim();
+  if (!raw) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+export type ClaimFreshness =
+  | { status: "FRESH" }
+  | { status: "UNKNOWN" }
+  | { status: "STALE"; ageSeconds: number; maxAgeSeconds: number };
+
+/**
+ * Assess how old a claim is, using the `synced_at` stamp Platform Core writes.
+ *
+ * Returns `UNKNOWN` when no bound is configured or the stamp is absent or
+ * unparseable -- a missing stamp must not be treated as fresh *or* as expired,
+ * because legacy claims carry none.
+ */
+export function assessClaimFreshness(
+  claims: PlatformEntitlementClaims,
+  now: Date = new Date(),
+): ClaimFreshness {
+  const maxAgeSeconds = getClaimMaxAgeSeconds();
+  if (!claims || maxAgeSeconds === null) return { status: "UNKNOWN" };
+
+  const syncedAt = claims.syncedAt;
+  if (!syncedAt) return { status: "UNKNOWN" };
+
+  const issued = Date.parse(syncedAt);
+  if (Number.isNaN(issued)) return { status: "UNKNOWN" };
+
+  const ageSeconds = Math.max(0, Math.floor((now.getTime() - issued) / 1000));
+  return ageSeconds > maxAgeSeconds
+    ? { status: "STALE", ageSeconds, maxAgeSeconds }
+    : { status: "FRESH" };
+}
+
 /** True when entitlements are being satisfied by pre-Platform-Core migration state. */
 export function isMigrationEntitlementModeActive(): boolean {
   return resolveEntitlementMode() === "migration";
@@ -202,7 +387,9 @@ export function isMigrationEntitlementModeActive(): boolean {
  */
 export function createDevelopmentEntitlementClaims(): PlatformEntitlementClaims {
   if (process.env.NODE_ENV === "production") return null;
-  return { products: [getOrcaProductKey().toLowerCase()], organizations: [] };
+  // No organization entries: the fallback satisfies the entry gate without naming an
+  // organization ceiling, so Orca's own membership remains the only scope.
+  return { version: 1, access: [], legacy: false, platformAdmin: false, developmentBypass: true };
 }
 
 /**
@@ -268,7 +455,18 @@ export function restrictOrganizationsToPlatformClaims(input: {
     return { status: "UNRESTRICTED", orgIds: accessible, source: "no-org-claim" };
   }
 
-  const claimed = [...new Set(input.claims.organizations)];
+  // The ceiling is the organizations in which this product is actually entitled --
+  // not every organization the claim mentions. Under the structured contract a user
+  // can be a member of an organization that holds no Orca entitlement, and that
+  // organization must not enter the ceiling.
+  const productKey = getOrcaProductKey().toLowerCase();
+  const claimed = [
+    ...new Set(
+      input.claims.access
+        .filter((entry) => entry.products.includes(productKey))
+        .map((entry) => entry.organizationId),
+    ),
+  ];
 
   if (claimed.length === 0) {
     // Entitled to the product but granted no organization. In production that is an
