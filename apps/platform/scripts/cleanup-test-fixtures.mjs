@@ -69,12 +69,34 @@ async function main() {
   // Registry rows are removed by FK cascade when the auth user is deleted
   // (organization_memberships, event_memberships, platform_admins all reference
   // auth.users ON DELETE CASCADE). Organizations, events and entitlements are NOT
-  // user-scoped, so they are listed separately and removed explicitly.
-  const fixtureOrgSlugs = ["acme-events", "globex-summits"];
-  const { data: orgs } = await db.from("organizations").select("id, slug").in("slug", fixtureOrgSlugs);
+  // user-scoped, so they are considered separately.
+  //
+  // An organization is only removable when NO non-fixture identity belongs to it.
+  // This matters: `acme-events` began as a fixture, but a real Platform admin was
+  // later added to it as OWNER and its canonical ids were adopted as the primary
+  // keys of real rows in the Orca operational database. Deleting it by slug would
+  // strip a real membership and orphan real product records.
+  const candidateSlugs = ["acme-events", "globex-summits"];
+  const { data: candidates } = await db.from("organizations").select("id, slug").in("slug", candidateSlugs);
+  const { data: allMemberships } = await db.from("organization_memberships").select("organization_id, user_id");
 
-  console.log(`\n  fixture organizations (cascade removes their events/entitlements): ${orgs?.length ?? 0}`);
-  (orgs ?? []).forEach((o) => console.log(`      ${o.slug}`));
+  const orgs = [];
+  const retained = [];
+  for (const org of candidates ?? []) {
+    const members = (allMemberships ?? []).filter((m) => m.organization_id === org.id);
+    const realMembers = members.filter((m) => !fixtureIds.has(m.user_id));
+    if (realMembers.length > 0) retained.push({ slug: org.slug, realMembers: realMembers.length });
+    else orgs.push(org);
+  }
+
+  console.log(`\n  organizations removable (fixture-only membership): ${orgs.length}`);
+  orgs.forEach((o) => console.log(`      ${o.slug}`));
+  if (retained.length > 0) {
+    console.log(`  organizations RETAINED (real members present): ${retained.length}`);
+    retained.forEach((o) =>
+      console.log(`      ${o.slug} — ${o.realMembers} non-fixture member(s); may also back real Orca records`),
+    );
+  }
 
   if (!apply) {
     console.log("\n  DRY RUN — nothing deleted. Re-run with --apply to remove.");
@@ -91,7 +113,8 @@ async function main() {
     if (orgError) throw new Error(`${org.slug}: ${orgError.message}`);
     console.log(`  deleted organization ${org.slug} (events + entitlements cascaded)`);
   }
-  console.log("\n  Cleanup complete. Product catalog rows were left intact.");
+  console.log("\n  Cleanup complete. Product catalog rows and any organization with a");
+  console.log("  non-fixture member were left intact.");
 }
 
 main().catch((e) => { console.error(`  cleanup failed: ${e.message}`); process.exit(1); });

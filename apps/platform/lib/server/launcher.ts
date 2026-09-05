@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getPlatformAdminClient } from "./admin-client";
+import { getProductAppUrl } from "./handoff";
 import { getOrganizationAccessForUser, type OrganizationAccess } from "./registry";
 
 /**
@@ -33,17 +34,19 @@ export type LauncherOrganization = OrganizationAccess & { events: LauncherEvent[
  * hand-edited id grants nothing. This is exactly why event ids stay out of the JWT.
  */
 function buildLaunchTarget(productKey: string, productName: string, eventId: string): LaunchTarget {
-  if (productKey === "orca") {
-    const base = process.env.NEXT_PUBLIC_ORCA_APP_URL?.trim();
-    if (!base) return { productKey, productName, href: null };
-    return {
-      productKey,
-      productName,
-      href: `${base.replace(/\/$/, "")}/platform-entry?event_id=${encodeURIComponent(eventId)}`,
-    };
+  // Launches go through Platform's own authorization endpoint, never straight at
+  // the product. That endpoint re-verifies membership and entitlement server-side
+  // and only then mints a one-time auth handoff, so the product receives a real
+  // session on its own host instead of relying on a shared cookie.
+  if (!getProductAppUrl(productKey)) {
+    // No deployed app for this product yet: listed, but not launchable.
+    return { productKey, productName, href: null };
   }
-  // Other products have no deployed app yet; they are listed but not launchable.
-  return { productKey, productName, href: null };
+  return {
+    productKey,
+    productName,
+    href: `/api/launch/${encodeURIComponent(productKey)}?event_id=${encodeURIComponent(eventId)}`,
+  };
 }
 
 export async function getLauncherData(userId: string): Promise<LauncherOrganization[]> {

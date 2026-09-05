@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { requirePlatformAuthConfig } from "./config";
+import { platformAuthCookieOptions } from "./cookie-options";
 
 /** Paths reachable without a session. Everything else fails closed. */
 const PUBLIC_PATHS = ["/signin", "/auth/callback", "/signout"];
@@ -34,6 +35,7 @@ export async function updatePlatformSession(request: NextRequest): Promise<NextR
   }
 
   const supabase = createServerClient(config.url, config.anonKey, {
+    cookieOptions: platformAuthCookieOptions(),
     cookies: {
       getAll() {
         return request.cookies.getAll();
