@@ -1,0 +1,284 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #171717;
+  }
+
+  .dark {
+    --background: #000000;
+    --foreground: #fafafa;
+  }
+
+  body {
+    @apply bg-zinc-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100;
+    font-family: var(--font-montserrat), 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer components {
+  /*
+   * Events-only typography roles. These keep the Advanced Event setup
+   * workspace deliberately compact without changing the broader product's
+   * type system.
+   */
+  .event-workspace-type {
+    font-family: var(--font-montserrat), 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .event-type-page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+
+  .event-type-summary {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .event-type-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+
+  .event-type-row-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+
+  .event-type-meta {
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .event-type-helper {
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .event-type-control {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  .event-type-input {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .event-type-pill,
+  .event-type-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .event-type-kicker {
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/*
+ * The event workspace sits inside a sidebar shell and a capped content column.
+ * Its layout must respond to the card area's usable width, not a viewport label.
+ */
+.event-overview-responsive {
+  container-type: inline-size;
+}
+
+/*
+ * Intelligence lives inside the event workspace shell, whose sidebar and
+ * gutters make viewport breakpoints an unreliable proxy for usable space.
+ * These report grids therefore respond to their own inline size.
+ */
+.event-intelligence-overview {
+  container-type: inline-size;
+}
+
+/* Intelligence scopes share one toolbar that responds to usable workspace
+ * width rather than an unrelated viewport breakpoint. */
+.event-intelligence-scope-controls {
+  container-type: inline-size;
+}
+
+.event-intelligence-scope-controls-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, auto) minmax(8rem, 0.8fr) minmax(11rem, 1.15fr);
+  align-items: center;
+  gap: clamp(0.5rem, 1.2cqw, 0.75rem);
+}
+
+.event-intelligence-scope-controls-grid > * {
+  min-width: 0;
+}
+
+/* Below the combined readable minimum, scope gets its own row while Survey
+ * and Area remain compact peers. This is based on card width, not viewport. */
+@container (max-width: 39rem) {
+  .event-intelligence-scope-controls-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 0.8fr) minmax(10rem, 1.15fr);
+  }
+
+  .event-intelligence-scope-controls-grid > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@container (max-width: 28rem) {
+  .event-intelligence-scope-controls-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.event-intelligence-main-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.event-intelligence-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* The shared lifecycle hero owns its responsive metric strip. This prevents
+ * Pre/Post from inheriting a two-column fallback when their page wrapper is
+ * not itself a query container. */
+.event-lifecycle-hero {
+  container-type: inline-size;
+}
+
+.event-intelligence-decision-columns {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.event-intelligence-summary-detail-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.event-sessions-intelligence {
+  container-type: inline-size;
+}
+
+.event-speakers-intelligence {
+  container-type: inline-size;
+}
+
+@container (min-width: 44rem) {
+  .event-sessions-header {
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.72fr);
+    align-items: start;
+  }
+}
+
+@container (min-width: 50rem) {
+  .event-sessions-controls {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .event-sessions-search-controls {
+    width: clamp(18rem, 37cqw, 26rem);
+    flex: none;
+  }
+}
+
+@container (min-width: 44rem) {
+  .event-speakers-header {
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.72fr);
+    align-items: start;
+  }
+}
+
+@container (min-width: 50rem) {
+  .event-speakers-controls {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .event-speakers-search-controls {
+    width: clamp(17rem, 34cqw, 25rem);
+    flex: none;
+  }
+}
+
+/* Event Areas keeps its approved equal-column composition whenever its own
+ * workspace can accommodate two readable report columns. */
+@container (min-width: 44rem) {
+  .event-intelligence-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .event-intelligence-main-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .event-intelligence-decision-columns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .event-intelligence-summary-detail-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .event-intelligence-follow-up-detail-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .event-intelligence-decision-columns > * + * {
+    border-top-width: 0;
+    border-left-width: 1px;
+    border-left-color: rgb(226 232 240);
+  }
+}
+
+.event-overview-workflow,
+.event-overview-action-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container (min-width: 40rem) {
+  .event-overview-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 56rem) {
+  .event-overview-workflow {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .event-overview-workflow-connector {
+    display: block;
+  }
+}
+
+/* Four cards need 67.5rem: four practical 16rem cards plus three 0.75rem gaps. */
+@container (min-width: 67.5rem) {
+  .event-overview-action-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Session" ALTER COLUMN "objectKey" DROP NOT NULL,
+ALTER COLUMN "objectKey" DROP DEFAULT;

@@ -30,6 +30,7 @@ One Vercel project per application:
 |---|---|---|
 | Orca | `apps/orca` | active |
 | Platform | `apps/platform` | future |
+| Pulse | `apps/pulse` | established in the workspace; Vercel project not yet created |
 | Registration | `apps/registration` | future |
 | Housing | `apps/housing` | future |
 
@@ -181,6 +182,132 @@ custom auth verifier, because getting that wrong fails open.
 The claim contract limits the damage in one direction only: because authorization travels
 in the token, an Auth *database* problem does not immediately revoke access for live
 sessions. That is a different property from surviving an Auth *service* outage.
+
+## 4d. Cross-subdomain SSO — implemented architecture
+
+One login at `app.signalthread.ai` opens `orca.signalthread.ai` with no second
+interactive sign-in, **without** a shared auth cookie.
+
+```text
+app.signalthread.ai
+  host-scoped Platform Core session
+  Platform verifies: ACTIVE org membership -> event belongs to that org
+                     -> org holds ACTIVE product entitlement
+  GET /api/launch/<product>?event_id=<canonical uuid>
+        v  303, Referrer-Policy: no-referrer
+orca.signalthread.ai/auth/callback?token_hash=...&type=magiclink&next=/platform-entry?event_id=...
+  verifyOtp() with the ANON key -> Orca's OWN host-scoped session
+        v  303 (relative Location)
+/platform-entry -> Orca re-validates org-scoped claim, entitlement, event,
+                   EventMember and EventMemberRole -> /events/<id>
+```
+
+**Handoff primitive.** `auth.admin.generateLink({type:"magiclink"})` returns a
+`hashed_token`: single-use, short-lived, Supabase-native. Verified live — a replayed
+or malformed token is rejected. The generated `action_link` is **discarded**; only
+the token travels and Platform builds the destination itself, which is why the
+Supabase redirect allowlist is *not* involved in the handoff.
+
+**Invariants (each asserted by test):** no `Domain=.signalthread.ai` cookie · no
+Platform service-role key in Orca · no Platform Core Postgres query from Orca · no
+cross-database FK · no custom JWT or hand-rolled crypto · **no authorization carried
+in the handoff** — the event id is a navigation hint the product re-validates.
+
+### Cookie contract (both apps)
+
+`Path=/` · `SameSite=Lax` · **no `Domain`** (host-only) · `Secure=true` when the
+app's own URL is HTTPS · set and remove use identical scope, so sign-out clears
+exactly what sign-in wrote. Lifetime is the `@supabase/ssr` default of **400 days**
+(unchanged deliberately; shortening it needs its own reasoning and tests).
+
+`HttpOnly` is **false**. That is required by the current architecture: the Supabase
+browser client reads the session from `document.cookie` for refresh and client calls.
+It is **deferred hardening**, not an oversight, and it is the main reason a
+parent-domain cookie was rejected — a JS-readable credential shared across every
+subdomain would turn one XSS anywhere under the apex into a session valid everywhere.
+
+### A failure mode worth remembering
+
+`next.config.ts` `headers()` entries are applied **after** route handlers, so a global
+`Referrer-Policy` silently overrode the `no-referrer` set on the handoff responses
+while a one-time token sat in the query string. Narrower per-path entries now exist
+for `/api/launch/:path*` and `/auth/callback`, and regression tests pin both the
+entries and their ordering.
+
+### Adding a product (Registration, Housing, Pulse, Lead Retrieval)
+
+1. `PRODUCT_APP_URL_ENV` entry in `apps/platform/lib/server/product-registry.ts`
+2. a return-path case in `buildProductReturnPath`
+3. a callback in the product that exchanges `token_hash` with its **anon** key
+4. the product's own RBAC
+
+`authorizeProductLaunch` is product-agnostic — asserted by a test that fails if
+Orca-specific logic appears in it. No new authorization or handoff code is required.
+
+## 4e. Environment contract (definitive, no secret values)
+
+### `apps/platform`
+
+| Variable | Exposure | Required |
+|---|---|---|
+| `NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_URL` | client | production |
+| `NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_ANON_KEY` | client | production |
+| `NEXT_PUBLIC_PLATFORM_APP_URL` | client | production — drives `Secure` on cookies |
+| `PLATFORM_CORE_SERVICE_ROLE_KEY` | **server-only** | production — never `NEXT_PUBLIC_` |
+| `ORCA_APP_URL` | **server-only** | production — handoff destination |
+| `NEXT_PUBLIC_ORCA_APP_URL` | client | optional fallback for the above |
+| `PLATFORM_CORE_PROJECT_REF` | server-only | optional (scripts; defaults to the Platform ref) |
+| `RLS_*` | server-only | local verification only |
+
+`ORCA_APP_URL` is intentionally **not** `NEXT_PUBLIC_`: a product base URL is only
+needed server-side, and `NEXT_PUBLIC_*` values are inlined at compile time.
+
+### `apps/orca` — SSO-relevant only
+
+| Variable | Exposure | Required |
+|---|---|---|
+| `NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_URL` | client | production |
+| `NEXT_PUBLIC_PLATFORM_CORE_SUPABASE_ANON_KEY` | client | production |
+| `NEXT_PUBLIC_ORCA_APP_URL` | client | production — drives `Secure` on cookies |
+| `NEXT_PUBLIC_PLATFORM_CORE_APP_URL` | client | production — where sign-out returns |
+| `NEXT_PUBLIC_PLATFORM_CORE_SIGN_IN_PATH` / `_SIGN_OUT_PATH` | client | optional |
+| `PLATFORM_ENTITLEMENT_MODE` | server-only | production (`claims`) |
+| `PLATFORM_PRODUCT_KEY` | server-only | optional (defaults `orca`) |
+| `PLATFORM_CLAIM_MAX_AGE_SECONDS` | server-only | optional staleness bound |
+
+**Orca requires no service-role key.** `src/lib/supabase/admin.ts` is the only
+runtime reference, and its sole caller (`/api/admin/invite-user`) returns **410 Gone**
+before constructing it whenever Platform Core is the authority. A second reference in
+`product-token-secrets.ts` is Orca's *own legacy* key, accepted for **verification only**
+of product tokens minted before the secret was split out — unrelated to authentication.
+
+## 4f. Production configuration still required — NOT APPLIED
+
+### Supabase (`wtbnpeluwhjjqccdofxd`)
+
+**Required for Platform login:** Site URL `https://app.signalthread.ai`; Redirect URLs
+`https://app.signalthread.ai/**` (email confirmation and password recovery land on
+Platform's own `/auth/callback`).
+
+**Required for the product handoff:** *nothing.* The handoff calls `verifyOtp`
+directly and discards the generated link, so no Orca redirect entry is needed. Adding
+one would be harmless but is not required by the implemented flow.
+
+**Optional:** shorten OTP / magic-link lifetime to tighten the handoff window.
+
+### Vercel — two independent projects
+
+| | Platform | Orca |
+|---|---|---|
+| Repo | same monorepo | same monorepo |
+| Root Directory | `apps/platform` | `apps/orca` |
+| Include files outside root | **required** | **required** |
+| Domain | `app.signalthread.ai` | `orca.signalthread.ai` |
+
+"Include files outside Root Directory" is **required for both**: npm workspaces hoist
+`node_modules` to the repository root, and `packages/signalthread-ui` is a workspace
+dependency of both apps. Deployments, env scopes, runtimes, operational databases and
+failure domains stay independent.
 
 ## 5. Database ownership
 

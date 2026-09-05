@@ -1,0 +1,3 @@
+// This script is disabled - Question model no longer exists in new schema
+// Questions are now stored in Event.questionsJson
+export {}

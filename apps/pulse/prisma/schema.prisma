@@ -1,0 +1,1677 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// MULTI-TENANT HIERARCHY: Account → Location → Event
+// ============================================================
+
+model Account {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique // URL-safe identifier
+
+  // Account type and tier
+  accountType AccountType @default(RETAIL)
+  tier        String      @default("starter") // starter, growth, enterprise (plan)
+
+  // Trial (Starter: 30-day free trial from creation)
+  trialEndsAt DateTime?
+
+  // Account status
+  isActive Boolean @default(true)
+
+  // Contact and billing
+  email                String?
+  phone                String?
+  stripeCustomerId     String? @unique // Stripe customer ID for webhook lookups
+  stripeSubscriptionId String? // Stripe subscription ID
+  billingJson          Json? // Flexible billing metadata (status, plan, etc.)
+
+  // Settings and customization
+  settingsJson Json? // Account-level preferences
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  locations                   Location[]
+  users                       User[] // Supabase authenticated users
+  userMemberships             AccountUserMembership[]
+  admins                      Admin[] // Legacy admins (deprecated)
+  pendingProvisions           PendingProvision[] // Onboarding provisions
+  answerEventIntelligence     AnswerEventIntelligence[]
+  eventIntelligenceAggregates EventIntelligenceAggregate[]
+  eventIssueClusters          EventIssueCluster[]
+  eventIssueEvidence          EventIssueEvidence[]
+  eventAlertNotes             EventAlertNote[]
+  eventActionHistory          EventActionHistory[]
+  eventActionUpdates          EventActionUpdate[]
+  eventActionDeliveries       EventActionAssignmentDelivery[]
+  eventActionDeliveryAttempts EventActionDeliveryAttempt[]
+  eventSpeakerProfiles        EventSpeakerProfile[]
+  eventAgendaImportJobs       EventAgendaImportJob[]
+  eventClosingBriefSnapshots  EventClosingBriefSnapshot[]
+  platformUserActionAudits    PlatformUserActionAudit[]
+
+  @@index([slug])
+  @@index([accountType])
+  @@index([isActive])
+}
+
+enum AccountType {
+  RETAIL // Coffee shops, restaurants, retail stores
+  EVENTS // Conferences, festivals, corporate events
+  HOSPITALITY // Hotels, venues, resorts
+}
+
+model Location {
+  id        String @id @default(cuid())
+  accountId String
+  name      String
+  slug      String // URL-safe, unique within account
+
+  // Location details
+  address    String?
+  city       String?
+  state      String?
+  postalCode String?
+  country    String  @default("US")
+  timezone   String  @default("America/New_York")
+
+  // Location settings
+  isActive        Boolean @default(true)
+  settingsJson    Json? // Location-specific preferences
+  googleReviewUrl String? // Google review link for retail locations
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  account                     Account                      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  events                      Event[]
+  sessions                    Session[] // Backward compatible: sessions can link to location
+  surveyTargets               SurveyTarget[]
+  structureItems              EventStructureItem[]
+  answerEventIntelligence     AnswerEventIntelligence[]
+  eventIntelligenceAggregates EventIntelligenceAggregate[]
+  eventIssueClusters          EventIssueCluster[]
+  eventIssueEvidence          EventIssueEvidence[]
+
+  @@unique([accountId, slug])
+  @@index([accountId])
+  @@index([slug])
+  @@index([isActive])
+}
+
+enum ResponseMode {
+  VOICE_ONLY
+  TEXT_ONLY
+  VOICE_AND_TEXT
+}
+
+enum SurveyPresentationMode {
+  SCREEN
+  READ_ALOUD
+  ATTENDEE_CHOOSES
+}
+
+enum QuestionType {
+  /// Legacy open-response value retained for existing non-Advanced flows.
+  VOICE
+  OPEN_RESPONSE
+  RATING_1_TO_5
+  RECOMMENDATION_0_TO_10
+  YES_NO
+  SINGLE_CHOICE
+  SPEAKER_FEEDBACK
+}
+
+/// Describes the canonical subject of a survey question. SPEAKERS is only
+/// valid for a rating question in a session-targeted survey; it expands to
+/// one Answer per speaker at response time.
+enum QuestionResponseTarget {
+  GENERAL
+  SESSION
+  SPEAKERS
+}
+
+model Event {
+  id          String  @id @default(cuid())
+  locationId  String
+  name        String
+  description String? @db.Text
+
+  // Kiosk / survey: how respondents may answer (voice, text, or both)
+  responseMode ResponseMode @default(VOICE_ONLY)
+
+  // Event type and configuration
+  eventType EventType @default(FEEDBACK)
+
+  // Event scheduling
+  startDate               DateTime?
+  endDate                 DateTime?
+  /// Optional Events-only override. When empty, the canonical default is
+  /// computed as five days before/after the event's own boundaries.
+  listeningWindowOpensAt  DateTime?
+  listeningWindowClosesAt DateTime?
+
+  // Optional free-text venue (e.g. "Hilton Riverwalk, San Antonio").
+  // The Location relation is the account-level Event Workspace; venue is the
+  // physical place the event is held.
+  venue String?
+
+  // Starting-point template used at creation (conference | expo | workshop |
+  // brand-activation | blank | null for legacy events). Records provenance of
+  // any starter Event structure that was seeded; structure remains editable.
+  templateKey String?
+
+  // Event status
+  status   EventStatus @default(DRAFT)
+  isActive Boolean     @default(true)
+
+  // Questions configuration
+  questionsJson Json? // Array of question objects
+
+  // Event-level TTS settings
+  ttsProvider String @default("google")
+  ttsVoice    String @default("en-US-Neural2-F")
+  ttsLocale   String @default("en-US")
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  location                    Location                        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  questions                   Question[]
+  responses                   Response[]
+  insights                    Insight[]
+  surveyTargets               SurveyTarget[]
+  structureItems              EventStructureItem[]
+  surveys                     Survey[]
+  answerEventIntelligence     AnswerEventIntelligence[]
+  answerEventThemes           AnswerEventTheme[]
+  answerEventEntities         AnswerEventEntity[]
+  answerEventActions          AnswerEventAction[]
+  eventIntelligenceAggregates EventIntelligenceAggregate[]
+  eventIssueClusters          EventIssueCluster[]
+  eventIssueEvidence          EventIssueEvidence[]
+  eventAlertNotes             EventAlertNote[]
+  eventActionHistory          EventActionHistory[]
+  eventActionUpdates          EventActionUpdate[]
+  eventActionDeliveries       EventActionAssignmentDelivery[]
+  eventActionDeliveryAttempts EventActionDeliveryAttempt[]
+  speakerAssignments          EventSessionSpeakerAssignment[] @relation("EventSpeakerAssignmentEvent")
+  agendaImportJobs            EventAgendaImportJob[]
+  closingBriefSnapshot        EventClosingBriefSnapshot?
+
+  @@index([locationId])
+  @@index([status])
+  @@index([eventType])
+  @@index([isActive])
+  @@index([startDate])
+}
+
+/// Persisted canonical Event Intelligence Brief. The sourceHash is derived
+/// from the Event-owned intelligence/data revisions so unchanged page loads
+/// and PDF exports reuse exactly the same generated payload.
+model EventClosingBriefSnapshot {
+  id          String   @id @default(cuid())
+  accountId   String
+  eventId     String   @unique
+  sourceHash  String
+  briefHash   String
+  briefJson   Json
+  generatedAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([accountId, eventId])
+  @@index([briefHash])
+}
+
+model Question {
+  id       String  @id @default(cuid())
+  eventId  String
+  surveyId String?
+
+  // Stable identifier preserved from Event.questionsJson
+  key String
+
+  // Displayed question text and optional spoken override
+  label    String       @db.Text
+  ttsText  String?      @db.Text
+  type     QuestionType @default(VOICE)
+  responseTarget QuestionResponseTarget @default(GENERAL)
+  /// Type-specific content configuration. Currently used for canonical
+  /// single-choice option labels; delivery/voice settings never live here.
+  configurationJson Json?
+  order    Int
+  required Boolean      @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event                       Event                        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  survey                      Survey?                      @relation(fields: [surveyId], references: [id], onDelete: SetNull)
+  audioAssets                 QuestionAudioAsset[]
+  answers                     Answer[]
+  answerEventIntelligence     AnswerEventIntelligence[]
+  eventIntelligenceAggregates EventIntelligenceAggregate[]
+  eventIssueClusters          EventIssueCluster[]
+  eventIssueEvidence          EventIssueEvidence[]
+
+  @@unique([eventId, key])
+  @@unique([surveyId, order])
+  @@index([eventId, order])
+  @@index([surveyId])
+  @@index([type])
+}
+
+model QuestionAudioAsset {
+  id         String @id @default(cuid())
+  questionId String
+
+  // TTS generation identity
+  provider   String
+  voice      String
+  language   String @default("")
+  locale     String @default("")
+  textHash   String
+  sourceText String @db.Text
+
+  // Stored audio metadata
+  objectKey  String  @unique
+  storageUrl String?
+  mimeType   String  @default("audio/mpeg")
+  durationMs Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, provider, voice, language, locale, textHash])
+  @@index([questionId, createdAt])
+  @@index([questionId, provider, voice, language, locale])
+}
+
+enum EventType {
+  // Customer-facing Events-account creation modes. Legacy values below remain
+  // valid for historical events and non-Events product surfaces.
+  TEMPLATE
+  BLANK
+  ADVANCED
+  FEEDBACK // General feedback collection
+  SURVEY // Structured surveys
+  INTERVIEW // One-on-one interviews
+  KIOSK // Unattended kiosk mode
+}
+
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum SurveyAvailabilityMode {
+  OPEN_IMMEDIATELY
+  CUSTOM_WINDOW
+  RELATIVE_TO_EVENT_AREA
+}
+
+enum SurveyAvailabilityAnchor {
+  START
+  END
+}
+
+enum SurveyAvailabilityOverride {
+  FORCE_OPEN
+  FORCE_CLOSED
+}
+
+/// Immutable collection cohort for Event survey evidence. Historical rows are
+/// nullable until they are explicitly classified by a separate data audit.
+enum CollectionPhase {
+  PRE
+  DURING
+  POST
+}
+
+enum SurveyTargetCategory {
+  EVENT
+  SESSION
+  LOCATION
+  CUSTOM
+  SPEAKER
+}
+
+enum EventStructureItemKind {
+  EVENT
+  SESSION
+  AREA
+  SPONSOR_ACTIVATION
+  CUSTOM_TOUCHPOINT
+}
+
+enum EventSpeakerHeadshotState {
+  NONE
+  PENDING
+  READY
+  FAILED
+}
+
+enum EventSpeakerRole {
+  SPEAKER
+  MODERATOR
+  HOST
+  PANELIST
+}
+
+enum EventAgendaImportStatus {
+  UPLOADED
+  MAPPING
+  NEEDS_REVIEW
+  READY
+  CONFIRMING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum EventAgendaImportRowStatus {
+  PENDING
+  READY
+  NEEDS_REVIEW
+  DUPLICATE
+  INVALID
+  IGNORED
+  CONFIRMED
+  FAILED
+}
+
+enum EventAgendaImportConflictType {
+  EXACT_DUPLICATE
+  EXTERNAL_ID_MATCH
+  POSSIBLE_DUPLICATE
+  POSSIBLE_OVERLAP
+  AMBIGUOUS_SPEAKER_MATCH
+}
+
+enum EventAgendaImportResolution {
+  SKIP
+  REPLACE_EXISTING
+  KEEP_BOTH
+  REVIEW
+}
+
+enum EventAgendaImportRowResult {
+  CREATED
+  UPDATED
+  SKIPPED
+  FAILED
+}
+
+model EventStructureItem {
+  id          String                 @id @default(cuid())
+  eventId     String
+  kind        EventStructureItemKind
+  name        String
+  slug        String
+  description String?                @db.Text
+  parentId    String?
+  locationId  String?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  timezone    String?
+  sortOrder   Int                    @default(0)
+  metadata    Json?
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  event              Event                           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  parent             EventStructureItem?             @relation("EventStructureItemChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children           EventStructureItem[]            @relation("EventStructureItemChildren")
+  location           Location?                       @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  surveyTargets      SurveyTarget[]
+  speakerAssignments EventSessionSpeakerAssignment[] @relation("EventSessionSpeakerAssignmentSession")
+  matchedImportRows  EventAgendaImportRow[]          @relation("EventAgendaImportExistingSession")
+  importedByRows     EventAgendaImportRow[]          @relation("EventAgendaImportResultSession")
+
+  @@unique([eventId, slug])
+  @@unique([eventId, id])
+  @@index([eventId])
+  @@index([kind])
+  @@index([parentId])
+  @@index([locationId])
+}
+
+/// Account-scoped speaker identity. Event participation belongs to the
+/// EventSessionSpeakerAssignment join; imported speaker text is never the
+/// canonical profile.
+model EventSpeakerProfile {
+  id                String                    @id @default(cuid())
+  accountId         String
+  name              String
+  title             String?
+  organization      String?
+  email             String?
+  phone             String?
+  biography         String?                   @db.Text
+  headshotState     EventSpeakerHeadshotState @default(NONE)
+  headshotObjectKey String?
+  headshotMimeType  String?
+  /// Derived matching key; never displayed as speaker-entered data.
+  normalizedName    String
+  /// Derived matching key; null when no email is present.
+  normalizedEmail   String?
+  isArchived        Boolean                   @default(false)
+  archivedAt        DateTime?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  account            Account                         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  sessionAssignments EventSessionSpeakerAssignment[]
+  surveyTargets      SurveyTarget[]                  @relation("SurveyTargetSpeaker")
+
+  @@unique([accountId, id])
+  @@index([accountId, normalizedName])
+  @@index([accountId, normalizedEmail])
+  @@index([accountId, isArchived])
+}
+
+/// Canonical event participation for an account-scoped speaker. A null
+/// sessionId is the independent roster membership used by Blank/Advanced
+/// experiences; non-null sessionId rows are session assignments. Template
+/// events derive speaker participation exclusively from non-null assignments.
+/// The composite relations prevent an assignment from pointing at a speaker
+/// in another account or a session in another event.
+model EventSessionSpeakerAssignment {
+  id        String           @id @default(cuid())
+  accountId String
+  eventId   String
+  sessionId String?
+  speakerId String
+  role      EventSpeakerRole @default(SPEAKER)
+  sortOrder Int              @default(0)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  event                  Event               @relation("EventSpeakerAssignmentEvent", fields: [eventId], references: [id], onDelete: Cascade)
+  session                EventStructureItem? @relation("EventSessionSpeakerAssignmentSession", fields: [eventId, sessionId], references: [eventId, id], onDelete: Cascade)
+  speaker                EventSpeakerProfile @relation(fields: [accountId, speakerId], references: [accountId, id], onDelete: Cascade)
+  speakerSurveyTargets   SurveyTarget[]      @relation("SurveyTargetSpeakerAssignment")
+  speakerSurveyLinks     PublicSurveyLink[]  @relation("PublicSurveyLinkSpeakerAssignment")
+  speakerSurveyResponses Response[]          @relation("ResponseSpeakerAssignment")
+
+  @@unique([sessionId, speakerId])
+  @@index([eventId, sessionId, sortOrder])
+  @@index([accountId, speakerId])
+}
+
+/// Durable, server-owned agenda import state. Confirmation uses an atomic
+/// all-or-nothing transaction; a failed confirmation leaves the job and rows
+/// available for correction/retry without partial agenda writes.
+model EventAgendaImportJob {
+  id                   String                  @id @default(cuid())
+  accountId            String
+  eventId              String
+  createdByUserId      String?
+  confirmedByUserId    String?
+  status               EventAgendaImportStatus @default(UPLOADED)
+  idempotencyKey       String
+  sourceFileName       String
+  sourceMimeType       String
+  sourceFileSizeBytes  Int
+  sourceChecksumSha256 String
+  sourceObjectKey      String?                 @unique
+  worksheetName        String?
+  worksheetIndex       Int?
+  mappingSnapshot      Json?
+  failureCode          String?
+  failureMessage       String?                 @db.Text
+  createdSessionCount  Int                     @default(0)
+  updatedSessionCount  Int                     @default(0)
+  skippedRowCount      Int                     @default(0)
+  duplicateRowCount    Int                     @default(0)
+  failedRowCount       Int                     @default(0)
+  createdSpeakerCount  Int                     @default(0)
+  matchedSpeakerCount  Int                     @default(0)
+  confirmedAt          DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  account         Account                @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  event           Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdByUser   User?                  @relation("EventAgendaImportCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  confirmedByUser User?                  @relation("EventAgendaImportConfirmedBy", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
+  rows            EventAgendaImportRow[]
+
+  @@unique([eventId, id])
+  @@unique([eventId, idempotencyKey])
+  @@index([accountId, createdAt])
+  @@index([eventId, status])
+  @@index([eventId, sourceChecksumSha256])
+  @@index([createdByUserId])
+  @@index([confirmedByUserId])
+}
+
+/// Durable source-row review and result record. Raw and normalized snapshots
+/// preserve traceability; speakerResolutionSnapshot stores review decisions,
+/// not canonical speaker profiles.
+model EventAgendaImportRow {
+  id                        String                         @id @default(cuid())
+  eventId                   String
+  importJobId               String
+  sourceRowNumber           Int
+  stableSourceKey           String
+  sourceExternalId          String?
+  rawRowSnapshot            Json
+  normalizedRowSnapshot     Json?
+  validationIssues          Json?
+  status                    EventAgendaImportRowStatus     @default(PENDING)
+  conflictType              EventAgendaImportConflictType?
+  resolution                EventAgendaImportResolution?
+  speakerResolutionSnapshot Json?
+  existingSessionId         String?
+  result                    EventAgendaImportRowResult?
+  resultSessionId           String?
+  resultMessage             String?                        @db.Text
+  processedAt               DateTime?
+  createdAt                 DateTime                       @default(now())
+  updatedAt                 DateTime                       @updatedAt
+
+  importJob       EventAgendaImportJob @relation(fields: [eventId, importJobId], references: [eventId, id], onDelete: Cascade)
+  existingSession EventStructureItem?  @relation("EventAgendaImportExistingSession", fields: [existingSessionId], references: [id], onDelete: SetNull)
+  resultSession   EventStructureItem?  @relation("EventAgendaImportResultSession", fields: [resultSessionId], references: [id], onDelete: SetNull)
+
+  @@unique([importJobId, sourceRowNumber])
+  @@unique([importJobId, stableSourceKey])
+  @@index([eventId, status])
+  @@index([eventId, sourceExternalId])
+  @@index([eventId, existingSessionId])
+  @@index([eventId, resultSessionId])
+}
+
+model SurveyTarget {
+  id                   String               @id @default(cuid())
+  eventId              String
+  locationId           String?
+  eventStructureItemId String?
+  /// Optional explicit speaker-in-session scope. Generic session targets leave
+  /// this null and must never be attributed to a speaker.
+  speakerAssignmentId  String?
+  /// Direct account-speaker identity for event-scoped speaker surveys. This
+  /// remains distinct from speakerAssignmentId, which is optional session
+  /// launch context for a response/link.
+  speakerId            String?
+  category             SurveyTargetCategory
+  name                 String
+  slug                 String
+  description          String?              @db.Text
+  metadata             Json?
+  isActive             Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  event                       Event                          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  location                    Location?                      @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  eventStructureItem          EventStructureItem?            @relation(fields: [eventStructureItemId], references: [id], onDelete: SetNull)
+  speakerAssignment           EventSessionSpeakerAssignment? @relation("SurveyTargetSpeakerAssignment", fields: [speakerAssignmentId], references: [id], onDelete: SetNull)
+  speaker                     EventSpeakerProfile?           @relation("SurveyTargetSpeaker", fields: [speakerId], references: [id], onDelete: SetNull)
+  surveys                     Survey[]
+  publicSurveyLinks           PublicSurveyLink[]
+  responses                   Response[]
+  answerEventIntelligence     AnswerEventIntelligence[]
+  answerEventThemes           AnswerEventTheme[]
+  answerEventEntities         AnswerEventEntity[]
+  answerEventActions          AnswerEventAction[]
+  eventIntelligenceAggregates EventIntelligenceAggregate[]
+  eventIssueClusters          EventIssueCluster[]
+  eventIssueEvidence          EventIssueEvidence[]
+
+  @@unique([eventId, slug])
+  @@index([eventId, category])
+  @@index([locationId])
+  @@index([eventStructureItemId])
+  @@index([speakerAssignmentId])
+  @@index([eventId, speakerId, category])
+}
+
+model Survey {
+  id                             String                      @id @default(cuid())
+  eventId                        String
+  /// Optional while an Advanced Event survey is an unassigned draft. Legacy
+  /// and deployed surveys retain their existing canonical SurveyTarget.
+  surveyTargetId                 String?
+  name                           String
+  description                    String?                     @db.Text
+  responseMode                   ResponseMode                @default(VOICE_ONLY)
+  presentationMode              SurveyPresentationMode      @default(ATTENDEE_CHOOSES)
+  status                         EventStatus                 @default(DRAFT)
+  ttsProvider                    String?
+  ttsVoice                       String?
+  ttsLocale                      String?
+  settingsJson                   Json?
+  /// Stable client-generated key for retry-safe survey creation. Null for
+  /// legacy surveys and non-interactive provisioning paths.
+  creationRequestId              String?
+  availabilityMode               SurveyAvailabilityMode      @default(OPEN_IMMEDIATELY)
+  availabilityTimezone           String?
+  availabilityOpensAt            DateTime?
+  availabilityClosesAt           DateTime?
+  availabilityOpenAnchor         SurveyAvailabilityAnchor?
+  availabilityCloseAnchor        SurveyAvailabilityAnchor?
+  availabilityOpenOffsetMinutes  Int?
+  availabilityCloseOffsetMinutes Int?
+  availabilityOverride           SurveyAvailabilityOverride?
+  /// Organizer-selected Event lifecycle phase. Nullable only for legacy data.
+  collectionPhase                CollectionPhase?
+  createdAt                      DateTime                    @default(now())
+  updatedAt                      DateTime                    @updatedAt
+
+  event                       Event                        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  surveyTarget                SurveyTarget?                @relation(fields: [surveyTargetId], references: [id], onDelete: SetNull)
+  questions                   Question[]
+  publicSurveyLinks           PublicSurveyLink[]
+  responses                   Response[]
+  answerEventIntelligence     AnswerEventIntelligence[]
+  answerEventThemes           AnswerEventTheme[]
+  answerEventEntities         AnswerEventEntity[]
+  answerEventActions          AnswerEventAction[]
+  eventIntelligenceAggregates EventIntelligenceAggregate[]
+  eventIssueClusters          EventIssueCluster[]
+  eventIssueEvidence          EventIssueEvidence[]
+
+  @@unique([eventId, creationRequestId])
+  @@index([eventId])
+  @@index([eventId, collectionPhase])
+  @@index([surveyTargetId])
+  @@index([availabilityMode])
+}
+
+model PublicSurveyLink {
+  id                  String    @id @default(cuid())
+  surveyId            String
+  surveyTargetId      String?
+  /// Optional canonical session context for a speaker-survey launch. The
+  /// speaker target remains event-wide; this records where the QR/link was
+  /// opened from when that detail is available.
+  speakerAssignmentId String?
+  token               String    @unique
+  slug                String?
+  isActive            Boolean   @default(true)
+  expiresAt           DateTime?
+  metadata            Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  survey            Survey                         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  surveyTarget      SurveyTarget?                  @relation(fields: [surveyTargetId], references: [id], onDelete: Restrict)
+  speakerAssignment EventSessionSpeakerAssignment? @relation("PublicSurveyLinkSpeakerAssignment", fields: [speakerAssignmentId], references: [id], onDelete: SetNull)
+  responses         Response[]
+
+  @@index([surveyId])
+  @@index([surveyTargetId])
+  @@index([surveyId, surveyTargetId, isActive])
+  @@index([isActive])
+  @@index([speakerAssignmentId])
+}
+
+model Response {
+  id                  String  @id @default(cuid())
+  eventId             String
+  surveyId            String?
+  surveyTargetId      String?
+  publicSurveyLinkId  String?
+  /// Copied from the token's link at launch, so speaker-survey responses can
+  /// retain the session that launched them without changing their direct
+  /// speaker SurveyTarget.
+  speakerAssignmentId String?
+
+  // Response identity (anonymous)
+  anonymousId String @default(cuid())
+
+  // Response status
+  status ResponseStatus @default(IN_PROGRESS)
+
+  // The method chosen for this attempt. Surveys configured as VOICE_AND_TEXT
+  // resolve to VOICE_ONLY or TEXT_ONLY at consent so an attendee's choice is
+  // stable for the entire response.
+  responseMode ResponseMode @default(VOICE_ONLY)
+
+  /// Snapshot copied from Survey.collectionPhase when the response is created.
+  /// A database trigger prevents later mutation. Nullable only for legacy data.
+  collectionPhase CollectionPhase?
+
+  // Timestamps
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  // Metadata
+  metadata Json? // Device info, user agent, etc.
+
+  // Relations
+  event                   Event                          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  survey                  Survey?                        @relation(fields: [surveyId], references: [id], onDelete: SetNull)
+  surveyTarget            SurveyTarget?                  @relation(fields: [surveyTargetId], references: [id], onDelete: SetNull)
+  publicSurveyLink        PublicSurveyLink?              @relation(fields: [publicSurveyLinkId], references: [id], onDelete: SetNull)
+  speakerAssignment       EventSessionSpeakerAssignment? @relation("ResponseSpeakerAssignment", fields: [speakerAssignmentId], references: [id], onDelete: SetNull)
+  answers                 Answer[]
+  answerEventIntelligence AnswerEventIntelligence[]
+  eventIssueEvidence      EventIssueEvidence[]
+
+  @@index([eventId])
+  @@index([eventId, collectionPhase, status])
+  @@index([surveyId])
+  @@index([surveyTargetId])
+  @@index([publicSurveyLinkId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([anonymousId])
+  @@index([speakerAssignmentId])
+}
+
+enum ResponseStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+model Answer {
+  id         String  @id @default(cuid())
+  responseId String
+  questionId String?
+
+  // Question reference (from Event.questionsJson)
+  questionKey String // Stable key like "q1_food_quality"
+  promptLabel String // Display label for the question
+
+  // Audio file metadata
+  objectKey     String? @unique
+  objectEtag    String?
+  mimeType      String?
+  fileSizeBytes Int?
+  durationMs    Int?
+
+  // Canonical value for fixed-range structured questions. Voice and typed
+  // free-text answers continue to use their existing audio/transcript paths.
+  numericValue Int?
+  /// Stable EventSpeakerProfile identity for a per-presenter answer. This is
+  /// deliberately an ID, not a copied display name; the current speaker
+  /// profile remains the canonical source for presentation and analytics.
+  speakerId    String?
+
+  // Processing status
+  status       AnswerStatus @default(CREATED)
+  statusReason String?      @db.Text
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  response                Response                 @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question                Question?                @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  answerTranscript        AnswerTranscript?
+  answerAnalysis          AnswerAnalysis?
+  answerEventIntelligence AnswerEventIntelligence?
+  answerEventThemes       AnswerEventTheme[]
+  answerEventEntities     AnswerEventEntity[]
+  answerEventActions      AnswerEventAction[]
+  eventIssueEvidence      EventIssueEvidence[]
+  answerLogs              AnswerProcessingLog[]
+  insightSourceAnswers    InsightSourceAnswer[]
+
+  @@index([responseId])
+  @@index([questionId])
+  @@index([questionId, numericValue])
+  @@index([speakerId])
+  @@index([questionId, speakerId])
+  @@index([questionKey])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum AnswerStatus {
+  CREATED
+  UPLOADING
+  UPLOADED
+  PROCESSING_TRANSCRIPT
+  PROCESSING_ANALYSIS
+  COMPLETED
+  FAILED
+}
+
+model AnswerTranscript {
+  id        String   @id @default(cuid())
+  answerId  String   @unique
+  provider  String
+  model     String
+  text      String   @db.Text
+  wordsJson Json?
+  createdAt DateTime @default(now())
+  answer    Answer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@index([answerId])
+  @@index([provider])
+}
+
+model AnswerAnalysis {
+  id             String   @id @default(cuid())
+  answerId       String   @unique
+  provider       String
+  model          String
+  promptVersion  String
+  summary        String   @db.Text
+  sentimentScore Float?
+  sentimentLabel String?
+  themesJson     Json?
+  actionsJson    Json?
+  entitiesJson   Json?
+  createdAt      DateTime @default(now())
+  answer         Answer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@index([answerId])
+  @@index([sentimentLabel])
+  @@index([provider])
+}
+
+model AnswerEventIntelligence {
+  id                String   @id @default(cuid())
+  accountId         String
+  locationId        String
+  eventId           String
+  surveyId          String?
+  surveyTargetId    String?
+  responseId        String
+  answerId          String   @unique
+  questionId        String?
+  sentimentLabel    String
+  sentimentScore    Float?
+  urgency           String
+  frictionCategory  String?
+  actionWindow      String?
+  recommendedAction String?  @db.Text
+  confidence        Float?
+  promptVersion     String
+  model             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  account      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  location     Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  event        Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  survey       Survey?             @relation(fields: [surveyId], references: [id], onDelete: SetNull)
+  surveyTarget SurveyTarget?       @relation(fields: [surveyTargetId], references: [id], onDelete: SetNull)
+  response     Response            @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  answer       Answer              @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  question     Question?           @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  themes       AnswerEventTheme[]
+  entities     AnswerEventEntity[]
+  actions      AnswerEventAction[]
+
+  @@index([accountId])
+  @@index([locationId])
+  @@index([eventId])
+  @@index([surveyId])
+  @@index([surveyTargetId])
+  @@index([responseId])
+  @@index([questionId])
+  @@index([urgency])
+  @@index([sentimentLabel])
+  @@index([eventId, surveyTargetId])
+  @@index([eventId, surveyId])
+}
+
+model AnswerEventTheme {
+  id             String   @id @default(cuid())
+  intelligenceId String
+  eventId        String
+  surveyId       String?
+  surveyTargetId String?
+  answerId       String
+  themeKey       String
+  label          String
+  sentimentLabel String?
+  confidence     Float?
+  createdAt      DateTime @default(now())
+
+  intelligence AnswerEventIntelligence @relation(fields: [intelligenceId], references: [id], onDelete: Cascade)
+  event        Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  survey       Survey?                 @relation(fields: [surveyId], references: [id], onDelete: SetNull)
+  surveyTarget SurveyTarget?           @relation(fields: [surveyTargetId], references: [id], onDelete: SetNull)
+  answer       Answer                  @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@index([intelligenceId])
+  @@index([eventId])
+  @@index([surveyId])
+  @@index([surveyTargetId])
+  @@index([answerId])
+  @@index([themeKey])
+  @@index([sentimentLabel])
+  @@index([eventId, surveyTargetId])
+  @@index([eventId, surveyId])
+}
+
+model AnswerEventEntity {
+  id             String   @id @default(cuid())
+  intelligenceId String
+  eventId        String
+  surveyId       String?
+  surveyTargetId String?
+  answerId       String
+  entityType     String
+  label          String
+  confidence     Float?
+  createdAt      DateTime @default(now())
+
+  intelligence AnswerEventIntelligence @relation(fields: [intelligenceId], references: [id], onDelete: Cascade)
+  event        Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  survey       Survey?                 @relation(fields: [surveyId], references: [id], onDelete: SetNull)
+  surveyTarget SurveyTarget?           @relation(fields: [surveyTargetId], references: [id], onDelete: SetNull)
+  answer       Answer                  @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@index([intelligenceId])
+  @@index([eventId])
+  @@index([surveyId])
+  @@index([surveyTargetId])
+  @@index([answerId])
+  @@index([entityType])
+  @@index([label])
+  @@index([eventId, surveyTargetId])
+  @@index([eventId, surveyId])
+}
+
+model AnswerEventAction {
+  id             String   @id @default(cuid())
+  intelligenceId String
+  eventId        String
+  surveyId       String?
+  surveyTargetId String?
+  answerId       String
+  title          String
+  description    String?  @db.Text
+  priority       String
+  urgency        String
+  actionWindow   String?
+  status         String   @default("OPEN")
+  confidence     Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  intelligence AnswerEventIntelligence @relation(fields: [intelligenceId], references: [id], onDelete: Cascade)
+  event        Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  survey       Survey?                 @relation(fields: [surveyId], references: [id], onDelete: SetNull)
+  surveyTarget SurveyTarget?           @relation(fields: [surveyTargetId], references: [id], onDelete: SetNull)
+  answer       Answer                  @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@index([intelligenceId])
+  @@index([eventId])
+  @@index([surveyId])
+  @@index([surveyTargetId])
+  @@index([answerId])
+  @@index([priority])
+  @@index([urgency])
+  @@index([status])
+  @@index([eventId, surveyTargetId])
+  @@index([eventId, surveyId])
+}
+
+model EventIntelligenceAggregate {
+  id               String    @id @default(cuid())
+  accountId        String
+  locationId       String
+  eventId          String
+  surveyId         String?
+  surveyTargetId   String?
+  questionId       String?
+  bucketType       String
+  bucketKey        String
+  windowStart      DateTime?
+  windowEnd        DateTime?
+  responseCount    Int       @default(0)
+  answerCount      Int       @default(0)
+  avgSentiment     Float?
+  highUrgencyCount Int       @default(0)
+  topThemesJson    Json?
+  topEntitiesJson  Json?
+  topActionsJson   Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  account      Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  location     Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  survey       Survey?       @relation(fields: [surveyId], references: [id], onDelete: SetNull)
+  surveyTarget SurveyTarget? @relation(fields: [surveyTargetId], references: [id], onDelete: SetNull)
+  question     Question?     @relation(fields: [questionId], references: [id], onDelete: SetNull)
+
+  @@index([accountId])
+  @@index([locationId])
+  @@index([eventId])
+  @@index([surveyId])
+  @@index([surveyTargetId])
+  @@index([questionId])
+  @@index([bucketType, bucketKey])
+  @@index([eventId, surveyTargetId])
+  @@index([eventId, surveyId])
+}
+
+model EventIssueCluster {
+  id                      String                     @id @default(cuid())
+  clusterKey              String                     @unique
+  accountId               String
+  locationId              String
+  eventId                 String
+  surveyId                String?
+  surveyTargetId          String?
+  questionId              String?
+  taxonomyKey             String
+  title                   String
+  summary                 String?                    @db.Text
+  priorityLevel           String
+  legacyUrgency           String?
+  impactScore             Float?
+  timeSensitivityScore    Float?
+  confidence              Float?
+  evidenceCount           Int                        @default(0)
+  firstSeenAt             DateTime
+  lastSeenAt              DateTime
+  recommendedNextStep     String?                    @db.Text
+  status                  String                     @default("NEW")
+  ruleType                String                     @default("VOICE_OPERATIONAL")
+  metricSnapshotJson      Json?
+  ownerUserId             String?
+  ownerAssignedAt         DateTime?
+  ownerAssignedByUserId   String?
+  acknowledgedAt          DateTime?
+  acknowledgedByUserId    String?
+  actingAt                DateTime?
+  actingByUserId          String?
+  resolvedAt              DateTime?
+  resolvedByUserId        String?
+  resolutionReason        String?                    @db.Text
+  dismissedAt             DateTime?
+  dismissedByUserId       String?
+  dismissalReason         String?                    @db.Text
+  reopenedAt              DateTime?
+  reopenedByUserId        String?
+  occurrenceCount         Int                        @default(1)
+  statusChangedAt         DateTime?
+  /// Null means this remains an intelligence finding, not an operational action.
+  actionClassification    EventActionClassification?
+  actionStatus            EventActionStatus?
+  actionDueAt             DateTime?
+  actionBlockedReason     String?                    @db.Text
+  actionResolution        String?                    @db.Text
+  actionConvertedAt       DateTime?
+  actionConvertedByUserId String?
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+
+  account          Account                         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  location         Location                        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  event            Event                           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  survey           Survey?                         @relation(fields: [surveyId], references: [id], onDelete: SetNull)
+  surveyTarget     SurveyTarget?                   @relation(fields: [surveyTargetId], references: [id], onDelete: SetNull)
+  question         Question?                       @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  evidence         EventIssueEvidence[]
+  notes            EventAlertNote[]
+  actionHistory    EventActionHistory[]
+  actionUpdates    EventActionUpdate[]
+  actionDeliveries EventActionAssignmentDelivery[]
+
+  @@index([accountId])
+  @@index([locationId])
+  @@index([eventId])
+  @@index([surveyId])
+  @@index([surveyTargetId])
+  @@index([questionId])
+  @@index([eventId, status, priorityLevel])
+  @@index([eventId, taxonomyKey])
+  @@index([priorityLevel])
+  @@index([status])
+  @@index([ownerUserId])
+  @@index([eventId, ruleType])
+  @@index([eventId, actionStatus])
+  @@index([eventId, actionClassification])
+}
+
+enum EventActionClassification {
+  DURING_EVENT
+  AFTER_EVENT_FOLLOW_UP
+  NEXT_EVENT_LEARNING
+  INFORMATIONAL
+}
+
+enum EventActionStatus {
+  UNASSIGNED
+  OPEN
+  WORKING
+  BLOCKED
+  COMPLETE
+  DISMISSED
+  CANCELLED
+}
+
+enum EventActionHistoryType {
+  CONVERTED
+  NO_CHANGE
+  ASSIGNED
+  REASSIGNED
+  UNASSIGNED
+  STATUS_CHANGED
+  DUE_DATE_CHANGED
+  PRIORITY_CHANGED
+  CLASSIFICATION_CHANGED
+  UPDATE_ADDED
+}
+
+enum EventActionUpdateKind {
+  WRITTEN
+  VOICE
+}
+
+enum EventActionVoiceStatus {
+  UPLOADED
+  TRANSCRIBING
+  COMPLETED
+  FAILED
+}
+
+enum EventActionNotificationType {
+  ACTION_ASSIGNED
+}
+
+enum EventActionDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model EventActionHistory {
+  id             String                 @id @default(cuid())
+  clusterId      String
+  accountId      String
+  eventId        String
+  actorUserId    String
+  idempotencyKey String
+  type           EventActionHistoryType
+  fromValue      String?
+  toValue        String?
+  detailsJson    Json?
+  createdAt      DateTime               @default(now())
+
+  cluster EventIssueCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  account Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  event   Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([clusterId, idempotencyKey])
+  @@index([clusterId, createdAt])
+  @@index([accountId])
+  @@index([eventId])
+  @@index([actorUserId])
+}
+
+model EventActionUpdate {
+  id                       String                  @id @default(cuid())
+  clusterId                String
+  accountId                String
+  eventId                  String
+  authorUserId             String
+  idempotencyKey           String
+  kind                     EventActionUpdateKind
+  body                     String?                 @db.Text
+  voiceObjectKey           String?
+  voiceMimeType            String?
+  voiceDurationMs          Int?
+  voiceTranscript          String?                 @db.Text
+  voiceTranscriptionStatus EventActionVoiceStatus?
+  voiceFailureReason       String?                 @db.Text
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+
+  cluster EventIssueCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  account Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  event   Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([clusterId, idempotencyKey])
+  @@index([clusterId, createdAt])
+  @@index([accountId])
+  @@index([eventId])
+  @@index([authorUserId])
+  @@index([voiceTranscriptionStatus])
+}
+
+/// Durable assignment-email state. An assignment is authoritative even when
+/// its delivery fails; retries append attempts to this same notification.
+model EventActionAssignmentDelivery {
+  id                String                      @id @default(cuid())
+  clusterId         String
+  accountId         String
+  eventId           String
+  recipientUserId   String
+  recipientEmail    String
+  recipientName     String?
+  assignedByUserId  String
+  notificationType  EventActionNotificationType @default(ACTION_ASSIGNED)
+  idempotencyKey    String
+  deepLink          String
+  actionTitle       String
+  actionPriority    String
+  actionDueAt       DateTime?
+  provider          String?
+  status            EventActionDeliveryStatus   @default(PENDING)
+  providerMessageId String?
+  attemptCount      Int                         @default(0)
+  lastAttemptAt     DateTime?
+  sentAt            DateTime?
+  failureCode       String?
+  failureMessage    String?                     @db.Text
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  cluster  EventIssueCluster            @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  account  Account                      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  event    Event                        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attempts EventActionDeliveryAttempt[]
+
+  @@unique([clusterId, idempotencyKey])
+  @@index([clusterId, createdAt])
+  @@index([accountId])
+  @@index([eventId])
+  @@index([recipientUserId])
+  @@index([status])
+}
+
+model EventActionDeliveryAttempt {
+  id                String                    @id @default(cuid())
+  deliveryId        String
+  accountId         String
+  eventId           String
+  idempotencyKey    String
+  attemptNumber     Int
+  status            EventActionDeliveryStatus @default(PENDING)
+  provider          String?
+  providerMessageId String?
+  failureCode       String?
+  failureMessage    String?                   @db.Text
+  attemptedAt       DateTime                  @default(now())
+  completedAt       DateTime?
+
+  delivery EventActionAssignmentDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  account  Account                       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  event    Event                         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([deliveryId, idempotencyKey])
+  @@unique([deliveryId, attemptNumber])
+  @@index([accountId])
+  @@index([eventId])
+  @@index([status])
+}
+
+model EventIssueEvidence {
+  id                String   @id @default(cuid())
+  clusterId         String
+  accountId         String
+  locationId        String
+  eventId           String
+  surveyId          String?
+  surveyTargetId    String?
+  responseId        String
+  answerId          String
+  questionId        String?
+  transcriptSnippet String   @db.Text
+  sentimentScore    Float?
+  priorityLevel     String
+  createdAt         DateTime @default(now())
+
+  cluster      EventIssueCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  account      Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  location     Location          @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  survey       Survey?           @relation(fields: [surveyId], references: [id], onDelete: SetNull)
+  surveyTarget SurveyTarget?     @relation(fields: [surveyTargetId], references: [id], onDelete: SetNull)
+  response     Response          @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  answer       Answer            @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  question     Question?         @relation(fields: [questionId], references: [id], onDelete: SetNull)
+
+  @@unique([clusterId, answerId])
+  @@index([clusterId])
+  @@index([accountId])
+  @@index([locationId])
+  @@index([eventId])
+  @@index([surveyId])
+  @@index([surveyTargetId])
+  @@index([responseId])
+  @@index([answerId])
+  @@index([questionId])
+  @@index([priorityLevel])
+}
+
+model EventAlertNote {
+  id           String   @id @default(cuid())
+  clusterId    String
+  accountId    String
+  eventId      String
+  authorUserId String
+  body         String   @db.Text
+  createdAt    DateTime @default(now())
+
+  cluster EventIssueCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  account Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  event   Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([clusterId, createdAt])
+  @@index([accountId])
+  @@index([eventId])
+  @@index([authorUserId])
+}
+
+model AnswerProcessingLog {
+  id           String         @id @default(cuid())
+  answerId     String
+  step         ProcessingStep
+  attempt      Int            @default(1)
+  startedAt    DateTime       @default(now())
+  endedAt      DateTime?
+  errorCode    String?
+  errorMessage String?        @db.Text
+  metadata     Json?
+  answer       Answer         @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@index([answerId])
+  @@index([step])
+  @@index([startedAt])
+}
+
+enum InsightSection {
+  WORKING
+  OPPORTUNITY
+}
+
+/// Persisted Key Insight / theme card with traceability to source answers (no transcript duplication).
+model Insight {
+  id          String         @id @default(cuid())
+  eventId     String
+  themeKey    String
+  section     InsightSection
+  title       String
+  bodyText    String?        @db.Text
+  isAction    Boolean        @default(false)
+  impactScore Int?
+  priority    String?
+  windowDays  Int
+  periodEnd   DateTime
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  event         Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sourceAnswers InsightSourceAnswer[]
+
+  @@unique([eventId, themeKey])
+  @@index([eventId])
+}
+
+model InsightSourceAnswer {
+  id        String @id @default(cuid())
+  insightId String
+  answerId  String
+
+  insight Insight @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  answer  Answer  @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@unique([insightId, answerId])
+  @@index([answerId])
+}
+
+// ============================================================
+// LEGACY SESSION MODEL (Backward compatibility)
+// ============================================================
+
+model Session {
+  id             String          @id @default(cuid())
+  boothId        String?
+  eventId        String?
+  locationId     String? // NEW: Optional link to Location for multi-tenant isolation
+  consentVersion String
+  consentAt      DateTime        @default(now())
+  language       String?
+  durationMs     Int?
+  fileSizeBytes  Int             @default(0)
+  mimeType       String          @default("unknown")
+  objectKey      String?         @unique
+  objectEtag     String?
+  status         SessionStatus   @default(CREATED)
+  statusReason   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  analysis       Analysis?
+  processingLogs ProcessingLog[]
+  transcript     Transcript?
+  location       Location?       @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([boothId])
+  @@index([eventId])
+  @@index([locationId])
+  @@index([consentAt])
+}
+
+model Transcript {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  provider  String
+  model     String
+  text      String
+  wordsJson Json?
+  createdAt DateTime @default(now())
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([provider])
+}
+
+model Analysis {
+  id             String   @id @default(cuid())
+  sessionId      String   @unique
+  provider       String
+  model          String
+  promptVersion  String
+  summary        String
+  sentimentScore Float?
+  sentimentLabel String?
+  themesJson     Json?
+  entitiesJson   Json?
+  actionsJson    Json?
+  createdAt      DateTime @default(now())
+  session        Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([sentimentLabel])
+  @@index([provider])
+}
+
+model ProcessingLog {
+  id           String         @id @default(cuid())
+  sessionId    String
+  step         ProcessingStep
+  attempt      Int            @default(1)
+  startedAt    DateTime       @default(now())
+  endedAt      DateTime?
+  errorCode    String?
+  errorMessage String?
+  metadata     Json?
+  session      Session        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([step])
+  @@index([startedAt])
+}
+
+// User model for Supabase auth
+model User {
+  id                     String                  @id // Supabase user.id (uuid)
+  email                  String                  @unique
+  firstName              String?
+  lastName               String?
+  role                   UserRole                @default(ADMIN)
+  accountId              String? // NULL = SUPER_ADMIN, set = account-scoped
+  isActive               Boolean                 @default(true)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  account                Account?                @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountMemberships     AccountUserMembership[]
+  createdSignupLinks     TestSignupToken[]
+  agendaImportsCreated   EventAgendaImportJob[]  @relation("EventAgendaImportCreatedBy")
+  agendaImportsConfirmed EventAgendaImportJob[]  @relation("EventAgendaImportConfirmedBy")
+
+  @@index([email])
+  @@index([accountId])
+  @@index([role])
+}
+
+/// Canonical account authorization for regular users. User.accountId remains
+/// the primary/default landing account during the multi-account transition.
+/// Platform admins intentionally do not require membership rows.
+model AccountUserMembership {
+  id        String   @id @default(cuid())
+  userId    String
+  accountId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, accountId])
+  @@index([accountId])
+  @@index([userId])
+}
+
+enum UserRole {
+  SUPER_ADMIN // Full system access
+  ADMIN // Account-level admin
+  MANAGER // Location-level manager
+  VIEWER // Read-only access
+}
+
+enum PlatformUserActionType {
+  OTP_GENERATED
+  INVITE_RESENT
+  ROLE_CHANGED
+  USER_DEACTIVATED
+  USER_REACTIVATED
+}
+
+model PlatformUserActionAudit {
+  id           String                 @id @default(cuid())
+  actorUserId  String
+  action       PlatformUserActionType
+  targetUserId String?
+  targetEmail  String
+  accountId    String?
+  metadata     Json?
+  createdAt    DateTime               @default(now())
+  account      Account?               @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([targetEmail])
+  @@index([accountId, createdAt])
+}
+
+// Pending provision records for onboarding flow
+model PendingProvision {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  accountId String // Account created for this provision
+  /// Role applied when Prisma User is created on first login (account-scoped only).
+  role      UserRole  @default(ADMIN)
+  firstName String?
+  lastName  String?
+  createdAt DateTime  @default(now())
+  usedAt    DateTime? // NULL = pending, set = used/linked
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([accountId])
+  @@index([usedAt])
+}
+
+model TestSignupToken {
+  id              String    @id @default(cuid())
+  tokenHash       String    @unique
+  createdByUserId String
+  usedAt          DateTime?
+  expiresAt       DateTime
+  createdAt       DateTime  @default(now())
+
+  createdByUser User @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([createdByUserId])
+  @@index([usedAt])
+  @@index([expiresAt])
+}
+
+// Legacy Admin model (deprecated, keeping for backward compatibility)
+model Admin {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  password  String
+  accountId String? // NULL = global admin, set = account-scoped admin
+  role      AdminRole @default(ADMIN)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  account   Account?  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([accountId])
+  @@index([role])
+}
+
+enum AdminRole {
+  SUPER_ADMIN // Full system access
+  ADMIN // Account-level admin
+  MANAGER // Location-level manager
+  VIEWER // Read-only access
+}
+
+enum SessionStatus {
+  CREATED
+  UPLOADING
+  UPLOADED
+  PROCESSING_TRANSCRIPT
+  PROCESSING_ANALYSIS
+  COMPLETED
+  FAILED
+}
+
+enum ProcessingStep {
+  UPLOAD
+  TRANSCRIBE
+  ANALYZE
+  TEXT_ENTRY
+}
