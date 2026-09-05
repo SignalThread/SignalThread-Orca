@@ -1,7 +1,10 @@
 import "server-only";
 
 import { getPlatformAdminClient } from "./admin-client";
+import { decideProductLaunch, type LaunchAuthorization } from "./launch-decision";
 import { getOrganizationAccessForUser } from "./registry";
+
+export type { LaunchAuthorization, LaunchDenial } from "./launch-decision";
 
 /**
  * Authorization for launching a product at a specific event.
@@ -14,41 +17,19 @@ import { getOrganizationAccessForUser } from "./registry";
  * Nothing client-supplied is trusted. The caller passes only an event id; the
  * organization, the membership, and the entitlement are all resolved server-side
  * from the canonical registry, and the event's organization is compared against
- * the user's *derived* access rather than anything in the request.
+ * the user's *derived* access rather than anything in the request. The decision
+ * itself lives in `launch-decision.ts`, where it is tested without I/O.
  *
  * Product-agnostic on purpose: Registration, Housing, Pulse and Lead Retrieval
- * reuse this unchanged by passing their own product key.
+ * reuse this unchanged by passing their own product key. It is also what the
+ * claim endpoint re-runs when an own-authority product hands a token back, so
+ * the context a product receives is always derived from live registry state.
  */
-
-export type LaunchDenial =
-  | "NOT_AUTHENTICATED"
-  | "EVENT_NOT_FOUND"
-  | "ORG_NOT_MEMBER"
-  | "PRODUCT_NOT_ENTITLED"
-  | "EVENT_NOT_LAUNCHABLE";
-
-export type LaunchAuthorization =
-  | { status: "AUTHORIZED"; organizationId: string; eventId: string; productKey: string }
-  | { status: "DENIED"; reason: LaunchDenial; hint: string };
-
-const DENIAL_HINTS: Record<LaunchDenial, string> = {
-  NOT_AUTHENTICATED: "Sign in to SignalThread before opening a product.",
-  EVENT_NOT_FOUND: "That event does not exist.",
-  ORG_NOT_MEMBER: "This account is not a member of the organization that owns that event.",
-  PRODUCT_NOT_ENTITLED: "That organization is not entitled to this product.",
-  EVENT_NOT_LAUNCHABLE: "That event is archived and cannot be opened.",
-};
-
-function deny(reason: LaunchDenial): LaunchAuthorization {
-  return { status: "DENIED", reason, hint: DENIAL_HINTS[reason] };
-}
-
 export async function authorizeProductLaunch(input: {
   userId: string;
   productKey: string;
   eventId: string;
 }): Promise<LaunchAuthorization> {
-  const productKey = input.productKey.trim().toLowerCase();
   const supabase = getPlatformAdminClient();
 
   // Resolve the event first: its organization is the only organization that can
@@ -60,21 +41,10 @@ export async function authorizeProductLaunch(input: {
     .maybeSingle();
 
   if (error) throw new Error(`Failed to read event: ${error.message}`);
-  if (!event) return deny("EVENT_NOT_FOUND");
-  if (event.status === "ARCHIVED") return deny("EVENT_NOT_LAUNCHABLE");
 
   // Derived access: ACTIVE membership of an ACTIVE organization, with that
   // organization's ACTIVE entitlements attached.
-  const access = await getOrganizationAccessForUser(input.userId);
-  const owning = access.find((entry) => entry.organizationId === event.organization_id);
+  const access = event ? await getOrganizationAccessForUser(input.userId) : [];
 
-  if (!owning) return deny("ORG_NOT_MEMBER");
-  if (!owning.products.includes(productKey)) return deny("PRODUCT_NOT_ENTITLED");
-
-  return {
-    status: "AUTHORIZED",
-    organizationId: owning.organizationId,
-    eventId: String(event.id),
-    productKey,
-  };
+  return decideProductLaunch({ productKey: input.productKey, event, access });
 }

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/server/guards";
 import { authorizeProductLaunch } from "@/lib/server/product-launch";
-import { buildProductReturnPath, mintProductHandoff } from "@/lib/server/handoff";
+import { mintProductHandoff } from "@/lib/server/handoff";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,8 +65,8 @@ export async function GET(
   const handoff = await mintProductHandoff({
     email: user.email,
     productKey: decision.productKey,
-    // Built server-side from the *validated* event id, never from the request.
-    returnPath: buildProductReturnPath(decision.productKey, decision.eventId),
+    // The *validated* event id from the authorization decision, never the request.
+    eventId: decision.eventId,
   });
 
   if (handoff.status === "FAILED") {

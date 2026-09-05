@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
   // production-like cross-subdomain flow locally (platform.localtest.me /
   // orca.localtest.me both resolve to 127.0.0.1). Has no effect on a production
   // build, where assets are served from the deployment's own origin.
-  allowedDevOrigins: ["platform.localtest.me", "orca.localtest.me"],
+  allowedDevOrigins: ["platform.localtest.me", "orca.localtest.me", "pulse.localtest.me"],
   transpilePackages: ["@signalthread/ui"],
   turbopack: {
     // The workspace root, where npm hoists dependencies. This app sits at

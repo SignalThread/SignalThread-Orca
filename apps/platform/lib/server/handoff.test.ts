@@ -13,6 +13,7 @@ const HANDOFF = readFileSync("lib/server/handoff.ts", "utf8");
 const REGISTRY = readFileSync("lib/server/product-registry.ts", "utf8");
 const LAUNCH = readFileSync("app/api/launch/[product]/route.ts", "utf8");
 const AUTHZ = readFileSync("lib/server/product-launch.ts", "utf8");
+const DECISION = readFileSync("lib/server/launch-decision.ts", "utf8");
 
 const MANAGED = ["ORCA_APP_URL", "NEXT_PUBLIC_ORCA_APP_URL", "PULSE_APP_URL", "NEXT_PUBLIC_PULSE_APP_URL"] as const;
 function withEnv<T>(o: Record<string, string | undefined>, run: () => T): T {
@@ -74,10 +75,11 @@ test("Pulse resolves its own base URL through the same two-name convention", () 
   });
 });
 
-test("Pulse has no product-local return path yet, so a launch lands on its root", () => {
-  // Pulse has no /platform-entry equivalent until the handoff phase; the default
-  // keeps it launchable without inventing an entry point that does not exist.
-  assert.equal(buildProductReturnPath("pulse", "ae9942ba-5759-486b-b591-f1b5ed223370"), "/");
+test("Pulse lands on its own /platform-entry, carrying the event id as a hint only", () => {
+  assert.equal(
+    buildProductReturnPath("pulse", "ae9942ba-5759-486b-b591-f1b5ed223370"),
+    "/platform-entry?event_id=ae9942ba-5759-486b-b591-f1b5ed223370",
+  );
 });
 
 test("the handoff uses the Supabase-native one-time primitive, not custom crypto", () => {
@@ -88,8 +90,8 @@ test("the handoff uses the Supabase-native one-time primitive, not custom crypto
 });
 
 test("only a same-origin relative return path is accepted", () => {
-  assert.match(HANDOFF, /startsWith\("\/"\)/);
-  assert.match(HANDOFF, /startsWith\("\/\/"\)/);
+  assert.match(REGISTRY, /startsWith\("\/"\)/);
+  assert.match(REGISTRY, /startsWith\("\/\/"\)/);
   assert.match(HANDOFF, /INVALID_RETURN_PATH/);
 });
 
@@ -122,27 +124,32 @@ test("the launch route trusts only the event id from the client", () => {
   }
 });
 
-test("the return path is built from the validated event, not the request", () => {
-  assert.match(LAUNCH, /buildProductReturnPath\(decision\.productKey, decision\.eventId\)/);
+test("the handoff destination is built from the validated event, not the request", () => {
+  assert.match(LAUNCH, /eventId:\s*decision\.eventId/);
+  assert.equal(/eventId:\s*eventId[,\s]/.test(LAUNCH.slice(LAUNCH.indexOf("mintProductHandoff("))), false,
+    "the raw request event id must never reach the mint");
+  assert.match(HANDOFF, /buildProductHandoffUrl\(/);
 });
 
 test("authorization resolves the organization from the event, never from input", () => {
   assert.match(AUTHZ, /\.from\("events"\)/);
   assert.match(AUTHZ, /getOrganizationAccessForUser/);
-  assert.match(AUTHZ, /ORG_NOT_MEMBER/);
-  assert.match(AUTHZ, /PRODUCT_NOT_ENTITLED/);
-  assert.match(AUTHZ, /EVENT_NOT_FOUND/);
+  assert.match(AUTHZ, /decideProductLaunch\(\{ productKey: input\.productKey, event, access \}\)/);
+  assert.match(DECISION, /ORG_NOT_MEMBER/);
+  assert.match(DECISION, /PRODUCT_NOT_ENTITLED/);
+  assert.match(DECISION, /EVENT_NOT_FOUND/);
   // Entitlement is checked against the owning org's derived product list.
-  assert.match(AUTHZ, /owning\.products\.includes\(productKey\)/);
+  assert.match(DECISION, /owning\.products\.includes\(productKey\)/);
+  assert.match(DECISION, /input\.event!\.organization_id/);
 });
 
 test("archived events are not launchable", () => {
-  assert.match(AUTHZ, /ARCHIVED/);
-  assert.match(AUTHZ, /EVENT_NOT_LAUNCHABLE/);
+  assert.match(DECISION, /ARCHIVED/);
+  assert.match(DECISION, /EVENT_NOT_LAUNCHABLE/);
 });
 
 test("nothing sensitive is logged on the handoff path", () => {
-  for (const src of [HANDOFF, LAUNCH, AUTHZ]) {
+  for (const src of [HANDOFF, LAUNCH, AUTHZ, DECISION]) {
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
     assert.equal(/console\.(log|info|warn|error|debug)/.test(code), false);
     assert.equal(/hashed_token.*console|console.*hashed_token/.test(code), false);
@@ -152,7 +159,7 @@ test("nothing sensitive is logged on the handoff path", () => {
 test("the pattern generalises to future products without new authorization code", () => {
   // authorizeProductLaunch takes a product key rather than hard-coding Orca.
   assert.match(AUTHZ, /productKey: string/);
-  assert.equal(/=== "orca"/.test(AUTHZ), false, "authorization must stay product-agnostic");
+  assert.equal(/=== "orca"|=== "pulse"/.test(AUTHZ + DECISION), false, "authorization must stay product-agnostic");
   // Adding a product is a table entry plus a return-path case.
   assert.match(REGISTRY, /PRODUCT_APP_URL_ENV/);
 });

@@ -1,18 +1,14 @@
 /**
- * Product catalogue helpers: where each product app lives, and where a launch
- * lands inside it.
+ * Product catalogue helpers: where each product app lives, how a launch enters
+ * it, and where a launch lands inside it.
  *
  * Deliberately NOT marked `server-only`. These functions hold no secret -- they
- * read a base URL and build a relative path -- and keeping them importable makes
- * them directly testable. Everything that touches the service-role key lives in
+ * read a base URL and build paths -- and keeping them importable makes them
+ * directly testable. Everything that touches the service-role key lives in
  * `handoff.ts`, which is `server-only`.
  *
- * Registration, Housing and Lead Retrieval extend the two tables below; no
+ * Registration, Housing and Lead Retrieval extend the tables below; no
  * authorization or handoff code changes for a new product.
- *
- * Pulse is registered with a base URL but deliberately no product-local return
- * path: it has no `/platform-entry` equivalent yet, so a launch lands on its root
- * via the default below. Give it a path when that entry point exists.
  */
 
 /**
@@ -28,6 +24,29 @@ const PRODUCT_APP_URL_ENV: Record<string, readonly string[]> = {
   pulse: ["PULSE_APP_URL", "NEXT_PUBLIC_PULSE_APP_URL"],
 };
 
+/**
+ * Which authentication authority a product runs on. This decides how the
+ * one-time handoff token is consumed:
+ *
+ *   "platform-core"  The product authenticates against Platform Core's own
+ *                    Supabase Auth project. It exchanges the token itself, with
+ *                    the anon key, at its `/auth/callback`, and the resulting
+ *                    session *is* the Platform identity. (Orca.)
+ *
+ *   "own"            The product owns a separate Supabase Auth project and must
+ *                    never hold a Platform Core session. It hands the token back
+ *                    to Platform's claim endpoint, which verifies it and returns
+ *                    the canonical user/organization/event; the product then
+ *                    establishes a session in its own authority for its own
+ *                    mapped user. (Pulse.)
+ */
+export type ProductAuthAuthority = "platform-core" | "own";
+
+const PRODUCT_AUTH_AUTHORITY: Record<string, ProductAuthAuthority> = {
+  orca: "platform-core",
+  pulse: "own",
+};
+
 export function getProductAppUrl(productKey: string): string | null {
   for (const name of PRODUCT_APP_URL_ENV[productKey] ?? []) {
     const configured = process.env[name]?.trim();
@@ -36,16 +55,63 @@ export function getProductAppUrl(productKey: string): string | null {
   return null;
 }
 
+export function getProductAuthAuthority(productKey: string): ProductAuthAuthority | null {
+  return PRODUCT_AUTH_AUTHORITY[productKey] ?? null;
+}
+
 /**
  * The product-local continuation path.
  *
  * Event context travels **separately from authentication**: a relative path on
  * the product's own origin, carrying no authority. The product re-validates the
- * event against the session it just created.
+ * event against the session it just created (Orca), or has Platform re-derive
+ * the whole canonical context from the token at claim time (Pulse).
  */
 export function buildProductReturnPath(productKey: string, eventId: string): string {
-  if (productKey === "orca") {
+  if (productKey === "orca" || productKey === "pulse") {
     return `/platform-entry?event_id=${encodeURIComponent(eventId)}`;
   }
   return "/";
+}
+
+/** Only a same-origin relative path may be handed to a product. */
+export function isSafeReturnPath(path: string): boolean {
+  return path.startsWith("/") && !path.startsWith("//") && !/^\/[\\]/.test(path);
+}
+
+/**
+ * The absolute URL the browser is sent to with the one-time token.
+ *
+ * Built here, by Platform, from the validated event -- never from anything the
+ * request supplied -- so Supabase's redirect allowlist is not involved and no
+ * caller can choose where a freshly minted credential lands.
+ *
+ *   platform-core authority:  {app}/auth/callback?token_hash=…&type=magiclink&next={returnPath}
+ *   own authority:            {app}/platform-entry?handoff=…&event_id=…
+ *
+ * Returns null when the product is unknown or the return path is unsafe.
+ */
+export function buildProductHandoffUrl(input: {
+  productKey: string;
+  appUrl: string;
+  hashedToken: string;
+  eventId: string;
+}): string | null {
+  const authority = getProductAuthAuthority(input.productKey);
+  if (!authority) return null;
+
+  if (authority === "own") {
+    const url = new URL(`${input.appUrl}/platform-entry`);
+    url.searchParams.set("handoff", input.hashedToken);
+    url.searchParams.set("event_id", input.eventId);
+    return url.toString();
+  }
+
+  const returnPath = buildProductReturnPath(input.productKey, input.eventId);
+  if (!isSafeReturnPath(returnPath)) return null;
+  const url = new URL(`${input.appUrl}/auth/callback`);
+  url.searchParams.set("token_hash", input.hashedToken);
+  url.searchParams.set("type", "magiclink");
+  url.searchParams.set("next", returnPath);
+  return url.toString();
 }

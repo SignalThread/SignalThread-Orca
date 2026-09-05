@@ -6,7 +6,15 @@ import { platformAuthCookieOptions } from "./cookie-options";
 /** Paths reachable without a session. Everything else fails closed. */
 const PUBLIC_PATHS = ["/signin", "/auth/callback", "/signout"];
 
+/**
+ * The handoff claim endpoint is authenticated by the one-time token in its body,
+ * not by a Platform session: it is called server-to-server by a product app that
+ * holds no Platform cookie. It is the only /api/launch path without a session.
+ */
+const CLAIM_PATH = /^\/api\/launch\/[a-z0-9-]+\/claim$/;
+
 function isPublicPath(pathname: string): boolean {
+  if (CLAIM_PATH.test(pathname)) return true;
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
