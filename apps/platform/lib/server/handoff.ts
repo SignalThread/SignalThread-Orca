@@ -40,6 +40,12 @@ export async function mintProductHandoff(input: {
   productKey: string;
   /** The *validated* canonical event id. Never taken from the request. */
   eventId: string;
+  /**
+   * The product's own browser-bound launch correlator, relayed back unchanged.
+   * Correlation only: it reaches this function *after* authorization has already
+   * completed, and nothing here or upstream reads it as authority.
+   */
+  launchState?: string | null;
 }): Promise<HandoffMint> {
   const appUrl = getProductAppUrl(input.productKey);
   if (!appUrl) {
@@ -62,6 +68,7 @@ export async function mintProductHandoff(input: {
     appUrl,
     hashedToken: data.properties.hashed_token,
     eventId: input.eventId,
+    launchState: input.launchState ?? null,
   });
   if (!url) {
     return { status: "FAILED", reason: "INVALID_RETURN_PATH" };

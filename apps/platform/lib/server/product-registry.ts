@@ -1,3 +1,5 @@
+import { isValidLaunchState } from "./launch-state-relay";
+
 /**
  * Product catalogue helpers: where each product app lives, how a launch enters
  * it, and where a launch lands inside it.
@@ -87,23 +89,35 @@ export function isSafeReturnPath(path: string): boolean {
  * caller can choose where a freshly minted credential lands.
  *
  *   platform-core authority:  {app}/auth/callback?token_hash=…&type=magiclink&next={returnPath}
- *   own authority:            {app}/platform-entry?handoff=…&event_id=…
+ *   own authority:            {app}/platform-entry?handoff=…&event_id=…[&state=…]
  *
- * Returns null when the product is unknown or the return path is unsafe.
+ * `launchState` is the product's own browser-bound correlator, echoed back
+ * unchanged so the product can prove the returning browser started the launch.
+ * It is relayed for own-authority products only: a platform-core product shares
+ * this app's auth authority and has no separate browser binding to correlate.
+ * Platform never interprets it -- see `launch-state-relay.ts`.
+ *
+ * Returns null when the product is unknown, the return path is unsafe, or a
+ * relayed correlator is not a valid opaque value.
  */
 export function buildProductHandoffUrl(input: {
   productKey: string;
   appUrl: string;
   hashedToken: string;
   eventId: string;
+  launchState?: string | null;
 }): string | null {
   const authority = getProductAuthAuthority(input.productKey);
   if (!authority) return null;
+
+  const launchState = input.launchState ?? null;
+  if (launchState !== null && !isValidLaunchState(launchState)) return null;
 
   if (authority === "own") {
     const url = new URL(`${input.appUrl}/platform-entry`);
     url.searchParams.set("handoff", input.hashedToken);
     url.searchParams.set("event_id", input.eventId);
+    if (launchState !== null) url.searchParams.set("state", launchState);
     return url.toString();
   }
 

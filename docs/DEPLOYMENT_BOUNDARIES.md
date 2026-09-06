@@ -242,7 +242,11 @@ entries and their ordering.
 3. a return-path case in `buildProductReturnPath`
 4. in the product: for `platform-core`, a callback that exchanges `token_hash` with
    its **anon** key; for `own`, a `/platform-entry` that posts the token to
-   `POST /api/launch/<product>/claim` and maps the returned canonical ids locally
+   `POST /api/launch/<product>/claim` and maps the returned canonical ids locally.
+   An own-authority product should also bind the launch to the browser: send an
+   opaque `state` correlator on the launch URL, which Platform relays back
+   unchanged on the handoff redirect (correlation only — it never reaches
+   authorization). See `docs/PLATFORM_PULSE_HANDOFF.md`.
 5. the product's own RBAC
 
 `authorizeProductLaunch` is product-agnostic — asserted by a test that fails if
@@ -256,7 +260,10 @@ session. Instead of exchanging the token itself, Pulse hands it back to
 session revoked), enforces a freshness bound, **re-runs `authorizeProductLaunch`**,
 and returns only `{ platform_user_id, organization_id, event_id, product }`. Pulse
 resolves those through its mapping columns, applies its own access model, and opens
-a session in its own Auth project for the mapped user. Full design, threat notes
+a session in its own Auth project for the mapped user. Pulse's launch is also
+browser-bound: it sends `state=SHA-256(nonce)` (nonce kept in an HttpOnly cookie),
+Platform echoes it back on the redirect, and Pulse refuses to redeem a handoff whose
+relayed correlator does not match its own cookie. Full design, threat notes
 and proof of ordering: `docs/PLATFORM_PULSE_HANDOFF.md`.
 
 ## 4e. Environment contract (definitive, no secret values)

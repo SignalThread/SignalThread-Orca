@@ -20,7 +20,8 @@ did Platform authorize?*
 
 ```text
 app.signalthread.ai
-  GET /api/launch/pulse?event_id=<canonical uuid>          Platform session required
+  GET /api/launch/pulse?event_id=<canonical uuid>&state=<product correlator>
+                                                          Platform session required
     requireUser
     → authorizeProductLaunch(user, "pulse", event)        lib/server/product-launch.ts
         event exists → not ARCHIVED
@@ -71,6 +72,32 @@ voice.signalthread.ai
   state is exactly what GoTrue already keeps for a magiclink (single slot per user,
   cleared on use) plus Pulse's existing mapping columns.
 - **Fails closed at every step**, on both sides, with stable reason codes.
+
+### The relayed launch correlator
+
+Pulse binds each launch to the browser that started it: before sending the browser here it
+stores a secret nonce in an HttpOnly cookie and puts `SHA-256(nonce)` in the launch URL as
+`state`. Platform carries that value through and echoes it back on the handoff redirect, so
+Pulse can prove the returning browser is the one that started the launch. That is what
+closes login CSRF / session replacement on a bearer handoff.
+
+Platform's contract, enforced by `lib/server/launch-state-relay.ts` and its tests:
+
+- **correlation only, never authorization.** It is deliberately *not* passed to
+  `authorizeProductLaunch`, so no value of it can widen, narrow or redirect a decision.
+  The organization is still derived from the canonical Event.
+- **opaque.** Platform validates only `[A-Za-z0-9._~-]{16,256}` — enough to survive a
+  byte-identical URL round trip — and never interprets, stores, compares or logs it.
+  Platform sees only the digest, so Platform could not forge browser state either.
+- **optional.** A launch without one still authorizes and hands off (that is how a click
+  on Platform's own home page starts). Requiring one is the product's choice; Pulse does,
+  and bounces such a launch back through its own `/platform-entry/start`.
+- **malformed is refused, not dropped.** `400 INVALID_LAUNCH_STATE`, so a product that
+  meant to bind a launch never receives a redirect it will silently reject.
+- **preserved across sign-in.** The unauthenticated bounce carries it in `next`, so a user
+  who signs in mid-launch does not come back with a handoff their browser cannot match.
+- **own-authority products only.** Orca shares this app's auth authority and has no
+  separate browser binding, so no `state` appears in its callback URL.
 
 ### Product registry
 
