@@ -1,6 +1,9 @@
 import "server-only";
 
 import { getPlatformAdminClient } from "./admin-client";
+import { deriveOrganizationAccess, type OrganizationAccess } from "./organization-access";
+
+export type { OrgRole, MembershipStatus, OrganizationAccess } from "./organization-access";
 
 /**
  * Read models over the Platform Core registry.
@@ -9,18 +12,6 @@ import { getPlatformAdminClient } from "./admin-client";
  * here must therefore scope its own queries explicitly. Route handlers stay thin
  * and call these rather than querying Supabase directly.
  */
-
-export type OrgRole = "OWNER" | "ADMIN" | "MEMBER";
-export type MembershipStatus = "ACTIVE" | "INVITED" | "SUSPENDED";
-
-export type OrganizationAccess = {
-  organizationId: string;
-  organizationSlug: string;
-  organizationName: string;
-  organizationRole: OrgRole;
-  /** Product keys entitled to this organization, lowercased and sorted. */
-  products: string[];
-};
 
 /**
  * Everything the claim builder needs, in one pass.
@@ -42,14 +33,15 @@ export async function getOrganizationAccessForUser(userId: string): Promise<Orga
 
   if (membershipError) throw new Error(`Failed to read memberships: ${membershipError.message}`);
 
-  const active = (memberships ?? []).filter((row) => {
-    const org = row.organizations as unknown as { status?: string } | null;
-    return org?.status === "ACTIVE";
-  });
+  const rows = (memberships ?? []).map((row) => ({
+    organization_id: String(row.organization_id),
+    role: String(row.role),
+    status: String(row.status),
+    organization: row.organizations as unknown as { id: string; slug: string; name: string; status: string } | null,
+  }));
 
-  if (active.length === 0) return [];
-
-  const orgIds = active.map((row) => row.organization_id as string);
+  const orgIds = rows.map((row) => row.organization_id);
+  if (orgIds.length === 0) return [];
 
   const { data: entitlements, error: entitlementError } = await supabase
     .from("organization_product_entitlements")
@@ -59,27 +51,17 @@ export async function getOrganizationAccessForUser(userId: string): Promise<Orga
 
   if (entitlementError) throw new Error(`Failed to read entitlements: ${entitlementError.message}`);
 
-  const productsByOrg = new Map<string, string[]>();
-  for (const row of entitlements ?? []) {
-    const key = String(row.organization_id);
-    const list = productsByOrg.get(key) ?? [];
-    list.push(String(row.product_key).trim().toLowerCase());
-    productsByOrg.set(key, list);
-  }
-
-  return active
-    .map((row) => {
-      const org = row.organizations as unknown as { id: string; slug: string; name: string };
-      return {
-        organizationId: row.organization_id as string,
-        organizationSlug: org.slug,
-        organizationName: org.name,
-        organizationRole: row.role as OrgRole,
-        products: [...new Set(productsByOrg.get(row.organization_id as string) ?? [])].sort(),
-      };
-    })
-    // Deterministic ordering so an unchanged registry always yields byte-identical claims.
-    .sort((a, b) => a.organizationId.localeCompare(b.organizationId));
+  // The status filters above narrow the reads; the derivation re-applies them so
+  // the rule has one testable home (organization-access.ts) rather than living
+  // half in a query and half in code.
+  return deriveOrganizationAccess(
+    rows,
+    (entitlements ?? []).map((row) => ({
+      organization_id: String(row.organization_id),
+      product_key: String(row.product_key),
+      status: String(row.status),
+    })),
+  );
 }
 
 /** Platform admin authority, read only from the canonical table. */

@@ -1,19 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getS3Client, getStorageConfig } from '@/lib/objectStorage'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
+import { isServableBrandingLogoKey } from '@/lib/branding-logo-key'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET /api/app/logo?key=xxx
- * Proxies logo images from S3/R2. Use when logoUrl is an object key.
+ * GET /api/app/logo?key=branding/{accountId}/logo-{ts}.{ext}
+ *
+ * Intentionally public: the attendee kiosk and consent screen render the
+ * account logo without an organizer session. The capability is narrow — a
+ * branding-prefixed image object and nothing else.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const key = searchParams.get('key')
   if (!key) {
     return NextResponse.json({ error: 'key required' }, { status: 400 })
+  }
+
+  if (!isServableBrandingLogoKey(key)) {
+    return NextResponse.json({ error: 'Not a branding logo key' }, { status: 400 })
   }
 
   const config = getStorageConfig()
@@ -31,12 +39,16 @@ export async function GET(request: NextRequest) {
     }
 
     const contentType = response.ContentType || 'image/png'
+    if (!contentType.toLowerCase().startsWith('image/')) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
     const body = await response.Body.transformToByteArray()
 
     return new NextResponse(body as unknown as BodyInit, {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=86400',
+        'X-Content-Type-Options': 'nosniff',
       },
     })
   } catch (error: unknown) {

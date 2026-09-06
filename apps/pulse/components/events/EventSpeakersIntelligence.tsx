@@ -7,6 +7,11 @@ import { EventEvidenceDrawer } from '@/components/events/EventEvidenceDrawer'
 import { StatusPill, type StatusPillTone } from '@/components/ui/StatusPill'
 import type { EventSpeakerIntelligenceResult } from '@/lib/event-speaker-intelligence'
 import type { EventThemeEvidenceResult } from '@/lib/event-intelligence/theme-evidence'
+import {
+  EventActionableItem,
+  resolveEventActionSource,
+  useEventActionData,
+} from '@/components/events/EventActionComposer'
 
 type SpeakerRow = EventSpeakerIntelligenceResult['speakers'][number]
 type SpeakerView = 'all' | 'strong' | 'needs-attention' | 'needs-more-feedback' | 'directional' | 'not-enough' | 'not-collected'
@@ -105,6 +110,7 @@ export function EventSpeakersIntelligence({ eventId, accountSlug }: { eventId: s
   const [evidenceLoading, setEvidenceLoading] = useState(false)
   const [evidenceError, setEvidenceError] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
+  const eventActionData = useEventActionData(eventId, accountSlug)
 
   const updateQuery = (updates: { speakerId?: string | null; speakerView?: SpeakerView | null }) => {
     const query = new URLSearchParams(searchParams.toString())
@@ -232,7 +238,15 @@ export function EventSpeakersIntelligence({ eventId, accountSlug }: { eventId: s
 
         <div className="mt-5"><p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">What the feedback suggests</p><p className="mt-2 text-[13px] leading-6 text-slate-600">{selectedSpeaker.findings.length ? `Speaker-specific evidence centers on ${selectedSpeaker.findings.map((finding) => finding.label.toLocaleLowerCase('en-US')).join(', ')}.` : selectedSpeaker.evidenceLabel}</p></div>
 
-        <div className="mt-5 rounded-xl border border-slate-200 p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-bold text-slate-900">Performance dimensions</p><p className="text-[10px] text-slate-400">{selectedSpeaker.responseCount} responses</p></div>{selectedSpeaker.findings.length ? <div className="mt-3 space-y-2">{selectedSpeaker.findings.map((finding) => <button key={finding.themeKey} type="button" aria-pressed={selectedEvidence?.themeKey === finding.themeKey} onClick={() => openEvidence(finding)} className={`grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border p-3 text-left ${selectedEvidence?.themeKey === finding.themeKey ? 'border-indigo-300 bg-indigo-50' : 'border-slate-100 hover:border-indigo-200'}`}><span><span className="block text-xs font-semibold text-slate-700">{finding.label}</span><span className="mt-1 block text-[10px] text-slate-400">{finding.responseCount} analyzed responses · {finding.mentionCount} mentions · View evidence</span></span><span className="text-[10px] font-bold text-slate-500">{sentimentLabel(finding.sentimentLabel)}</span></button>)}</div> : <p className="mt-3 text-xs leading-5 text-slate-500">{selectedSpeaker.evidenceLabel}{selectedSpeaker.responseCount > 0 ? `. Findings use analyzed supporting responses; ${selectedSpeaker.evidence.analyzedEligibleResponseCount} of ${selectedSpeaker.evidence.completedEligibleResponseCount} eligible responses are analyzed.` : '.'}</p>}</div>
+        <div className="mt-5 rounded-xl border border-slate-200 p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-bold text-slate-900">Performance dimensions</p><p className="text-[10px] text-slate-400">{selectedSpeaker.responseCount} responses</p></div>{selectedSpeaker.findings.length ? <div className="mt-3 space-y-2">{selectedSpeaker.findings.map((finding) => {
+          const actionReference = resolveEventActionSource(
+            { actions: eventActionData.actions, availableFindings: eventActionData.availableFindings },
+            { title: finding.label, themeKeys: finding.themeKeys ?? [finding.themeKey], evidenceLabel: 'Evidence →' },
+          )
+          return <EventActionableItem key={finding.themeKey} eventId={eventId} accountSlug={accountSlug} owners={eventActionData.owners} source={actionReference.source} actioned={actionReference.actioned} className="rounded-lg">
+            <button type="button" aria-pressed={selectedEvidence?.themeKey === finding.themeKey} onClick={() => openEvidence(finding)} className={`grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border p-3 text-left ${selectedEvidence?.themeKey === finding.themeKey ? 'border-indigo-300 bg-indigo-50' : 'border-slate-100 hover:border-indigo-200'}`}><span><span className="block text-xs font-semibold text-slate-700">{finding.label}</span><span className="mt-1 block text-[10px] text-slate-400">{finding.responseCount} analyzed responses · {finding.mentionCount} mentions · View evidence</span></span><span className="text-[10px] font-bold text-slate-500">{sentimentLabel(finding.sentimentLabel)}</span></button>
+          </EventActionableItem>
+        })}</div> : <p className="mt-3 text-xs leading-5 text-slate-500">{selectedSpeaker.evidenceLabel}{selectedSpeaker.responseCount > 0 ? `. Findings use analyzed supporting responses; ${selectedSpeaker.evidence.analyzedEligibleResponseCount} of ${selectedSpeaker.evidence.completedEligibleResponseCount} eligible responses are analyzed.` : '.'}</p>}</div>
 
         <EventEvidenceDrawer open={Boolean(selectedEvidence)} title={selectedEvidence?.label ?? 'Speaker evidence'} eyebrow="Speaker · supporting evidence" onClose={() => { setSelectedEvidence(null); setEvidenceDetail(null); setEvidenceError(null) }}>
           <EventThemeEvidencePanel loading={evidenceLoading} error={evidenceError} detail={evidenceDetail} fallbackTheme={selectedEvidence} heading="Supporting responses" onClear={() => { setSelectedEvidence(null); setEvidenceDetail(null); setEvidenceError(null) }} />

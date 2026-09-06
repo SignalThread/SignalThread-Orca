@@ -66,6 +66,12 @@ function truncate(value: string, maximum = 360) {
   return `${value.slice(0, maximum - 1).trimEnd()}…`
 }
 
+function pdfLanguage(phase: EventClosingBrief['lifecyclePhase']) {
+  if (phase === 'PRE_EVENT') return { report: 'Pre-event brief', story: 'What the team should prepare for', worked: 'What attendees expect', friction: 'What needs attention', next: 'Prepare now', priorities: 'Priorities before doors open' }
+  if (phase === 'IN_EVENT') return { report: 'During-event brief', story: 'The live read', worked: 'Protect', friction: 'Fix now', next: 'Watch', priorities: 'Act while there is still time' }
+  return { report: 'Post-event brief', story: 'What defined the event', worked: 'What worked best', friction: 'What held it back', next: 'Carry forward', priorities: 'Repeat, change, and follow through' }
+}
+
 export async function renderEventClosingBriefPdf({
   brief,
   eventDates,
@@ -73,13 +79,14 @@ export async function renderEventClosingBriefPdf({
   brief: EventClosingBrief
   eventDates?: EventDates
 }) {
+  const language = pdfLanguage(brief.lifecyclePhase ?? 'POST_EVENT')
   const document = new PDFDocument({
     size: 'LETTER',
     margin: 0,
     info: {
       Title: `${brief.event.name} — Event Intelligence Brief`,
       Author: 'SignalThread',
-      Subject: 'Post-event intelligence report',
+      Subject: language.report,
     },
   })
   registerDocumentFonts(document)
@@ -133,7 +140,7 @@ export async function renderEventClosingBriefPdf({
   y += 12
   document.font('Montserrat-Bold').fontSize(25).fillColor(colors.ink).text(brief.event.name, PAGE.left, y, { width: CONTENT_WIDTH })
   y = document.y + 8
-  document.font('Montserrat').fontSize(10).fillColor(colors.copy).text(`${eventDateRange(eventDates) || 'Post-event report'} · Generated ${dateLabel(brief.generatedAt)}`, PAGE.left, y, { width: CONTENT_WIDTH })
+  document.font('Montserrat').fontSize(10).fillColor(colors.copy).text(`${eventDateRange(eventDates) || language.report} · Generated ${dateLabel(brief.generatedAt)}`, PAGE.left, y, { width: CONTENT_WIDTH })
   y = document.y + 22
   rule()
 
@@ -150,37 +157,18 @@ export async function renderEventClosingBriefPdf({
   document.font('Montserrat-Semibold').fontSize(10.5).fillColor('#312e81').text(brief.editorial.copy.keyTakeaway, PAGE.left + 16, y + 10, { width: CONTENT_WIDTH - 34, lineGap: 3 })
   y += takeawayHeight + 20
 
-  // Snapshot
-  const metricHeight = 58
-  ensure(metricHeight)
-  const metrics = [
-    ['Responses collected', brief.summary.responseCount.toLocaleString()],
-    ['Analyzed answers', brief.summary.answerCount.toLocaleString()],
-    ['Overall sentiment', brief.summary.sentiment],
-    ['Listening coverage', `${brief.summary.representedPercent}%`],
-  ]
-  const metricWidth = CONTENT_WIDTH / metrics.length
-  document.roundedRect(PAGE.left, y, CONTENT_WIDTH, metricHeight, 7).fillAndStroke('#ffffff', colors.line)
-  metrics.forEach(([metricLabel, metricValue], index) => {
-    const x = PAGE.left + (metricWidth * index)
-    if (index > 0) document.strokeColor(colors.line).lineWidth(1).moveTo(x, y).lineTo(x, y + metricHeight).stroke()
-    document.font('Montserrat-Semibold').fontSize(7.5).fillColor(colors.muted).text(metricLabel.toUpperCase(), x + 10, y + 11, { width: metricWidth - 20, characterSpacing: 0.9 })
-    document.font('Montserrat-Bold').fontSize(metricValue.length > 14 ? 12 : 16).fillColor(colors.ink).text(metricValue, x + 10, y + 29, { width: metricWidth - 20 })
-  })
-  y += metricHeight + 24
-
-  sectionHeading('The verdict')
+  sectionHeading(language.story)
   const verdicts: Array<{ title: string; narrative: string | null; tone: string; items: DocumentItem[] }> = [
     {
-      title: 'What worked', tone: colors.emerald, narrative: brief.editorial.copy.whatWorkedNarrative,
+      title: language.worked, tone: colors.emerald, narrative: brief.editorial.copy.whatWorkedNarrative,
       items: brief.whatWorked.slice(0, 3).map((item) => ({ id: item.id, title: item.title, statement: findingNarratives.get(item.id) || item.statement, meta: `${item.mentionCount} mentions · ${evidenceTierLabel(item.evidenceTier)}` })),
     },
     {
-      title: 'What created friction', tone: colors.rose, narrative: brief.editorial.copy.frictionNarrative,
+      title: language.friction, tone: colors.rose, narrative: brief.editorial.copy.frictionNarrative,
       items: brief.friction.slice(0, 3).map((item) => ({ id: item.id, title: item.title, statement: findingNarratives.get(item.id) || item.statement, meta: `${item.mentionCount} evidence · ${evidenceTierLabel(item.evidenceTier)}` })),
     },
     {
-      title: 'What should change next time', tone: colors.violet, narrative: brief.editorial.copy.nextEventNarrative,
+      title: language.next, tone: colors.violet, narrative: brief.editorial.copy.nextEventNarrative,
       items: nextEventItems.slice(0, 3),
     },
   ]
@@ -218,65 +206,25 @@ export async function renderEventClosingBriefPdf({
     y = top + height + 9
   }
 
-  sectionHeading('Key findings')
-  for (const finding of brief.keyFindings.slice(0, 6)) {
-    const narrative = findingNarratives.get(finding.id) || finding.statement || 'The available attendee evidence supports this finding.'
-    const findingTextLeft = PAGE.left + 26
-    const findingTextWidth = CONTENT_WIDTH - 40
-    const height = Math.max(64,
-      12
-      + document.font('Montserrat-Semibold').fontSize(10.5).heightOfString(finding.title, { width: findingTextWidth })
-      + 2
-      + document.font('Montserrat-Semibold').fontSize(8).heightOfString(evidenceTierLabel(finding.evidenceTier), { width: findingTextWidth })
-      + 5
-      + document.font('Montserrat').fontSize(9.5).heightOfString(truncate(narrative, 330), { width: findingTextWidth, lineGap: 3 })
-      + 5
-      + document.font('Montserrat').fontSize(8.5).heightOfString(`${finding.mentionCount} evidence · ${finding.responseCount ?? '—'} analyzed responses`, { width: findingTextWidth })
-      + 12)
-    card(height)
-    const top = y
-    document.circle(PAGE.left + 16, top + 18, 2).fill(colors.muted)
-    document.font('Montserrat-Semibold').fontSize(10.5).fillColor(colors.ink).text(finding.title, findingTextLeft, top + 12, { width: findingTextWidth })
-    document.font('Montserrat-Semibold').fontSize(8).fillColor(colors.muted).text(evidenceTierLabel(finding.evidenceTier), findingTextLeft, document.y + 2, { width: findingTextWidth })
-    document.font('Montserrat').fontSize(9.5).fillColor(colors.copy).text(truncate(narrative, 330), findingTextLeft, document.y + 5, { width: findingTextWidth, lineGap: 3 })
-    document.font('Montserrat').fontSize(8.5).fillColor(colors.muted).text(`${finding.mentionCount} evidence · ${finding.responseCount ?? '—'} analyzed responses`, findingTextLeft, document.y + 5, { width: findingTextWidth })
-    y = top + height + 8
-  }
-
-  sectionHeading('Recommendations')
-  const recommendationGroups: Array<{ title: string; tone: string; items: DocumentItem[] }> = [
-    { title: 'Keep', tone: colors.emerald, items: brief.whatWorked.slice(0, 3).map((item) => ({ id: item.id, title: item.title, statement: item.statement, meta: 'Continue what attendees valued' })) },
-    { title: 'Follow through', tone: colors.rose, items: brief.friction.slice(0, 3).map((item) => ({ id: item.id, title: item.title, statement: item.statement, meta: 'Address in post-event follow-through' })) },
-    { title: 'Revisit next event', tone: colors.violet, items: nextEventItems.slice(0, 3) },
-  ]
-  for (const group of recommendationGroups) {
-    const body = 'No material recommendation emerged from the available evidence.'
-    const cardWidth = CONTENT_WIDTH - 28
-    const itemHeight = group.items.length > 0
-      ? group.items.slice(0, 3).reduce((total, item) => total
-        + document.font('Montserrat-Semibold').fontSize(9.5).heightOfString(item.title, { width: cardWidth })
-        + 2
-        + (item.statement ? document.font('Montserrat').fontSize(8.5).heightOfString(truncate(item.statement, 180), { width: cardWidth, lineGap: 2 }) + 2 : 0)
-        + document.font('Montserrat').fontSize(8).heightOfString(item.meta, { width: cardWidth })
-        + 5, 0)
-      : document.font('Montserrat').fontSize(9).heightOfString(body, { width: cardWidth })
-    const height = Math.max(56, 11 + document.font('Montserrat-Semibold').fontSize(10).heightOfString(group.title, { width: cardWidth }) + 5 + itemHeight + 12)
-    card(height, group.tone)
-    const top = y
-    document.font('Montserrat-Semibold').fontSize(10).fillColor(group.tone).text(group.title, PAGE.left + 14, top + 11, { width: CONTENT_WIDTH - 28 })
-    let innerY = document.y + 5
-    group.items.slice(0, 3).forEach((item) => {
-      document.font('Montserrat-Semibold').fontSize(9.5).fillColor(colors.ink).text(item.title, PAGE.left + 14, innerY, { width: CONTENT_WIDTH - 28 })
-      innerY = document.y + 2
-      if (item.statement) {
-        document.font('Montserrat').fontSize(8.5).fillColor(colors.copy).text(truncate(item.statement, 180), PAGE.left + 14, innerY, { width: CONTENT_WIDTH - 28, lineGap: 2 })
-        innerY = document.y + 2
-      }
-      document.font('Montserrat').fontSize(8).fillColor(colors.muted).text(item.meta, PAGE.left + 14, innerY, { width: CONTENT_WIDTH - 28 })
-      innerY = document.y + 5
-    })
-    if (group.items.length === 0) document.font('Montserrat').fontSize(9).fillColor(colors.muted).text(body, PAGE.left + 14, innerY, { width: CONTENT_WIDTH - 28 })
-    y = top + height + 8
+  sectionHeading(language.priorities)
+  const canonicalFollowThrough: DocumentItem[] = brief.decisions.afterEventFollowUp.map((item) => ({
+    id: item.id,
+    title: item.title,
+    statement: null,
+    meta: `${item.status.toLowerCase().replaceAll('_', ' ')} · ${item.owner} · ${item.priority}`,
+  }))
+  const closingItems = [...canonicalFollowThrough, ...nextEventItems].slice(0, 5)
+  if (closingItems.length === 0) {
+    text('No material priority has emerged from the current lifecycle intelligence.', { lineGap: 3 })
+    y += 8
+  } else {
+    for (const item of closingItems) {
+      ensure(38)
+      document.font('Montserrat-Semibold').fontSize(10).fillColor(colors.ink).text(item.title, PAGE.left, y, { width: CONTENT_WIDTH })
+      y = document.y + 2
+      document.font('Montserrat').fontSize(8.5).fillColor(colors.muted).text(item.meta, PAGE.left, y, { width: CONTENT_WIDTH })
+      y = document.y + 7
+    }
   }
 
   ensure(42)

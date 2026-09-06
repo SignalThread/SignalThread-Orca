@@ -595,4 +595,15 @@ describe('Dashboard2 event intelligence UI', () => {
     // Clear empty state when no sponsor activation feedback exists.
     expect(dashboardSource).toContain('No sponsor activation feedback yet.')
   })
+
+  it('loads issue drawers from exact canonical cluster evidence instead of the legacy Alert detail lookup', () => {
+    expect(dashboardSource).toContain("params.set('issueClusterIds', issue.id)")
+    expect(dashboardSource).toContain('setSelectedIssueEvidenceDetail(body.data as EventThemeEvidenceResult)')
+    expect(dashboardSource).toContain('loading={selectedIssueEvidenceLoading}')
+    expect(dashboardSource).toContain('error={selectedIssueEvidenceError}')
+    const drawer = dashboardSource.slice(dashboardSource.indexOf('const evidenceDrawers ='), dashboardSource.indexOf('// Loading skeleton'))
+    expect(drawer).not.toContain('selectedAlertError')
+    expect(drawer).not.toContain('selectedAlertDetail?.evidence')
+    expect(drawer).not.toContain('Alert not found')
+  })
 })

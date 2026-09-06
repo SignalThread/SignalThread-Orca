@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { EventIntelligenceData } from '@/components/admin/Dashboard2'
-import { EventRowActionButton } from '@/components/events/EventRowActionControl'
+import { EventBriefAction } from '@/components/events/EventBriefAction'
 import { EventLifecycleHero } from '@/components/events/EventLifecycleHero'
 import { EventEvidenceDrawer } from '@/components/events/EventEvidenceDrawer'
 import { EventThemeEvidencePanel } from '@/components/events/EventThemeEvidencePanel'
-import { EventIntelligenceActionPanel } from '@/components/events/EventIntelligenceActionPanel'
+import {
+  EventActionableItem,
+  resolveEventActionSource,
+  useEventActionData,
+  type CanonicalEventAction,
+  type EventActionOwner,
+} from '@/components/events/EventActionComposer'
 import type { EventThemeEvidenceResult } from '@/lib/event-intelligence/theme-evidence'
 import { extractAttendeeQuestions } from '@/lib/event-intelligence/attendee-questions'
 import { synthesizeEventEditorial } from '@/lib/event-intelligence/editorial-engine'
@@ -40,13 +46,6 @@ type PreEventFinding = {
  * recommendations intentionally do not satisfy this contract: they must be
  * explicitly converted by an organizer before they appear here.
  */
-type CanonicalEventAction = {
-  id: string
-  title: string
-  summary: string | null
-  actionStatus: string
-}
-
 const CLOSED_ACTION_STATUSES = new Set(['COMPLETE', 'DISMISSED', 'CANCELLED'])
 
 export function getOpenCanonicalEventActions(actions: CanonicalEventAction[]) {
@@ -326,11 +325,21 @@ function SignalsCard({
   items,
   tone,
   emptyMessage,
+  eventId,
+  accountSlug,
+  owners,
+  sourceFor,
+  actionedFor,
 }: {
   title: string
   items: string[]
   tone: 'expect' | 'concern' | 'prepare'
   emptyMessage: string
+  eventId: string
+  accountSlug: string
+  owners: EventActionOwner[]
+  sourceFor: (item: string) => { clusterId?: string; title: string; evidenceLabel?: string }
+  actionedFor: (item: string) => boolean
 }) {
   const styles = {
     expect: { border: 'border-t-emerald-500', text: 'text-emerald-700', dot: 'bg-emerald-50 text-emerald-700', glyph: '✓' },
@@ -343,7 +352,7 @@ function SignalsCard({
       <h3 className={`text-[12px] font-semibold uppercase tracking-[0.13em] ${styles.text}`}>{title}</h3>
       {items.length ? (
         <ul className="mt-4 space-y-4">
-          {items.map((item) => <li key={item} className="flex gap-3 text-[13px] leading-5 text-slate-700"><span aria-hidden className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${styles.dot}`}>{styles.glyph}</span><span>{item}</span></li>)}
+          {items.map((item) => <li key={item}><EventActionableItem eventId={eventId} accountSlug={accountSlug} owners={owners} source={sourceFor(item)} actioned={actionedFor(item)} className="rounded-lg text-[13px] leading-5 text-slate-700"><span className="flex min-w-0 gap-3"><span aria-hidden className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${styles.dot}`}>{styles.glyph}</span><span>{item}</span></span></EventActionableItem></li>)}
         </ul>
       ) : <p className="mt-5 text-sm leading-6 text-slate-500">{emptyMessage}</p>}
     </article>
@@ -372,47 +381,28 @@ export function EventPreEventSignals({
   const [evidenceDetail, setEvidenceDetail] = useState<EventThemeEvidenceResult | null>(null)
   const [evidenceLoading, setEvidenceLoading] = useState(false)
   const [evidenceError, setEvidenceError] = useState<string | null>(null)
-  const [canonicalActions, setCanonicalActions] = useState<CanonicalEventAction[]>([])
-  const [actionsLoading, setActionsLoading] = useState(true)
-  const actionableCluster = useMemo(() => selectedFinding?.evidenceText.length
-    ? intelligence?.attentionQueue?.find((item) => item.id && selectedFinding.evidenceThemeKeys.includes(item.taxonomyKey)) ?? null
-    : null, [intelligence?.attentionQueue, selectedFinding])
+  const { actions: canonicalActions, availableFindings: canonicalActionFindings, owners: actionOwners, loading: actionsLoading } = useEventActionData(eventId, accountSlug)
   const preCoverageRows = [
     { value: view.findings.filter((finding) => finding.evidenceLabel === 'Strong evidence').length, label: 'Strong evidence', meta: 'High confidence', dot: 'bg-emerald-500', bar: 'bg-emerald-500' },
     { value: view.findings.filter((finding) => finding.evidenceLabel !== 'Strong evidence').length, label: 'Emerging evidence', meta: 'Building signal', dot: 'bg-amber-500', bar: 'bg-amber-500' },
   ]
   const preEventActions = getOpenCanonicalEventActions(canonicalActions)
   const preEventActionsHref = `/app/events/${encodeURIComponent(eventId)}/dashboard?${new URLSearchParams({ account: accountSlug, tab: 'actions' }).toString()}`
-
-  useEffect(() => {
-    if (!eventId || !accountSlug) {
-      setCanonicalActions([])
-      setActionsLoading(false)
-      return
-    }
-    let cancelled = false
-    setActionsLoading(true)
-    fetch(`/api/app/events/${encodeURIComponent(eventId)}/actions?${new URLSearchParams({ account: accountSlug }).toString()}`, { credentials: 'include', cache: 'no-store' })
-      .then(async (response) => {
-        const body = await response.json().catch(() => ({}))
-        if (!response.ok || !body.success || !Array.isArray(body.data?.actions)) throw new Error(body.error || 'Unable to load actions')
-        const actions = body.data.actions.flatMap((action: unknown): CanonicalEventAction[] => {
-          if (!action || typeof action !== 'object') return []
-          const value = action as Record<string, unknown>
-          if (typeof value.id !== 'string' || typeof value.title !== 'string' || typeof value.actionStatus !== 'string') return []
-          return [{
-            id: value.id,
-            title: value.title,
-            summary: typeof value.summary === 'string' ? value.summary : null,
-            actionStatus: value.actionStatus,
-          }]
-        })
-        if (!cancelled) setCanonicalActions(actions)
-      })
-      .catch(() => { if (!cancelled) setCanonicalActions([]) })
-      .finally(() => { if (!cancelled) setActionsLoading(false) })
-    return () => { cancelled = true }
-  }, [accountSlug, eventId])
+  const sourceForIntelligenceText = (title: string) => {
+    const normalized = normalizedContentKey(title)
+    const cluster = intelligence?.attentionQueue?.find((item) => {
+      const candidates = [item.title, item.summary, item.recommendedNextStep].filter((value): value is string => Boolean(value))
+      return candidates.some((value) => normalizedContentKey(value) === normalized || normalizedContentKey(value).includes(normalized) || normalized.includes(normalizedContentKey(value)))
+    })
+    return resolveEventActionSource(
+      { actions: canonicalActions, availableFindings: canonicalActionFindings },
+      { clusterId: cluster?.id, title, themeKeys: cluster ? [cluster.taxonomyKey] : [], evidenceLabel: cluster ? 'Evidence →' : undefined },
+    ).source
+  }
+  const actionedForIntelligenceText = (title: string) => {
+    const source = sourceForIntelligenceText(title)
+    return Boolean(source.clusterId && canonicalActions.some((action) => action.id === source.clusterId))
+  }
 
   useEffect(() => {
     if (!selectedFinding || !accountSlug) return
@@ -448,7 +438,7 @@ export function EventPreEventSignals({
         title="Event overview"
         synopsis={view.responseCount >= 3 && view.analyzedAnswerCount >= 3 ? view.headline : null}
         overview={`${view.summary} ${view.takeaway}`}
-        briefAction={<EventRowActionButton href="#pre-event-key-findings" variant="primary">View brief</EventRowActionButton>}
+        briefAction={<EventBriefAction eventId={eventId} accountSlug={accountSlug} lifecyclePhase="PRE_EVENT" />}
         sentimentPercent={null}
         sentimentDisplay={view.sentiment}
         sentimentDetail={`Based on ${view.analyzedAnswerCount.toLocaleString()} analyzed answers`}
@@ -484,15 +474,15 @@ export function EventPreEventSignals({
       <section aria-labelledby="pre-event-hearing-heading">
         <h2 id="pre-event-hearing-heading" className="text-[22px] font-semibold leading-tight tracking-[-0.02em] sm:text-[24px]">What we’re hearing before the event</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <SignalsCard title="What attendees are asking" items={view.attendeeQuestions} tone="expect" emptyMessage="Attendee questions will appear as analyzed pre-event feedback accumulates." />
-          <SignalsCard title="What concerns are emerging" items={view.concerns} tone="concern" emptyMessage="No recurring concern is supported by the current pre-event evidence." />
-          <SignalsCard title="What to prepare for" items={view.preparations} tone="prepare" emptyMessage="Preparation guidance will appear when the evidence supports a clear recommendation." />
+          <SignalsCard title="What attendees are asking" items={view.attendeeQuestions} tone="expect" emptyMessage="Attendee questions will appear as analyzed pre-event feedback accumulates." eventId={eventId} accountSlug={accountSlug} owners={actionOwners} sourceFor={sourceForIntelligenceText} actionedFor={actionedForIntelligenceText} />
+          <SignalsCard title="What concerns are emerging" items={view.concerns} tone="concern" emptyMessage="No recurring concern is supported by the current pre-event evidence." eventId={eventId} accountSlug={accountSlug} owners={actionOwners} sourceFor={sourceForIntelligenceText} actionedFor={actionedForIntelligenceText} />
+          <SignalsCard title="What to prepare for" items={view.preparations} tone="prepare" emptyMessage="Preparation guidance will appear when the evidence supports a clear recommendation." eventId={eventId} accountSlug={accountSlug} owners={actionOwners} sourceFor={sourceForIntelligenceText} actionedFor={actionedForIntelligenceText} />
         </div>
       </section>
 
       {view.attendeeQuestions.length > 0 && <section aria-labelledby="pre-event-questions-heading" className="rounded-[18px] border border-slate-200 bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="pre-event-questions-heading" className="text-[19px] font-semibold tracking-[-0.015em]">Questions attendees want answered</h2><p className="mt-1 text-xs text-slate-500">Questions surfaced directly from analyzed pre-event responses</p></div></div>
-        <div className="mt-4 flex flex-wrap gap-2">{view.attendeeQuestions.map((question) => <span key={question} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm">{question}</span>)}</div>
+        <div className="mt-4 flex flex-wrap gap-2">{view.attendeeQuestions.map((question) => <EventActionableItem key={question} eventId={eventId} accountSlug={accountSlug} owners={actionOwners} source={sourceForIntelligenceText(question)} actioned={actionedForIntelligenceText(question)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-sm"><span className="px-1">{question}</span></EventActionableItem>)}</div>
       </section>}
 
       <section id="pre-event-key-findings" aria-labelledby="pre-event-findings-heading">
@@ -500,11 +490,13 @@ export function EventPreEventSignals({
         <div className="mt-4 overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           {view.findings.map((finding) => (
             <article key={finding.id} className="border-t border-slate-100 px-5 py-5 first:border-t-0 sm:px-6">
+              <EventActionableItem eventId={eventId} accountSlug={accountSlug} owners={actionOwners} source={{ clusterId: intelligence?.attentionQueue?.find((item) => item.id && finding.evidenceThemeKeys.includes(item.taxonomyKey))?.id ?? undefined, title: finding.title, evidenceLabel: 'Evidence →' }} actioned={canonicalActions.some((action) => action.id === intelligence?.attentionQueue?.find((item) => item.id && finding.evidenceThemeKeys.includes(item.taxonomyKey))?.id)} className="rounded-lg">
               <div className="grid grid-cols-[10px_minmax(0,1fr)] gap-x-3 gap-y-3 sm:grid-cols-[10px_minmax(0,1fr)_auto] sm:items-center">
                 <span aria-hidden className={`mt-1.5 h-2 w-2 rounded-full sm:mt-0 ${finding.kind === 'positive' ? 'bg-emerald-500' : finding.kind === 'risk' ? 'bg-rose-500' : finding.kind === 'signal' ? 'bg-amber-500' : 'bg-indigo-500'}`} />
                 <div className="min-w-0"><h3 className="text-sm font-semibold leading-5 text-slate-950">{finding.title}</h3><p className="mt-1.5 max-w-3xl text-[13px] leading-5 text-slate-600">{finding.description}</p><p className="mt-2 text-xs leading-5 text-slate-500">{finding.mentionCount} evidence point{finding.mentionCount === 1 ? '' : 's'} · {confidenceLabel(finding.confidence)} · <span className="font-semibold text-slate-700">{finding.evidenceLabel}</span></p></div>
                 <button type="button" onClick={() => setSelectedFinding(finding)} disabled={!finding.evidenceThemeKey} className="col-span-2 inline-flex min-h-8 w-fit items-center rounded-lg border border-indigo-200 px-3 text-xs font-bold text-indigo-700 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:justify-self-end">Review evidence →</button>
               </div>
+              </EventActionableItem>
             </article>
           ))}
           {view.findings.length === 0 && <p className="px-6 py-6 text-sm text-slate-500">No evidence-backed pre-event finding is available yet.</p>}
@@ -513,7 +505,6 @@ export function EventPreEventSignals({
 
       <EventEvidenceDrawer open={Boolean(selectedFinding)} title={selectedFinding?.title ?? 'Supporting evidence'} eyebrow="Pre-event · survey evidence" summary="Survey-derived attendee feedback supporting this planning signal." onClose={closeEvidence}>
         <div className="space-y-4"><EventThemeEvidencePanel loading={evidenceLoading} error={evidenceError} detail={evidenceDetail} fallbackTheme={selectedFinding ? { label: selectedFinding.title, count: selectedFinding.mentionCount, sentimentLabel: selectedFinding.sentimentLabel } : null} heading="Supporting survey responses" onClear={closeEvidence} />
-          {actionableCluster && <EventIntelligenceActionPanel eventId={eventId} accountSlug={accountSlug} finding={{ id: actionableCluster.id, title: selectedFinding?.title ?? actionableCluster.title, summary: selectedFinding?.description ?? actionableCluster.summary, priorityLevel: actionableCluster.priorityLevel }} onOpenAction={(actionId) => { const params = new URLSearchParams(window.location.search); params.set('tab', 'actions'); params.set('actionId', actionId); window.location.assign(`${window.location.pathname}?${params.toString()}`) }} />}
         </div>
       </EventEvidenceDrawer>
     </section>

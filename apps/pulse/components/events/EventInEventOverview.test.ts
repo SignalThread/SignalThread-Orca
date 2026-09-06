@@ -10,7 +10,7 @@ const pageSource = fs.readFileSync(path.join(process.cwd(), 'app/app/events/[eve
 describe('approved in-event Event Areas composition', () => {
   it('uses the existing overview component with live intelligence data and the shared lifecycle hero', () => {
     expect(dashboardSource).toContain('<EventInEventOverview')
-    expect(dashboardSource).toContain('sentimentBreakdown={{')
+    expect(dashboardSource).toContain('sentimentBreakdown={factualSnapshot?.sentiment')
     expect(dashboardSource).toContain('themes={canonicalOverviewThemes}')
     expect(dashboardSource).toContain('issues={activeAttentionQueue}')
     expect(dashboardSource).toContain('overview={overview}')
@@ -79,8 +79,8 @@ describe('approved in-event Event Areas composition', () => {
     expect(pageSource).toContain('data-testid="intelligence-scope-controls"')
     expect(pageSource).toContain('aria-haspopup="listbox"')
     expect(pageSource).toContain('role="listbox"')
-    expect(pageSource).toContain('>Survey</span>')
-    expect(pageSource).toContain('>Area</span>')
+    expect(pageSource).toContain('label="Survey"')
+    expect(pageSource).toContain('label="Area"')
     expect(globalsSource).toContain('.event-intelligence-scope-controls-grid')
     expect(globalsSource).toContain('grid-template-columns: minmax(0, auto) minmax(8rem, 0.8fr) minmax(11rem, 1.15fr)')
     expect(globalsSource).toContain('@container (max-width: 39rem)')

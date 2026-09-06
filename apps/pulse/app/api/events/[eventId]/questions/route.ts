@@ -1,8 +1,9 @@
 /**
- * LEGACY PUBLIC ROUTE — NOT THE EVENTS PRODUCT SOURCE OF TRUTH
+ * LEGACY ROUTE — NOT THE EVENTS PRODUCT SOURCE OF TRUTH
  *
- * This eventId-based route under /api/events/[eventId]/* is a public,
- * unauthenticated legacy/admin surface consumed by the protected
+ * This eventId-based route under /api/events/[eventId]/* is an organizer-authenticated legacy/admin
+ * surface (requireLegacyEventReportingAccess: platform super admin, or an
+ * active member of the account that owns the event) consumed by the protected
  * /admin/events/* pages. It is NOT used by the kiosk runtime (kiosk receives
  * questions from /api/response/create).
  *
@@ -11,9 +12,11 @@
  * Account.accountType === "EVENTS". The authed, account/product-scoped EVENTS
  * app API lives under /api/app/events/*.
  *
- * See docs/event-mode/LEGACY_EVENT_ROUTES.md. Behavior is intentionally unchanged.
+ * See docs/event-mode/LEGACY_EVENT_ROUTES.md. Response shapes are intentionally
+ * unchanged; only the access boundary was added (Pulse access-boundary hardening).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { requireLegacyEventReportingAccess } from '@/lib/auth/require-legacy-event-reporting-access'
 import { getOrCreateEvent } from '@/lib/event'
 import { getEventQuestionsForRuntime } from '@/lib/question-audio'
 import type { ApiResponse } from '@/types'
@@ -34,6 +37,9 @@ export async function GET(
 ) {
   try {
     const { eventId } = params
+
+    const access = await requireLegacyEventReportingAccess(eventId)
+    if (!access.ok) return access.response
 
     // Get or create event (auto-seeds questions if needed)
     const event = await getOrCreateEvent(eventId)

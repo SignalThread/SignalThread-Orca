@@ -295,6 +295,11 @@ describe('GET /api/app/events/[eventId]/themes/[themeKey]/evidence', () => {
     const issueEvidence = {
       clusterId: 'cluster_wayfinding', answerId: 'answer_issue', responseId: 'response_issue', questionId: 'question_issue', surveyTargetId: 'target_123',
       transcriptSnippet: 'The blocked sign sent us around the expo floor twice.', sentimentScore: -0.7, createdAt: new Date('2026-06-03T15:12:00.000Z'),
+      answer: {
+        promptLabel: 'What should change?',
+        questionKey: 'what_changed',
+        answerTranscript: { text: 'The full answer says the blocked sign sent us around the expo floor twice.' },
+      },
       cluster: { taxonomyKey: 'wayfinding', title: 'Expo wayfinding needs attention', confidence: 0.88 },
       question: { id: 'question_issue', key: 'what_changed', label: 'What should change?' },
       surveyTarget: themeEvidenceRow.intelligence.surveyTarget,
@@ -319,11 +324,45 @@ describe('GET /api/app/events/[eventId]/themes/[themeKey]/evidence', () => {
       mentionCount: 4,
     })
     expect(json.data.evidence).toHaveLength(4)
-    expect(json.data.evidence[0]).toMatchObject({ answerId: 'answer_issue_0', responseId: 'response_issue_0', transcriptText: 'The blocked sign sent us around the expo floor twice.' })
+    expect(json.data.evidence[0]).toMatchObject({
+      answerId: 'answer_issue_0',
+      responseId: 'response_issue_0',
+      transcriptSnippet: 'The blocked sign sent us around the expo floor twice.',
+      transcriptText: 'The full answer says the blocked sign sent us around the expo floor twice.',
+      question: { label: 'What should change?' },
+      target: { name: 'Keynote' },
+    })
     expect(prismaMock.eventIssueEvidence.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ eventId: 'event_123', accountId: 'acct_123', clusterId: { in: ['cluster_wayfinding'] } }),
     }))
+    expect(prismaMock.eventIssueEvidence.findMany.mock.calls[0]?.[0]).not.toHaveProperty('take')
     expect(prismaMock.answerEventTheme.findMany).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['During', { status: 'ACTIVE', isActive: true, startDate: new Date('2020-01-01T00:00:00.000Z'), endDate: new Date('2100-01-01T00:00:00.000Z') }, ['DURING']],
+    ['Post', { status: 'COMPLETED', isActive: true, startDate: new Date('2000-01-01T00:00:00.000Z'), endDate: new Date('2000-01-02T00:00:00.000Z') }, ['DURING', 'POST']],
+  ] as const)('resolves %s issue evidence inside the matching lifecycle boundary', async (_label, event, collectionPhases) => {
+    requireEventsEventAccessMock.mockResolvedValue({
+      ok: true,
+      account: { id: 'acct_123', slug: 'events-co', accountType: 'EVENTS' },
+      event: { id: 'event_123', ...event, location: { timezone: 'UTC' } },
+    })
+    prismaMock.eventIssueEvidence.findMany.mockResolvedValue([])
+    const { GET } = await import('@/app/api/app/events/[eventId]/themes/[themeKey]/evidence/route')
+
+    const response = await GET(
+      { nextUrl: new URL('http://localhost/api/app/events/event_123/themes/wayfinding/evidence?account=events-co&issueClusterIds=cluster_wayfinding') } as never,
+      { params: { eventId: 'event_123', themeKey: 'wayfinding' } },
+    )
+
+    expect(response.status).toBe(200)
+    expect(prismaMock.eventIssueEvidence.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        clusterId: { in: ['cluster_wayfinding'] },
+        AND: expect.arrayContaining([{ response: { collectionPhase: { in: [...collectionPhases] } } }]),
+      }),
+    }))
   })
 
   it('returns four Amara evidence rows from the same two responses as the consolidated finding', async () => {

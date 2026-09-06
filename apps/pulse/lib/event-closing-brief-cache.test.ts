@@ -32,7 +32,7 @@ function cachedBriefDb(brief = canonicalBrief) {
 describe('Event Closing Brief canonical snapshot', () => {
   it('reuses an unchanged persisted brief on repeated page loads without aggregation or synthesis', async () => {
     const db = cachedBriefDb()
-    const input = { accountId: 'acct_123', accountSlug: 'acme', eventId: 'evt_123' }
+    const input = { accountId: 'acct_123', accountSlug: 'acme', eventId: 'evt_123', lifecyclePhase: 'POST_EVENT' as const }
 
     await expect(getEventClosingBrief(input, db as never)).resolves.toBe(canonicalBrief)
     await expect(getEventClosingBrief(input, db as never)).resolves.toBe(canonicalBrief)
@@ -51,11 +51,12 @@ describe('Event Closing Brief canonical snapshot', () => {
     await expect(getPersistedEventClosingBrief({
       accountId: 'acct_123',
       eventId: 'evt_123',
+      lifecyclePhase: 'POST_EVENT',
       briefHash: 'brief_hash_123',
     }, db as never)).resolves.toBe(canonicalBrief)
 
     expect(db.eventClosingBriefSnapshot.findFirst).toHaveBeenCalledWith({
-      where: { accountId: 'acct_123', eventId: 'evt_123', briefHash: 'brief_hash_123' },
+      where: { accountId: 'acct_123', eventId: 'evt_123', lifecyclePhase: 'POST_EVENT', briefHash: 'brief_hash_123' },
       select: { briefJson: true },
     })
     expect(db.$queryRaw).not.toHaveBeenCalled()
@@ -64,6 +65,6 @@ describe('Event Closing Brief canonical snapshot', () => {
   it('rejects malformed persisted data instead of sending it to the PDF renderer', async () => {
     const db = cachedBriefDb({ generatedAt: '2026-08-14T12:00:00.000Z' } as never)
 
-    await expect(getPersistedEventClosingBrief({ accountId: 'acct_123', eventId: 'evt_123' }, db as never)).resolves.toBeNull()
+    await expect(getPersistedEventClosingBrief({ accountId: 'acct_123', eventId: 'evt_123', lifecyclePhase: 'POST_EVENT' }, db as never)).resolves.toBeNull()
   })
 })

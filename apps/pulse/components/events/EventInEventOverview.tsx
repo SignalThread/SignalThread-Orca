@@ -3,6 +3,13 @@
 import { useState } from 'react'
 import { EventBriefAction } from '@/components/events/EventBriefAction'
 import { EventLifecycleHero } from '@/components/events/EventLifecycleHero'
+import {
+  EventActionableItem,
+  resolveEventActionSource,
+  type CanonicalEventAction,
+  type CanonicalEventActionFinding,
+  type EventActionOwner,
+} from '@/components/events/EventActionComposer'
 import type { InEventOverviewModel } from '@/lib/event-intelligence/overview'
 import { evidenceTierLabel, type EventEvidenceModel } from '@/lib/event-intelligence/evidence-model'
 import type { EventQuestionIntent } from '@/lib/event-intelligence/finding-synthesis'
@@ -73,6 +80,9 @@ interface EventInEventOverviewProps {
   onReviewTheme: (theme: InEventOverviewThemeItem, heading?: string) => void
   onReviewIssue: (issue: InEventOverviewIssueItem) => void
   followUpHrefs: { open: string; unclaimed: string; afterEvent: string }
+  actionOwners: EventActionOwner[]
+  canonicalActions: CanonicalEventAction[]
+  canonicalActionFindings: CanonicalEventActionFinding[]
 }
 
 function reviewTone(priority: string) {
@@ -91,6 +101,13 @@ function ReviewRow({
   tone,
   selected,
   onReview,
+  eventId,
+  accountSlug,
+  actionOwners,
+  canonicalActions,
+  canonicalActionFindings,
+  clusterId,
+  themeKeys,
 }: {
   title: string
   description: string
@@ -100,10 +117,22 @@ function ReviewRow({
   tone: string
   selected?: boolean
   onReview: () => void
+  eventId: string
+  accountSlug: string
+  actionOwners: EventActionOwner[]
+  canonicalActions: CanonicalEventAction[]
+  canonicalActionFindings: CanonicalEventActionFinding[]
+  clusterId?: string | null
+  themeKeys?: string[]
 }) {
+  const actionReference = resolveEventActionSource(
+    { actions: canonicalActions, availableFindings: canonicalActionFindings },
+    { clusterId, title, themeKeys, evidenceLabel: 'Evidence →' },
+  )
   return (
     <article className={`grid min-w-0 grid-cols-[3px_minmax(0,1fr)] gap-3 px-4 py-3.5 sm:px-4 ${selected ? 'bg-violet-50/50' : ''}`}>
       <span className={`my-0.5 min-h-full rounded-full ${tone}`} aria-hidden="true" />
+      <EventActionableItem eventId={eventId} accountSlug={accountSlug} owners={actionOwners} source={actionReference.source} actioned={actionReference.actioned} className="rounded-lg">
       <div className="flex min-w-0 items-start gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="text-[13px] font-bold leading-[1.35] text-slate-950">{title}</h3>
@@ -122,6 +151,7 @@ function ReviewRow({
           Review evidence
         </button>
       </div>
+      </EventActionableItem>
     </article>
   )
 }
@@ -146,14 +176,24 @@ function DecisionColumn({
   description,
   detailsOpen,
   onReview,
+  eventId,
+  accountSlug,
+  actionOwners,
+  canonicalActions,
+  canonicalActionFindings,
 }: {
   title: string
   tone: 'emerald' | 'amber' | 'violet'
-  items: Array<{ key: string; label: string; description?: string | null }>
+  items: Array<{ key: string; label: string; description?: string | null; clusterId?: string | null; themeKeys?: string[] }>
   empty: string
   description: string
   detailsOpen: boolean
   onReview: (key: string) => void
+  eventId: string
+  accountSlug: string
+  actionOwners: EventActionOwner[]
+  canonicalActions: CanonicalEventAction[]
+  canonicalActionFindings: CanonicalEventActionFinding[]
 }) {
   const presentation = {
     emerald: {
@@ -187,15 +227,21 @@ function DecisionColumn({
       <div data-decision-divider className={`${detailsOpen ? 'mt-3' : 'mt-3'} border-t ${presentation.divider}`} />
       {detailsOpen && (
         <div className="mt-3 space-y-2.5">
-          {items.length > 0 ? items.map((item, index) => (
-            <button key={item.key} type="button" data-testid="decision-recommendation" onClick={() => onReview(item.key)} className="group flex w-full gap-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2">
-              <span className={`inline-flex size-4 shrink-0 items-center justify-center rounded text-[9px] font-semibold ${presentation.number}`}>{index + 1}</span>
-              <span className="min-w-0">
-                <span className="block text-[10.5px] font-semibold leading-4 text-slate-900 transition group-hover:text-current">{item.label}</span>
-                {item.description && <span className="mt-0.5 block text-[10px] font-normal leading-4 text-slate-400">{item.description}</span>}
-              </span>
-            </button>
-          )) : <p className="text-[10px] font-normal leading-4 text-slate-500">{empty}</p>}
+          {items.length > 0 ? items.map((item, index) => {
+            const actionReference = resolveEventActionSource(
+              { actions: canonicalActions, availableFindings: canonicalActionFindings },
+              { clusterId: item.clusterId, title: item.label, themeKeys: item.themeKeys, evidenceLabel: 'Evidence →' },
+            )
+            return <EventActionableItem key={item.key} eventId={eventId} accountSlug={accountSlug} owners={actionOwners} source={actionReference.source} actioned={actionReference.actioned} className="rounded-md">
+              <button type="button" data-testid="decision-recommendation" onClick={() => onReview(item.key)} className="group flex w-full gap-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2">
+                <span className={`inline-flex size-4 shrink-0 items-center justify-center rounded text-[9px] font-semibold ${presentation.number}`}>{index + 1}</span>
+                <span className="min-w-0">
+                  <span className="block text-[10.5px] font-semibold leading-4 text-slate-900 transition group-hover:text-current">{item.label}</span>
+                  {item.description && <span className="mt-0.5 block text-[10px] font-normal leading-4 text-slate-400">{item.description}</span>}
+                </span>
+              </button>
+            </EventActionableItem>
+          }) : <p className="text-[10px] font-normal leading-4 text-slate-500">{empty}</p>}
         </div>
       )}
       <button data-decision-evidence-link type="button" onClick={() => items[0] && onReview(items[0].key)} disabled={!items[0]} className={`mt-auto pt-3 text-left text-[10px] font-semibold ${presentation.text} hover:underline disabled:cursor-default disabled:opacity-60`}>View supporting evidence →</button>
@@ -223,6 +269,9 @@ export function EventInEventOverview({
   onReviewTheme,
   onReviewIssue,
   followUpHrefs,
+  actionOwners,
+  canonicalActions,
+  canonicalActionFindings,
 }: EventInEventOverviewProps) {
   const [decisionDetailsOpen, setDecisionDetailsOpen] = useState(true)
   const positiveThemes = overview.keep.slice(0, 3)
@@ -267,7 +316,7 @@ export function EventInEventOverview({
       <EventLifecycleHero
         synopsis={synopsis}
         overview={overviewText}
-        briefAction={<EventBriefAction eventId={eventId} accountSlug={accountSlug} />}
+        briefAction={<EventBriefAction eventId={eventId} accountSlug={accountSlug} lifecyclePhase="IN_EVENT" />}
         sentimentPercent={sentimentPercent}
         sentimentBreakdown={sentimentBreakdown}
         responseCount={responseCount}
@@ -306,9 +355,9 @@ export function EventInEventOverview({
           <header className="border-b border-slate-200 px-4 py-3"><SectionHeading tone="rose" count={reviewItems.length} meta="Ranked by evidence weight">What needs review</SectionHeading></header>
           <div className="divide-y divide-slate-100">
               {reviewItems.length > 0 ? reviewItems.map((item) => item.type === 'issue' ? (
-                <ReviewRow key={item.issue.id ?? item.issue.taxonomyKey} title={item.issue.title} description={item.issue.summary || item.issue.recommendedNextStep || 'Review the linked attendee evidence before taking action.'} meta={`${item.issue.evidenceCount} evidence item${item.issue.evidenceCount === 1 ? '' : 's'}${item.issue.affectedTarget?.name ? ` · ${item.issue.affectedTarget.name}` : ''}`} strength="Review linked evidence" tone={reviewTone(item.issue.priorityLevel)} onReview={() => onReviewIssue(item.issue)} />
+                <ReviewRow key={item.issue.id ?? item.issue.taxonomyKey} eventId={eventId} accountSlug={accountSlug} actionOwners={actionOwners} canonicalActions={canonicalActions} canonicalActionFindings={canonicalActionFindings} clusterId={item.issue.id} themeKeys={[item.issue.taxonomyKey]} title={item.issue.title} description={item.issue.summary || item.issue.recommendedNextStep || 'Review the linked attendee evidence before taking action.'} meta={`${item.issue.evidenceCount} evidence item${item.issue.evidenceCount === 1 ? '' : 's'}${item.issue.affectedTarget?.name ? ` · ${item.issue.affectedTarget.name}` : ''}`} strength="Review linked evidence" tone={reviewTone(item.issue.priorityLevel)} onReview={() => onReviewIssue(item.issue)} />
               ) : (
-                <ReviewRow key={item.theme.themeKey} title={item.theme.label} description={item.theme.statement || 'Emerging attendee evidence worth watching.'} meta={`${item.theme.evidence?.uniqueAnalyzedResponseCount ?? item.theme.count} analyzed response${(item.theme.evidence?.uniqueAnalyzedResponseCount ?? item.theme.count) === 1 ? '' : 's'} · ${item.theme.count} mention${item.theme.count === 1 ? '' : 's'}`} strength={evidenceTierLabel(item.theme.evidence?.evidenceTier ?? 'EMERGING')} tone="bg-amber-500" onReview={() => onReviewTheme(item.theme, 'Evidence to watch')} />
+                <ReviewRow key={item.theme.themeKey} eventId={eventId} accountSlug={accountSlug} actionOwners={actionOwners} canonicalActions={canonicalActions} canonicalActionFindings={canonicalActionFindings} themeKeys={item.theme.themeKeys ?? [item.theme.themeKey]} title={item.theme.label} description={item.theme.statement || 'Emerging attendee evidence worth watching.'} meta={`${item.theme.evidence?.uniqueAnalyzedResponseCount ?? item.theme.count} analyzed response${(item.theme.evidence?.uniqueAnalyzedResponseCount ?? item.theme.count) === 1 ? '' : 's'} · ${item.theme.count} mention${item.theme.count === 1 ? '' : 's'}`} strength={evidenceTierLabel(item.theme.evidence?.evidenceTier ?? 'EMERGING')} tone="bg-amber-500" onReview={() => onReviewTheme(item.theme, 'Evidence to watch')} />
               )) : (
                 <div className="p-4 text-[11px] text-slate-500">No credible friction or mixed pattern has emerged in the current evidence.</div>
               )}
@@ -321,6 +370,12 @@ export function EventInEventOverview({
               {positiveThemes.length > 0 ? positiveThemes.map((theme) => (
                 <ReviewRow
                   key={theme.themeKey}
+                  eventId={eventId}
+                  accountSlug={accountSlug}
+                  actionOwners={actionOwners}
+                  canonicalActions={canonicalActions}
+                  canonicalActionFindings={canonicalActionFindings}
+                  themeKeys={theme.themeKeys ?? [theme.themeKey]}
                   title={theme.label}
                 description={theme.statement || 'Review the supporting attendee evidence.'}
                 meta={`${theme.evidence?.uniqueAnalyzedResponseCount ?? 1} analyzed response${(theme.evidence?.uniqueAnalyzedResponseCount ?? 1) === 1 ? '' : 's'} · ${theme.count} mention${theme.count === 1 ? '' : 's'}`}
@@ -344,9 +399,9 @@ export function EventInEventOverview({
           </button>
         </div>
         <div data-decision-columns className="event-intelligence-decision-columns grid min-w-0 divide-y divide-slate-200">
-          <DecisionColumn title="Keep" tone="emerald" description="What attendees loved and want to see continued." detailsOpen={decisionDetailsOpen} items={overview.keep.slice(0, 3).map((theme) => ({ key: theme.themeKey, label: theme.label, description: theme.statement }))} empty="No evidenced strengths yet." onReview={(key) => { const theme = themes.find((item) => item.themeKey === key); if (theme) onReviewTheme(theme) }} />
-          <DecisionColumn title="Improve during this event" tone="amber" description="Areas to improve while this event is still in progress." detailsOpen={decisionDetailsOpen} items={improveItems.slice(0, 3)} empty="No credible friction or mixed pattern has emerged in the current evidence." onReview={(key) => { const item = improveItems.find((candidate) => candidate.key === key); if (!item) return; if (item.type === 'issue') { const issue = issues.find((candidate) => (candidate.id ?? candidate.taxonomyKey) === (item.issue.id ?? item.issue.taxonomyKey)); if (issue) onReviewIssue(issue) } else onReviewTheme(item.theme, 'Evidence to watch') }} />
-          <DecisionColumn title="Revisit next event" tone="violet" description="Consider for planning and design of future events." detailsOpen={decisionDetailsOpen} items={overview.revisitNextEvent.slice(0, 3).map((action) => ({ key: action.themeKey ?? action.title, label: action.title, description: action.description }))} empty="No next-event recommendation has emerged from the current evidence." onReview={(key) => { const action = overview.revisitNextEvent.find((item) => (item.themeKey ?? item.title) === key); if (action?.themeKey) onReviewTheme({ themeKey: action.themeKey, label: action.title, count: action.count ?? 0, sentimentLabel: null, confidence: action.confidence }) }} />
+          <DecisionColumn title="Keep" tone="emerald" description="What attendees loved and want to see continued." detailsOpen={decisionDetailsOpen} eventId={eventId} accountSlug={accountSlug} actionOwners={actionOwners} canonicalActions={canonicalActions} canonicalActionFindings={canonicalActionFindings} items={overview.keep.slice(0, 3).map((theme) => ({ key: theme.themeKey, label: theme.label, description: theme.statement, themeKeys: theme.themeKeys ?? [theme.themeKey] }))} empty="No evidenced strengths yet." onReview={(key) => { const theme = themes.find((item) => item.themeKey === key); if (theme) onReviewTheme(theme) }} />
+          <DecisionColumn title="Improve during this event" tone="amber" description="Areas to improve while this event is still in progress." detailsOpen={decisionDetailsOpen} eventId={eventId} accountSlug={accountSlug} actionOwners={actionOwners} canonicalActions={canonicalActions} canonicalActionFindings={canonicalActionFindings} items={improveItems.slice(0, 3).map((item) => item.type === 'issue' ? { ...item, clusterId: item.issue.id, themeKeys: [item.issue.taxonomyKey] } : { ...item, themeKeys: item.theme.themeKeys ?? [item.theme.themeKey] })} empty="No credible friction or mixed pattern has emerged in the current evidence." onReview={(key) => { const item = improveItems.find((candidate) => candidate.key === key); if (!item) return; if (item.type === 'issue') { const issue = issues.find((candidate) => (candidate.id ?? candidate.taxonomyKey) === (item.issue.id ?? item.issue.taxonomyKey)); if (issue) onReviewIssue(issue) } else onReviewTheme(item.theme, 'Evidence to watch') }} />
+          <DecisionColumn title="Revisit next event" tone="violet" description="Consider for planning and design of future events." detailsOpen={decisionDetailsOpen} eventId={eventId} accountSlug={accountSlug} actionOwners={actionOwners} canonicalActions={canonicalActions} canonicalActionFindings={canonicalActionFindings} items={overview.revisitNextEvent.slice(0, 3).map((action) => ({ key: action.themeKey ?? action.title, label: action.title, description: action.description, themeKeys: action.themeKey ? [action.themeKey] : [] }))} empty="No next-event recommendation has emerged from the current evidence." onReview={(key) => { const action = overview.revisitNextEvent.find((item) => (item.themeKey ?? item.title) === key); if (action?.themeKey) onReviewTheme({ themeKey: action.themeKey, label: action.title, count: action.count ?? 0, sentimentLabel: null, confidence: action.confidence }) }} />
         </div>
       </section>
     </div>

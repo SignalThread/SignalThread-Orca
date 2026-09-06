@@ -12,6 +12,8 @@ import { buildEventEvidenceModel, type EventEvidenceTier } from '@/lib/event-int
 import { getEventSessionIntelligence } from '@/lib/event-session-intelligence'
 import { getEventSpeakerIntelligence } from '@/lib/event-speaker-intelligence'
 import { buildEventIntelligenceFactualSnapshot } from '@/lib/event-intelligence/factual-snapshot'
+import { collectionPhasesForLifecycle } from '@/lib/event-intelligence/collection-phase'
+import type { EventLifecyclePhase } from '@/lib/events-home-groups'
 import {
   buildEventClosingBriefEditorialFallback,
   synthesizeEventClosingBriefEditorial,
@@ -24,7 +26,7 @@ type IntelligenceSummary = Awaited<ReturnType<typeof getEventIntelligenceSummary
 type SessionIntelligence = Awaited<ReturnType<typeof getEventSessionIntelligence>>
 type SpeakerIntelligence = Awaited<ReturnType<typeof getEventSpeakerIntelligence>>
 type ActionList = Awaited<ReturnType<typeof listEventActions>>
-const EVENT_CLOSING_BRIEF_SNAPSHOT_VERSION = '2026-09-04-v3-collection-phase'
+const EVENT_CLOSING_BRIEF_SNAPSHOT_VERSION = '2026-09-05-v4-lifecycle-briefs'
 
 type ClosingBriefTimings = {
   sourceRevisionMs: number
@@ -53,31 +55,36 @@ function isEventClosingBrief(value: unknown): value is EventClosingBrief {
     && Array.isArray(candidate.keyFindings)
 }
 
-async function getEventClosingBriefSourceHash(input: { accountId: string; eventId: string }, db: ClosingBriefDb) {
+async function getEventClosingBriefSourceHash(input: { accountId: string; eventId: string; lifecyclePhase: EventLifecyclePhase }, db: ClosingBriefDb) {
+  const collectionPhases = collectionPhasesForLifecycle(input.lifecyclePhase)
+  // `Response.collectionPhase` is a PostgreSQL enum. Prisma binds values in a
+  // raw query as text unless the parameter is explicitly typed, so cast each
+  // supplied value to the authoritative enum rather than coercing the column.
+  const phaseSql = Prisma.join(collectionPhases.map((phase) => Prisma.sql`${phase}::"CollectionPhase"`))
   const rows = await db.$queryRaw<Array<Record<string, string | number | bigint | Date | null>>>(Prisma.sql`
     SELECT
       e."updatedAt" AS "eventUpdatedAt",
       a.slug AS "accountSlug",
-      (SELECT COUNT(*) FROM "Response" r WHERE r."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "responseCount",
-      (SELECT COUNT(*) FROM "Response" r WHERE r."eventId" = e.id AND r.status = 'IN_PROGRESS' AND r."collectionPhase" IN ('DURING', 'POST')) AS "inProgressResponseCount",
-      (SELECT COUNT(*) FROM "Response" r WHERE r."eventId" = e.id AND r.status = 'COMPLETED' AND r."collectionPhase" IN ('DURING', 'POST')) AS "completedResponseCount",
-      (SELECT COUNT(*) FROM "Response" r WHERE r."eventId" = e.id AND r.status = 'ABANDONED' AND r."collectionPhase" IN ('DURING', 'POST')) AS "abandonedResponseCount",
-      (SELECT MAX(r."startedAt") FROM "Response" r WHERE r."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "responseStartedAt",
-      (SELECT MAX(r."completedAt") FROM "Response" r WHERE r."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "responseCompletedAt",
-      (SELECT COUNT(*) FROM "Answer" a JOIN "Response" r ON r.id = a."responseId" WHERE r."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "answerCount",
-      (SELECT MAX(a."updatedAt") FROM "Answer" a JOIN "Response" r ON r.id = a."responseId" WHERE r."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "answerUpdatedAt",
-      (SELECT MAX(t."createdAt") FROM "AnswerTranscript" t JOIN "Answer" a ON a.id = t."answerId" JOIN "Response" r ON r.id = a."responseId" WHERE r."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "transcriptCreatedAt",
-      (SELECT MAX(an."createdAt") FROM "AnswerAnalysis" an JOIN "Answer" a ON a.id = an."answerId" JOIN "Response" r ON r.id = a."responseId" WHERE r."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "analysisCreatedAt",
-      (SELECT COUNT(*) FROM "AnswerEventIntelligence" i JOIN "Response" r ON r.id = i."responseId" WHERE i."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "intelligenceCount",
-      (SELECT MAX(i."updatedAt") FROM "AnswerEventIntelligence" i JOIN "Response" r ON r.id = i."responseId" WHERE i."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "intelligenceUpdatedAt",
-      (SELECT COUNT(*) FROM "AnswerEventTheme" t JOIN "AnswerEventIntelligence" i ON i.id = t."intelligenceId" JOIN "Response" r ON r.id = i."responseId" WHERE t."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "themeCount",
-      (SELECT MAX(t."createdAt") FROM "AnswerEventTheme" t JOIN "AnswerEventIntelligence" i ON i.id = t."intelligenceId" JOIN "Response" r ON r.id = i."responseId" WHERE t."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "themeCreatedAt",
-      (SELECT COUNT(*) FROM "AnswerEventAction" aa JOIN "AnswerEventIntelligence" i ON i.id = aa."intelligenceId" JOIN "Response" r ON r.id = i."responseId" WHERE aa."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "answerActionCount",
-      (SELECT MAX(aa."updatedAt") FROM "AnswerEventAction" aa JOIN "AnswerEventIntelligence" i ON i.id = aa."intelligenceId" JOIN "Response" r ON r.id = i."responseId" WHERE aa."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "answerActionUpdatedAt",
-      (SELECT COUNT(DISTINCT ev."clusterId") FROM "EventIssueEvidence" ev JOIN "Response" r ON r.id = ev."responseId" WHERE ev."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "issueCount",
-      (SELECT MAX(c."updatedAt") FROM "EventIssueCluster" c WHERE c."eventId" = e.id AND EXISTS (SELECT 1 FROM "EventIssueEvidence" ev JOIN "Response" r ON r.id = ev."responseId" WHERE ev."clusterId" = c.id AND r."collectionPhase" IN ('DURING', 'POST'))) AS "issueUpdatedAt",
-      (SELECT COUNT(*) FROM "EventIssueEvidence" ev JOIN "Response" r ON r.id = ev."responseId" WHERE ev."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "issueEvidenceCount",
-      (SELECT MAX(ev."createdAt") FROM "EventIssueEvidence" ev JOIN "Response" r ON r.id = ev."responseId" WHERE ev."eventId" = e.id AND r."collectionPhase" IN ('DURING', 'POST')) AS "issueEvidenceCreatedAt",
+      (SELECT COUNT(*) FROM "Response" r WHERE r."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "responseCount",
+      (SELECT COUNT(*) FROM "Response" r WHERE r."eventId" = e.id AND r.status = 'IN_PROGRESS' AND r."collectionPhase" IN (${phaseSql})) AS "inProgressResponseCount",
+      (SELECT COUNT(*) FROM "Response" r WHERE r."eventId" = e.id AND r.status = 'COMPLETED' AND r."collectionPhase" IN (${phaseSql})) AS "completedResponseCount",
+      (SELECT COUNT(*) FROM "Response" r WHERE r."eventId" = e.id AND r.status = 'ABANDONED' AND r."collectionPhase" IN (${phaseSql})) AS "abandonedResponseCount",
+      (SELECT MAX(r."startedAt") FROM "Response" r WHERE r."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "responseStartedAt",
+      (SELECT MAX(r."completedAt") FROM "Response" r WHERE r."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "responseCompletedAt",
+      (SELECT COUNT(*) FROM "Answer" a JOIN "Response" r ON r.id = a."responseId" WHERE r."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "answerCount",
+      (SELECT MAX(a."updatedAt") FROM "Answer" a JOIN "Response" r ON r.id = a."responseId" WHERE r."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "answerUpdatedAt",
+      (SELECT MAX(t."createdAt") FROM "AnswerTranscript" t JOIN "Answer" a ON a.id = t."answerId" JOIN "Response" r ON r.id = a."responseId" WHERE r."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "transcriptCreatedAt",
+      (SELECT MAX(an."createdAt") FROM "AnswerAnalysis" an JOIN "Answer" a ON a.id = an."answerId" JOIN "Response" r ON r.id = a."responseId" WHERE r."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "analysisCreatedAt",
+      (SELECT COUNT(*) FROM "AnswerEventIntelligence" i JOIN "Response" r ON r.id = i."responseId" WHERE i."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "intelligenceCount",
+      (SELECT MAX(i."updatedAt") FROM "AnswerEventIntelligence" i JOIN "Response" r ON r.id = i."responseId" WHERE i."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "intelligenceUpdatedAt",
+      (SELECT COUNT(*) FROM "AnswerEventTheme" t JOIN "AnswerEventIntelligence" i ON i.id = t."intelligenceId" JOIN "Response" r ON r.id = i."responseId" WHERE t."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "themeCount",
+      (SELECT MAX(t."createdAt") FROM "AnswerEventTheme" t JOIN "AnswerEventIntelligence" i ON i.id = t."intelligenceId" JOIN "Response" r ON r.id = i."responseId" WHERE t."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "themeCreatedAt",
+      (SELECT COUNT(*) FROM "AnswerEventAction" aa JOIN "AnswerEventIntelligence" i ON i.id = aa."intelligenceId" JOIN "Response" r ON r.id = i."responseId" WHERE aa."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "answerActionCount",
+      (SELECT MAX(aa."updatedAt") FROM "AnswerEventAction" aa JOIN "AnswerEventIntelligence" i ON i.id = aa."intelligenceId" JOIN "Response" r ON r.id = i."responseId" WHERE aa."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "answerActionUpdatedAt",
+      (SELECT COUNT(DISTINCT ev."clusterId") FROM "EventIssueEvidence" ev JOIN "Response" r ON r.id = ev."responseId" WHERE ev."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "issueCount",
+      (SELECT MAX(c."updatedAt") FROM "EventIssueCluster" c WHERE c."eventId" = e.id AND EXISTS (SELECT 1 FROM "EventIssueEvidence" ev JOIN "Response" r ON r.id = ev."responseId" WHERE ev."clusterId" = c.id AND r."collectionPhase" IN (${phaseSql}))) AS "issueUpdatedAt",
+      (SELECT COUNT(*) FROM "EventIssueEvidence" ev JOIN "Response" r ON r.id = ev."responseId" WHERE ev."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "issueEvidenceCount",
+      (SELECT MAX(ev."createdAt") FROM "EventIssueEvidence" ev JOIN "Response" r ON r.id = ev."responseId" WHERE ev."eventId" = e.id AND r."collectionPhase" IN (${phaseSql})) AS "issueEvidenceCreatedAt",
       (SELECT COUNT(*) FROM "EventStructureItem" s WHERE s."eventId" = e.id) AS "structureCount",
       (SELECT MAX(s."updatedAt") FROM "EventStructureItem" s WHERE s."eventId" = e.id) AS "structureUpdatedAt",
       (SELECT COUNT(*) FROM "SurveyTarget" st WHERE st."eventId" = e.id) AS "targetCount",
@@ -101,6 +108,7 @@ async function getEventClosingBriefSourceHash(input: { accountId: string; eventI
   return createHash('sha256')
     .update(JSON.stringify({
       snapshotVersion: EVENT_CLOSING_BRIEF_SNAPSHOT_VERSION,
+      lifecyclePhase: input.lifecyclePhase,
       revision: rows[0],
     }, (_key, value) => typeof value === 'bigint' ? value.toString() : value))
     .digest('hex')
@@ -109,12 +117,14 @@ async function getEventClosingBriefSourceHash(input: { accountId: string; eventI
 export async function getPersistedEventClosingBrief(input: {
   accountId: string
   eventId: string
+  lifecyclePhase: EventLifecyclePhase
   briefHash?: string | null
 }, db: ClosingBriefDb = prisma): Promise<EventClosingBrief | null> {
   const snapshot = await db.eventClosingBriefSnapshot.findFirst({
     where: {
       accountId: input.accountId,
       eventId: input.eventId,
+      lifecyclePhase: input.lifecyclePhase,
       ...(input.briefHash ? { briefHash: input.briefHash } : {}),
     },
     select: { briefJson: true },
@@ -171,6 +181,7 @@ function serializeAction(action: ActionList['actions'][number]) {
 }
 
 interface ClosingBriefEditorialSource {
+  lifecyclePhase: EventLifecyclePhase
   event: { id: string; name: string }
   summary: {
     sentiment: string
@@ -186,6 +197,14 @@ interface ClosingBriefEditorialSource {
   keyFindings: EditorialSourceFinding[]
   whatWorked: EditorialSourceFinding[]
   friction: EditorialSourceFinding[]
+  intelligencePacket: {
+    overview: string
+    attendeeQuestions: string[]
+    sessionPatterns: Array<{ title: string; finding: string | null; evidenceTier: string; responseCount: number }>
+    speakerPatterns: Array<{ name: string; finding: string | null; evidenceTier: string; responseCount: number }>
+    eventAreaPatterns: Array<{ name: string; kind: string | null; answerCount: number; sentiment: string | null }>
+    changePatterns: Array<{ question: string; survey: string | null; target: string | null; direction: string; change: number; count: number; strength: string }>
+  }
   decisions: {
     afterEventFollowUp: Array<{ title: string; status: string; priority: string; owner: string; dueAt: string | null }>
     nextEventLearning: {
@@ -244,7 +263,15 @@ export function buildEventClosingBriefEditorialInput(brief: ClosingBriefEditoria
       })),
   })
   return {
-    event: { id: brief.event.id, name: brief.event.name, lifecycle: 'POST_EVENT' },
+    event: { id: brief.event.id, name: brief.event.name, lifecycle: brief.lifecyclePhase },
+    overview: brief.intelligencePacket.overview,
+    attendeeQuestions: brief.intelligencePacket.attendeeQuestions,
+    patterns: {
+      sessions: brief.intelligencePacket.sessionPatterns,
+      speakers: brief.intelligencePacket.speakerPatterns,
+      eventAreas: brief.intelligencePacket.eventAreaPatterns,
+      changes: brief.intelligencePacket.changePatterns,
+    },
     metrics: {
       responseCount: brief.summary.responseCount,
       answerCount: brief.summary.answerCount,
@@ -316,8 +343,10 @@ export function buildEventClosingBriefEditorialInput(brief: ClosingBriefEditoria
 }
 
 function buildEditorialShareText(brief: ClosingBriefEditorialSource, editorial: EventClosingBriefEditorial): string {
+  const stage = brief.lifecyclePhase === 'PRE_EVENT' ? 'pre-event' : brief.lifecyclePhase === 'IN_EVENT' ? 'during-event' : 'post-event'
+  const closingLabel = brief.lifecyclePhase === 'PRE_EVENT' ? 'Preparation priorities' : brief.lifecyclePhase === 'IN_EVENT' ? 'Protect, fix, and watch' : 'Carry forward'
   return [
-    `${brief.event.name} — closing brief`,
+    `${brief.event.name} — ${stage} brief`,
     editorial.copy.headline,
     `${brief.summary.sentiment}; ${brief.summary.responseCount} completed responses; ${brief.summary.answerCount} analyzed answers; ${brief.summary.representedListeningPointCount} of ${brief.summary.listeningPointCount} listening points represented.`,
     editorial.copy.executiveSummary,
@@ -326,9 +355,13 @@ function buildEditorialShareText(brief: ClosingBriefEditorialSource, editorial: 
     brief.decisions.afterEventFollowUp.length
       ? `Open follow-through: ${brief.decisions.afterEventFollowUp.map((action) => `${action.title} (${action.status}, ${action.owner})`).join('; ')}.`
       : 'Open follow-through: none.',
-    `Next-event learning: ${editorial.copy.nextEventNarrative}`,
+    `${closingLabel}: ${editorial.copy.nextEventNarrative}`,
     `Coverage: ${editorial.copy.coverageNarrative}`,
   ].join('\n\n')
+}
+
+function eventBriefVersionId(editorial: EventClosingBriefEditorial) {
+  return createHash('sha256').update(`${editorial.inputHash}:${editorial.generatedAt}`).digest('hex')
 }
 
 export function buildEventClosingBrief(input: {
@@ -340,8 +373,10 @@ export function buildEventClosingBrief(input: {
   actions: ActionList
   evidence: ClosingEvidence[]
   generatedAt: Date
+  lifecyclePhase?: EventLifecyclePhase
   editorial?: EventClosingBriefEditorial
 }) {
+  const lifecyclePhase = input.lifecyclePhase ?? 'POST_EVENT'
   const factualSnapshot = buildEventIntelligenceFactualSnapshot(input.intelligence)
   const findings = input.intelligence.canonicalFindings ?? buildEventIntelligenceFindings({
     themes: input.intelligence.topThemes,
@@ -349,7 +384,7 @@ export function buildEventClosingBrief(input: {
     targets: input.intelligence.targetBreakdown,
     issues: input.intelligence.attentionQueue ?? [],
     context: {
-      lifecycle: 'POST_EVENT',
+      lifecycle: lifecyclePhase,
       eventName: input.intelligence.eventName,
       eventType: input.intelligence.eventType,
     },
@@ -357,9 +392,10 @@ export function buildEventClosingBrief(input: {
   const unresolvedActions = input.actions.actions
     .filter((action) => action.actionStatus && !CLOSED_ACTION_STATUSES.has(action.actionStatus))
     .map(serializeAction)
+  // Only persisted organizer actions can become follow-through. AI-derived
+  // recommendations and session learning remain separate intelligence inputs.
   const afterEventFollowUp = unresolvedActions.filter((action) => (
-    action.classification === EventActionClassification.AFTER_EVENT_FOLLOW_UP
-    || action.classification === EventActionClassification.DURING_EVENT
+    action.classification !== EventActionClassification.NEXT_EVENT_LEARNING
   ))
   const nextEventActionLearning = input.actions.actions
     .filter((action) => action.actionClassification === EventActionClassification.NEXT_EVENT_LEARNING)
@@ -557,7 +593,7 @@ export function buildEventClosingBrief(input: {
     }))
 
   const draft = {
-    lifecyclePhase: 'POST_EVENT' as const,
+    lifecyclePhase,
     generatedAt: input.generatedAt.toISOString(),
     event: { id: input.eventId, name: input.intelligence.eventName },
     summary: {
@@ -582,6 +618,30 @@ export function buildEventClosingBrief(input: {
     },
     sessions: { ...input.sessions.summary, highlights: sessionHighlights },
     speakers: { ...input.speakers.summary, highlights: speakerHighlights },
+    intelligencePacket: {
+      overview: input.intelligence.eventPulse.summary,
+      attendeeQuestions: input.intelligence.attendeeQuestions ?? [],
+      sessionPatterns: sessionHighlights,
+      speakerPatterns: speakerHighlights,
+      eventAreaPatterns: input.intelligence.targetBreakdown.slice(0, 8).map((target) => ({
+        name: target.name,
+        kind: target.eventStructureItemKind ?? target.category,
+        answerCount: target.answerCount,
+        sentiment: target.avgSentiment === null ? null : target.avgSentiment > 0.2 ? 'POSITIVE' : target.avgSentiment < -0.2 ? 'NEGATIVE' : 'MIXED',
+      })),
+      changePatterns: (input.intelligence.structuredMetrics ?? [])
+        .filter((metric) => metric.change !== null)
+        .slice(0, 8)
+        .map((metric) => ({
+          question: metric.questionLabel,
+          survey: metric.surveyName,
+          target: metric.surveyTargetName,
+          direction: metric.direction,
+          change: metric.change!,
+          count: metric.count,
+          strength: metric.sampleStrength.label,
+        })),
+    },
     supportingEvidence,
     links: {
       actions: `/app/events/${encodeURIComponent(input.eventId)}/dashboard?account=${encodeURIComponent(input.accountSlug)}&tab=actions`,
@@ -594,6 +654,7 @@ export function buildEventClosingBrief(input: {
   const editorial = input.editorial ?? buildEventClosingBriefEditorialFallback(editorialInput, input.generatedAt)
   return {
     ...draft,
+    versionId: eventBriefVersionId(editorial),
     summary: { ...draft.summary, verdict: editorial.copy.headline },
     editorial,
     shareText: buildEditorialShareText(draft, editorial),
@@ -608,6 +669,7 @@ export function withEventClosingBriefEditorial(
 ): EventClosingBrief {
   return {
     ...brief,
+    versionId: eventBriefVersionId(editorial),
     summary: { ...brief.summary, verdict: editorial.copy.headline },
     editorial,
     shareText: buildEditorialShareText(brief, editorial),
@@ -615,7 +677,7 @@ export function withEventClosingBriefEditorial(
 }
 
 export async function getEventClosingBrief(
-  input: { accountId: string; accountSlug: string; eventId: string; now?: Date; forceEditorialRefresh?: boolean },
+  input: { accountId: string; accountSlug: string; eventId: string; lifecyclePhase: EventLifecyclePhase; now?: Date; forceEditorialRefresh?: boolean },
   db: ClosingBriefDb = prisma,
 ): Promise<EventClosingBrief> {
   const totalStartedAt = performance.now()
@@ -625,7 +687,7 @@ export async function getEventClosingBrief(
   const cacheStartedAt = performance.now()
   if (!input.forceEditorialRefresh) {
     const cached = await db.eventClosingBriefSnapshot.findFirst({
-      where: { accountId: input.accountId, eventId: input.eventId, sourceHash },
+      where: { accountId: input.accountId, eventId: input.eventId, lifecyclePhase: input.lifecyclePhase, sourceHash },
       select: { briefJson: true },
     })
     const cacheLookupMs = elapsed(cacheStartedAt)
@@ -645,15 +707,15 @@ export async function getEventClosingBrief(
   const cacheLookupMs = elapsed(cacheStartedAt)
   const aggregationStartedAt = performance.now()
   const [intelligence, sessions, speakers, actions, issueEvidence] = await Promise.all([
-    getEventIntelligenceSummary({ accountSlug: input.accountSlug, eventId: input.eventId, now: input.now, lifecyclePhase: 'POST_EVENT' }, db as typeof prisma),
-    getEventSessionIntelligence({ accountId: input.accountId, eventId: input.eventId, lifecyclePhase: 'POST_EVENT' }, db as typeof prisma),
-    getEventSpeakerIntelligence({ accountId: input.accountId, eventId: input.eventId, lifecyclePhase: 'POST_EVENT' }, db as typeof prisma),
-    listEventActions({ accountId: input.accountId, eventId: input.eventId, lifecyclePhase: 'POST_EVENT' }, db as typeof prisma),
+    getEventIntelligenceSummary({ accountSlug: input.accountSlug, eventId: input.eventId, now: input.now, lifecyclePhase: input.lifecyclePhase }, db as typeof prisma),
+    getEventSessionIntelligence({ accountId: input.accountId, eventId: input.eventId, lifecyclePhase: input.lifecyclePhase }, db as typeof prisma),
+    getEventSpeakerIntelligence({ accountId: input.accountId, eventId: input.eventId, lifecyclePhase: input.lifecyclePhase }, db as typeof prisma),
+    listEventActions({ accountId: input.accountId, eventId: input.eventId, lifecyclePhase: input.lifecyclePhase }, db as typeof prisma),
     db.eventIssueEvidence.findMany({
       where: {
         accountId: input.accountId,
         eventId: input.eventId,
-        response: { collectionPhase: { in: ['DURING', 'POST'] } },
+        response: { collectionPhase: { in: collectionPhasesForLifecycle(input.lifecyclePhase) } },
         event: { location: { accountId: input.accountId, account: { accountType: 'EVENTS' } } },
       },
       select: {
@@ -673,7 +735,7 @@ export async function getEventClosingBrief(
     targets: intelligence.targetBreakdown,
     issues: intelligence.attentionQueue ?? [],
     context: {
-      lifecycle: 'POST_EVENT',
+      lifecycle: input.lifecyclePhase,
       eventName: intelligence.eventName,
       eventType: intelligence.eventType,
     },
@@ -687,7 +749,7 @@ export async function getEventClosingBrief(
       where: {
         eventId: input.eventId,
         themeKey: { in: canonicalThemeKeys },
-        intelligence: { accountId: input.accountId, eventId: input.eventId, response: { collectionPhase: { in: ['DURING', 'POST'] } } },
+        intelligence: { accountId: input.accountId, eventId: input.eventId, response: { collectionPhase: { in: collectionPhasesForLifecycle(input.lifecyclePhase) } } },
       },
       select: {
         id: true,
@@ -758,6 +820,7 @@ export async function getEventClosingBrief(
     actions,
     evidence: Array.from(evidenceByThemeAndAnswer.values()),
     generatedAt: input.now ?? new Date(),
+    lifecyclePhase: input.lifecyclePhase,
   })
   const aggregationMs = elapsed(aggregationStartedAt)
   const synthesisStartedAt = performance.now()
@@ -769,19 +832,21 @@ export async function getEventClosingBrief(
   const synthesisMs = elapsed(synthesisStartedAt)
   const persistenceStartedAt = performance.now()
   await db.eventClosingBriefSnapshot.upsert({
-    where: { eventId: input.eventId },
+    where: { eventId_lifecyclePhase: { eventId: input.eventId, lifecyclePhase: input.lifecyclePhase } },
     create: {
       accountId: input.accountId,
       eventId: input.eventId,
+      lifecyclePhase: input.lifecyclePhase,
       sourceHash,
-      briefHash: result.editorial.inputHash,
+      briefHash: result.versionId,
       briefJson: result as unknown as Prisma.InputJsonValue,
       generatedAt: new Date(result.generatedAt),
     },
     update: {
       accountId: input.accountId,
+      lifecyclePhase: input.lifecyclePhase,
       sourceHash,
-      briefHash: result.editorial.inputHash,
+      briefHash: result.versionId,
       briefJson: result as unknown as Prisma.InputJsonValue,
       generatedAt: new Date(result.generatedAt),
     },

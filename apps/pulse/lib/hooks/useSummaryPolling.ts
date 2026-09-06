@@ -11,7 +11,17 @@ export type SummaryPollStatus = 'idle' | 'loading' | 'success' | 'error'
 export type SummaryPollingAnswer = {
   status?: string | null
   transcript?: string | null
+  /**
+   * The attendee-scoped poll (see lib/legacy-response-summary) reports whether
+   * a transcript exists without sending its text; organizer payloads still
+   * carry `transcript`.
+   */
+  hasTranscript?: boolean | null
   analysis?: ParsedAnalysis | null
+}
+
+function hasTranscriptText(answer: SummaryPollingAnswer): boolean {
+  return Boolean(answer.transcript?.trim()) || answer.hasTranscript === true
 }
 
 function sleep(ms: number) {
@@ -50,7 +60,7 @@ function countPresence(answers: SummaryPollingAnswer[]) {
   let analysisRows = 0
   let synopsis = 0
   for (const a of answers) {
-    if (a.transcript?.trim()) transcripts++
+    if (hasTranscriptText(a)) transcripts++
     if (a.analysis != null) analysisRows++
     if (a.analysis?.summary?.trim()) synopsis++
   }
@@ -81,10 +91,10 @@ export function resolveSummaryPollingDecision(
   const hardFailure = detectHardFailure(answers)
   if (hardFailure) return { kind: 'hard_failure', reason: hardFailure }
 
-  const hasAnalyzableTranscript = answers.some((answer) => Boolean(answer.transcript?.trim()))
+  const hasAnalyzableTranscript = answers.some((answer) => hasTranscriptText(answer))
   const allAnswersCompleted = answers.length > 0 && answers.every((answer) => answer.status === 'COMPLETED')
   const allTranscriptAnswersTerminal = answers.every((answer) =>
-    !answer.transcript?.trim() || answer.analysis?.evidenceState === 'INSUFFICIENT_EVIDENCE',
+    !hasTranscriptText(answer) || answer.analysis?.evidenceState === 'INSUFFICIENT_EVIDENCE',
   )
   if (responseStatus === 'COMPLETED' && allAnswersCompleted && (!hasAnalyzableTranscript || allTranscriptAnswersTerminal)) {
     return { kind: 'plain_confirmation' }

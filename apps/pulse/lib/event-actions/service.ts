@@ -326,13 +326,16 @@ export async function listEventActions(input: {
 }, db: PrismaLike = prisma) {
   const responsePhaseWhere = responseCollectionPhaseWhere(input.lifecyclePhase)
   const evidenceScope = { evidence: { some: { response: responsePhaseWhere } } }
+  // A manual action intentionally has no evidence. It is still a canonical
+  // EventIssueCluster action and must not disappear from the Actions workspace.
+  const actionReadScope = { OR: [{ ruleType: 'MANUAL_ACTION' }, evidenceScope] }
   const [actions, availableFindings, owners] = await Promise.all([
     db.eventIssueCluster.findMany({
       where: {
         ...scopedWhere(input.accountId, input.eventId),
         actionClassification: { not: null },
         actionStatus: { not: null },
-        ...evidenceScope,
+        ...actionReadScope,
       },
       orderBy: [{ actionDueAt: 'asc' }, { lastSeenAt: 'desc' }],
       include: {
@@ -394,7 +397,7 @@ export async function getEventAction(input: {
         ...scopedWhere(input.accountId, input.eventId, input.clusterId),
         actionClassification: { not: null },
         actionStatus: { not: null },
-        evidence: { some: { response: responsePhaseWhere } },
+        OR: [{ ruleType: 'MANUAL_ACTION' }, { evidence: { some: { response: responsePhaseWhere } } }],
       },
       include: {
         ...actionInclude,
@@ -428,6 +431,8 @@ export async function convertEventFindingToAction(input: {
   ownerUserId?: unknown
   priority?: unknown
   dueAt?: unknown
+  urgent?: unknown
+  reminderEnabled?: unknown
   initialUpdate?: unknown
   idempotencyKey: unknown
   now?: Date
@@ -447,6 +452,8 @@ export async function convertEventFindingToAction(input: {
   if (initialUpdate.length > 4000) throw new EventActionError('Initial update must be 4000 characters or fewer', 400)
   const dueAt = input.dueAt === undefined ? null : parseOptionalDate(input.dueAt)
   if (dueAt === undefined) throw new EventActionError('Invalid dueAt value', 400)
+  const urgent = input.urgent === undefined ? false : input.urgent === true
+  const reminderEnabled = input.reminderEnabled === undefined ? true : input.reminderEnabled !== false
   const now = input.now ?? new Date()
 
   return db.$transaction(async (tx) => {
@@ -490,6 +497,8 @@ export async function convertEventFindingToAction(input: {
         actionResolution,
         actionConvertedAt: now,
         actionConvertedByUserId: input.actorUserId,
+        actionUrgent: urgent,
+        actionReminderEnabled: reminderEnabled,
         ownerUserId,
         ...(ownerUserId && ownerUserId !== cluster.ownerUserId
           ? { ownerAssignedAt: now, ownerAssignedByUserId: input.actorUserId }
@@ -510,6 +519,8 @@ export async function convertEventFindingToAction(input: {
           classification,
           ownerUserId,
           dueAt: dueAt?.toISOString() ?? null,
+          urgent,
+          reminderEnabled,
         }),
         createdAt: now,
       },
@@ -541,6 +552,82 @@ export async function convertEventFindingToAction(input: {
         },
       })
     }
+    return action
+  })
+}
+
+/**
+ * Creates a source-less, human-authored action in the existing action model.
+ * There is deliberately no separate manual-action table and no AI path into
+ * this mutation. Assignment is performed by the canonical assignment mutation
+ * afterwards so its delivery/audit contract stays identical.
+ */
+export async function createManualEventAction(input: {
+  accountId: string
+  eventId: string
+  actorUserId: string
+  title: unknown
+  note?: unknown
+  dueAt?: unknown
+  urgent?: unknown
+  reminderEnabled?: unknown
+  idempotencyKey: unknown
+  now?: Date
+}, db: PrismaLike = prisma) {
+  const idempotencyKey = requiredIdempotencyKey(input.idempotencyKey)
+  const title = typeof input.title === 'string' ? input.title.trim() : ''
+  if (!title || title.length > 500) throw new EventActionError('Action title must be between 1 and 500 characters', 400)
+  const note = input.note === undefined ? '' : (typeof input.note === 'string' ? input.note.trim() : '')
+  if (note.length > 4000) throw new EventActionError('Action note must be 4000 characters or fewer', 400)
+  const dueAt = input.dueAt === undefined ? null : parseOptionalDate(input.dueAt)
+  if (dueAt === undefined) throw new EventActionError('Invalid dueAt value', 400)
+  const now = input.now ?? new Date()
+  const urgent = input.urgent === true
+  const reminderEnabled = input.reminderEnabled !== false
+
+  return db.$transaction(async (tx) => {
+    const event = await tx.event.findFirst({
+      where: { id: input.eventId, location: { accountId: input.accountId } },
+      select: { locationId: true },
+    })
+    if (!event) throw new EventActionError('Event not found or access denied', 404)
+    const action = await tx.eventIssueCluster.create({
+      data: {
+        clusterKey: `manual-action/${input.eventId}/${idempotencyKey}`,
+        accountId: input.accountId,
+        locationId: event.locationId,
+        eventId: input.eventId,
+        taxonomyKey: `manual-action/${idempotencyKey}`,
+        title,
+        summary: note || null,
+        priorityLevel: urgent ? 'Immediate' : 'Soon',
+        firstSeenAt: now,
+        lastSeenAt: now,
+        ruleType: 'MANUAL_ACTION',
+        status: 'NEW',
+        actionClassification: 'DURING_EVENT',
+        actionStatus: 'UNASSIGNED',
+        actionDueAt: dueAt,
+        actionUrgent: urgent,
+        actionReminderEnabled: reminderEnabled,
+        actionConvertedAt: now,
+        actionConvertedByUserId: input.actorUserId,
+      },
+    })
+    await tx.eventActionHistory.create({
+      data: {
+        clusterId: action.id,
+        accountId: input.accountId,
+        eventId: input.eventId,
+        actorUserId: input.actorUserId,
+        idempotencyKey,
+        type: 'CONVERTED',
+        fromValue: null,
+        toValue: 'UNASSIGNED',
+        detailsJson: historyJson({ source: 'MANUAL', dueAt: dueAt?.toISOString() ?? null, urgent, reminderEnabled }),
+        createdAt: now,
+      },
+    })
     return action
   })
 }
@@ -665,11 +752,13 @@ export async function transitionEventAction(input: {
   const nextStatus = input.status
   const idempotencyKey = requiredIdempotencyKey(input.idempotencyKey)
   const blockedReason = typeof input.blockedReason === 'string' ? input.blockedReason.trim() : ''
-  const resolution = typeof input.resolution === 'string' ? input.resolution.trim() : ''
+  // “Mark done” is intentionally a one-click action in the redesigned UI.
+  // Preserve an audit value without requiring a workflow-resolution form.
+  const resolution = typeof input.resolution === 'string' ? input.resolution.trim() : (nextStatus === 'COMPLETE' ? 'Marked done' : '')
   if (nextStatus === 'BLOCKED' && !blockedReason) {
     throw new EventActionError('A blocked reason is required', 400)
   }
-  if (['COMPLETE', 'DISMISSED', 'CANCELLED'].includes(nextStatus) && !resolution) {
+  if (['DISMISSED', 'CANCELLED'].includes(nextStatus) && !resolution) {
     throw new EventActionError('A resolution is required for a terminal status', 400)
   }
   const now = input.now ?? new Date()

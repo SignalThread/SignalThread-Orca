@@ -116,6 +116,12 @@ function evidenceScopeFromRaw(raw: EventDashboardRawSelection): EventDashboardEv
   return questionId ? { type: 'question', questionId } : null
 }
 
+// Entity intelligence is available once an event begins and remains available
+// after it closes. PRE is intentionally the only event-wide-only lifecycle.
+function supportsEntityIntelligenceScopes(lifecycle: EventDashboardLifecycleView) {
+  return lifecycle !== 'pre-event'
+}
+
 /**
  * Hydrates URL state only after the caller has loaded survey and structure metadata.
  * A survey wins when a legacy/deep-linked URL contains an incompatible structure
@@ -141,7 +147,7 @@ export function hydrateEventDashboardSelection(input: {
 
   // Pre-event intelligence is event-wide by default, but can be narrowed to a
   // single PRE survey. It deliberately never accepts a structure or evidence
-  // scope: those controls describe live-event operational views.
+  // scope: those controls describe entity intelligence once the event begins.
   if (input.lifecycle === 'pre-event') {
     return {
       ...base,
@@ -150,9 +156,6 @@ export function hydrateEventDashboardSelection(input: {
     }
   }
 
-  if (input.lifecycle !== 'in-event') {
-    return { ...base, intelligenceScope: 'event-areas' }
-  }
   const structure = validStructureScope(input.raw, input.metadata)
 
   if (surveyId && structure && isSurveyCompatibleWithStructureScope(surveyId, structure, input.metadata)) {
@@ -179,11 +182,12 @@ export function transitionEventDashboardSelection(
   metadata: EventDashboardSelectionMetadata,
 ): EventDashboardSelection {
   if (transition.type === 'set-lifecycle') {
-    const retainDataScope = selection.lifecycle === 'in-event' && transition.lifecycle === 'in-event'
+    const retainDataScope = supportsEntityIntelligenceScopes(selection.lifecycle)
+      && supportsEntityIntelligenceScopes(transition.lifecycle)
     return {
       ...selection,
       lifecycle: transition.lifecycle,
-      intelligenceScope: transition.lifecycle === 'in-event' ? selection.intelligenceScope : 'event-areas',
+      intelligenceScope: supportsEntityIntelligenceScopes(transition.lifecycle) ? selection.intelligenceScope : 'event-areas',
       dataScope: retainDataScope ? selection.dataScope : { type: 'all' },
       evidenceScope: retainDataScope ? selection.evidenceScope : null,
     }
@@ -192,7 +196,7 @@ export function transitionEventDashboardSelection(
   if (transition.type === 'set-intelligence-scope') {
     const retainDataScope = transition.intelligenceScope === 'event-areas'
       && selection.intelligenceScope === 'event-areas'
-      && selection.lifecycle === 'in-event'
+      && supportsEntityIntelligenceScopes(selection.lifecycle)
     return {
       ...selection,
       intelligenceScope: transition.intelligenceScope,
@@ -215,7 +219,7 @@ export function transitionEventDashboardSelection(
     }
   }
 
-  if (selection.lifecycle !== 'in-event') {
+  if (!supportsEntityIntelligenceScopes(selection.lifecycle)) {
     return { ...selection, dataScope: { type: 'all' }, evidenceScope: null }
   }
 

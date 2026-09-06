@@ -215,6 +215,40 @@ describe('event speaker intelligence', () => {
     })
   })
 
+  it('uses both DURING and POST evidence cohorts for Post speaker intelligence', async () => {
+    const db = {
+      event: { findFirst: vi.fn().mockResolvedValue({
+        id: 'event_1', name: 'Summit', eventType: 'ADVANCED', status: 'ACTIVE',
+        startDate: new Date('2026-09-17T13:00:00.000Z'), endDate: new Date('2026-09-17T21:00:00.000Z'),
+        location: { accountId: 'account_1', timezone: 'America/New_York' },
+      }) },
+      eventSpeakerProfile: { findMany: vi.fn().mockResolvedValue([{
+        id: 'speaker_ada', name: 'Ada Lovelace', title: 'CTO', organization: 'Analytical Engines',
+        sessionAssignments: [{
+          id: 'assignment_ada', role: 'SPEAKER',
+          session: { id: 'session_keynote', name: 'Opening Keynote', startsAt: null, endsAt: null, timezone: 'America/New_York' },
+        }],
+      }]) },
+      surveyTarget: { findMany: vi.fn().mockResolvedValue([{
+        id: 'target_ada', category: 'SPEAKER', speakerId: 'speaker_ada', eventStructureItemId: null, speakerAssignmentId: null,
+        _count: { responses: 0 }, responses: [],
+      }]) },
+      answerEventIntelligence: { findMany: vi.fn().mockResolvedValue([]) },
+      answer: { findMany: vi.fn().mockResolvedValue([]) },
+    }
+
+    await getEventSpeakerIntelligence({ accountId: 'account_1', eventId: 'event_1', lifecyclePhase: 'POST_EVENT' }, db as never)
+
+    const targetQuery = db.surveyTarget.findMany.mock.calls[0]?.[0]
+    expect(targetQuery.select._count.select.responses.where).toMatchObject({ collectionPhase: { in: ['DURING', 'POST'] } })
+    expect(db.answerEventIntelligence.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ response: { status: 'COMPLETED', collectionPhase: { in: ['DURING', 'POST'] } } }),
+    }))
+    expect(db.answer.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ response: expect.objectContaining({ collectionPhase: { in: ['DURING', 'POST'] } }) }),
+    }))
+  })
+
   it('adds a nullable, production-safe canonical relation without inferring legacy evidence', () => {
     const schema = readFileSync('prisma/schema.prisma', 'utf8')
     const migration = readFileSync('prisma/migrations/20260730170000_add_speaker_scoped_listening_target/migration.sql', 'utf8')

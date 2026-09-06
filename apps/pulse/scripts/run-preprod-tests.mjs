@@ -124,6 +124,8 @@ async function prepareDatabase(env) {
 
 async function runRealDatabase(env) {
   await run('npx', ['vitest', 'run', 'tests/integration/events-critical-real-db.test.ts'], { env, label: 'Real Postgres integration journeys (8)' })
+  await run('npx', ['vitest', 'run', 'tests/integration/data-api-lockdown-real-db.test.ts'], { env, label: 'Data API lockdown: RLS on, API roles revoked, owner unaffected' })
+  await run('npx', ['vitest', 'run', 'tests/integration/platform-identity-mapping-real-db.test.ts'], { env, label: 'Platform identity mapping: nullable, unique where intended, no local id change' })
 }
 
 async function runRealBrowser(env) {

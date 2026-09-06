@@ -9,6 +9,7 @@ const publicToken = 'public-event-token'
 function postEventClosingBriefPayload() {
   return {
     lifecyclePhase: 'POST_EVENT', generatedAt: '2026-09-19T12:00:00.000Z', event: { id: eventId, name: 'SignalThread Live Experience Summit 2026' },
+    versionId: 'post-brief-version-1',
     summary: { verdict: 'The event produced useful evidence, with material follow-through still open.', sentiment: 'Mostly positive', avgSentiment: 0.48, responseCount: 42, answerCount: 58, sentimentPercent: 63, sentimentBreakdown: { favorable: 36, neutral: 12, negative: 10, total: 58 }, listeningPointCount: 4, representedListeningPointCount: 3, representedPercent: 75 },
     editorial: {
       source: 'openai', provider: 'openai', model: 'gpt-4o-mini', promptVersion: 'event-closing-brief-editorial-v14', inputHash: 'a'.repeat(64), generatedAt: '2026-09-19T12:00:00.000Z', cacheHit: true,
@@ -24,15 +25,23 @@ function postEventClosingBriefPayload() {
       },
     },
     whatWorked: [{ id: 'finding-practical', title: 'Practical content', statement: 'Attendees valued useful examples they could apply.', mentionCount: 8, confidence: 0.9, evidenceTier: 'STRONG', evidenceStrength: 'strong' }],
-    friction: [{ id: 'issue:cluster-wayfinding', title: 'Signs did not match the app', statement: 'Attendees described mismatches between physical signs and the app.', kind: 'friction', classification: 'after-event', evidenceTier: 'EMERGING', evidenceStrength: 'directional', confidence: 0.86, mentionCount: 4, evidenceId: 'evidence-wayfinding' }],
+    friction: [{ id: 'issue:cluster-wayfinding', title: 'Signs did not match the app', statement: 'Attendees described mismatches between physical signs and the app.', kind: 'friction', classification: 'after-event', evidenceTier: 'EMERGING', evidenceStrength: 'directional', confidence: 0.86, mentionCount: 4, evidenceThemeKeys: ['wayfinding'], issueClusterIds: ['cluster-wayfinding'], evidenceId: 'evidence-wayfinding' }],
     keyFindings: [{ id: 'issue:cluster-wayfinding', title: 'Signs did not match the app', statement: 'Attendees described mismatches between physical signs and the app.', kind: 'friction', classification: 'after-event', evidenceTier: 'EMERGING', evidenceStrength: 'directional', confidence: 0.86, mentionCount: 4, responseCount: 4, sentiment: 'NEGATIVE', evidenceThemeKeys: ['wayfinding'], issueClusterIds: ['cluster-wayfinding'], evidenceId: 'evidence-wayfinding' }],
     decisions: {
       unresolvedActions: [{ id: 'action-follow', title: 'Send sponsor follow-up', classification: 'AFTER_EVENT_FOLLOW_UP', status: 'OPEN', priority: 'Soon', owner: 'Avery Stone', ownerUserId: 'user-1', dueAt: '2026-09-22T12:00:00.000Z', evidenceCount: 2, updateCount: 1 }],
       afterEventFollowUp: [{ id: 'action-follow', title: 'Send sponsor follow-up', classification: 'AFTER_EVENT_FOLLOW_UP', status: 'OPEN', priority: 'Soon', owner: 'Avery Stone', ownerUserId: 'user-1', dueAt: '2026-09-22T12:00:00.000Z', evidenceCount: 2, updateCount: 1 }],
-      nextEventLearning: { actions: [], sessionLearning: [{ id: 'learning-1', title: 'Leave more discussion time', source: 'Opening keynote', confidence: 0.72, evidenceTier: 'EMERGING', evidenceStrength: 'directional' }] },
+      nextEventLearning: { actions: [], sessionLearning: [{ id: 'learning-1', title: 'Leave more discussion time', source: 'Opening keynote', confidence: 0.72, evidenceTier: 'EMERGING', evidenceStrength: 'directional' }], findings: [] },
     },
     sessions: { agendaSessionCount: 2, selectedSessionCount: 2, representedSessionCount: 1, underrepresentedSessionCount: 1, needsReviewSessionCount: 0, selectedCoverageLabel: '', evidenceCoverageLabel: '', highlights: [{ id: 'session-1', title: 'Opening keynote', responseCount: 12, evidenceLabel: 'Strong evidence', finding: 'Useful examples' }] },
     speakers: { speakerCount: 1, speakersWithFeedbackCount: 1, speakerSpecificResponseCount: 9, highlights: [{ id: 'speaker-1', name: 'Jordan Lee', responseCount: 9, evidenceLabel: 'Strong speaker evidence', finding: 'Clear explanations' }] },
+    intelligencePacket: {
+      overview: 'Practical content led the experience while wayfinding created avoidable friction.',
+      attendeeQuestions: [],
+      sessionPatterns: [{ title: 'Opening keynote', finding: 'Useful examples', evidenceTier: 'STRONG', responseCount: 12 }],
+      speakerPatterns: [{ name: 'Jordan Lee', finding: 'Clear explanations', evidenceTier: 'STRONG', responseCount: 9 }],
+      eventAreaPatterns: [{ name: 'Expo hall', kind: 'AREA', answerCount: 14, sentiment: 'MIXED' }],
+      changePatterns: [],
+    },
     supportingEvidence: [{ id: 'evidence-wayfinding', clusterId: 'cluster-wayfinding', taxonomyKey: 'wayfinding', title: 'Signs did not match the app', quote: 'The signs by the elevators did not match the app.', sentimentScore: -0.65, priority: 'Immediate', confidence: 0.86, evidenceTier: 'ISOLATED', evidenceStrength: 'weak', capturedAt: '2026-09-18T16:00:00.000Z', question: 'What should change?', source: 'Expo hall' }],
     links: {
       actions: `/app/events/${eventId}/dashboard?account=${accountSlug}&tab=actions`, intelligence: `/app/events/${eventId}/dashboard?account=${accountSlug}&tab=intelligence`,
@@ -823,6 +832,7 @@ async function mockEventsAppApis(
     const evidenceUrl = new URL(route.request().url())
     const themeKey = decodeURIComponent(evidenceUrl.pathname.split('/themes/')[1].split('/evidence')[0])
     const evidenceByTheme: Record<string, { label: string; snippet: string; sentiment: string; score: number }> = {
+      wayfinding: { label: 'Wayfinding', snippet: 'The far aisle near the partner booths is packed and the AI Lounge signs are hidden.', sentiment: 'NEGATIVE', score: -0.72 },
       workshops: { label: 'Hands-on workshops', snippet: 'The hands-on workshop was the most useful part of the day.', sentiment: 'POSITIVE', score: 0.82 },
       'agenda-density': { label: 'Agenda pacing', snippet: 'The afternoon agenda felt too tightly packed.', sentiment: 'MIXED', score: -0.2 },
       'room-comfort': { label: 'Room comfort', snippet: 'The breakout room temperature was comfortable throughout the session.', sentiment: 'NEUTRAL', score: 0.05 },
@@ -834,34 +844,36 @@ async function mockEventsAppApis(
     const evidence = evidenceByTheme[themeKey] ?? evidenceByTheme['agenda-density']
     const issueClusterIds = evidenceUrl.searchParams.get('issueClusterIds')?.split(',').filter(Boolean) ?? []
     const themeLabel = evidence.label
+    const issueEvidenceCount = options.analysisOverrides?.lifecyclePhase === 'POST_EVENT' ? 4 : 2
+    const evidenceRows = Array.from({ length: issueClusterIds.length > 0 ? issueEvidenceCount : 1 }, (_, index) => ({
+      themeKey,
+      themeLabel,
+      answerId: `answer-${themeKey}-${index + 1}`,
+      responseId: `response-${themeKey}-${index + 1}`,
+      questionId: 'question-event-wide',
+      surveyTargetId: 'target-event-wide',
+      transcriptSnippet: index === 0 ? evidence.snippet : `Canonical linked ${themeLabel.toLowerCase()} evidence ${index + 1}.`,
+      transcriptText: null,
+      question: { id: 'question-event-wide', key: 'event_feedback', label: 'What should we keep or change?', promptLabel: null },
+      target: evidenceUrl.searchParams.get('speakerId') ? {
+        id: 'target-speaker-keynote', name: 'Opening Keynote · Jordan Lee', category: 'SESSION',
+        session: { id: 'session-keynote', name: 'Opening Keynote' },
+        speaker: { assignmentId: 'assignment-keynote', id: 'speaker-keynote', name: 'Jordan Lee', role: 'SPEAKER' },
+      } : { id: 'target-event-wide', name: 'Overall Event Experience', category: 'EVENT', session: null, speaker: null },
+      response: { id: `response-${themeKey}-${index + 1}`, anonymousId: `anon-${themeKey}-${index + 1}`, status: 'COMPLETED', startedAt: '2026-09-17T13:00:00.000Z', completedAt: '2026-09-17T13:02:00.000Z' },
+      sentimentScore: evidence.score,
+      sentimentLabel: evidence.sentiment,
+      confidence: 0.86,
+      createdAt: `2026-09-17T13:0${index + 2}:00.000Z`,
+    }))
     await fulfillJson(route, {
       success: true,
       data: {
         eventId,
         themeKey,
         themeLabel,
-        mentionCount: issueClusterIds.length > 0 ? 4 : themeKey === 'workshops' ? 4 : 2,
-        evidence: [{
-          themeKey,
-          themeLabel,
-          answerId: `answer-${themeKey}`,
-          responseId: `response-${themeKey}`,
-          questionId: 'question-event-wide',
-          surveyTargetId: 'target-event-wide',
-          transcriptSnippet: evidence.snippet,
-          transcriptText: null,
-          question: { id: 'question-event-wide', key: 'event_feedback', label: 'What should we keep or change?', promptLabel: null },
-          target: evidenceUrl.searchParams.get('speakerId') ? {
-            id: 'target-speaker-keynote', name: 'Opening Keynote · Jordan Lee', category: 'SESSION',
-            session: { id: 'session-keynote', name: 'Opening Keynote' },
-            speaker: { assignmentId: 'assignment-keynote', id: 'speaker-keynote', name: 'Jordan Lee', role: 'SPEAKER' },
-          } : { id: 'target-event-wide', name: 'Overall Event Experience', category: 'EVENT', session: null, speaker: null },
-          response: { id: `response-${themeKey}`, anonymousId: `anon-${themeKey}`, status: 'COMPLETED', startedAt: '2026-09-17T13:00:00.000Z', completedAt: '2026-09-17T13:02:00.000Z' },
-          sentimentScore: evidence.score,
-          sentimentLabel: evidence.sentiment,
-          confidence: 0.86,
-          createdAt: '2026-09-17T13:02:00.000Z',
-        }],
+        mentionCount: issueClusterIds.length > 0 ? issueEvidenceCount : themeKey === 'workshops' ? 4 : 2,
+        evidence: evidenceRows,
       },
     })
   })
@@ -1821,6 +1833,70 @@ test.describe('Events voice journeys', () => {
     })
   })
 
+  test('reveals the shared intelligence action affordance on hover and keyboard focus without layout shift', async ({ page }) => {
+    const preEvent = { ...liveEvent, startDate: new Date(Date.now() + 36 * 60 * 60_000).toISOString(), endDate: new Date(Date.now() + 60 * 60 * 60_000).toISOString() }
+    await mockEventsAppApis(page, { events: [preEvent], analysisOverrides: { lifecyclePhase: 'PRE_EVENT', defaultLifecyclePhase: 'PRE_EVENT' } })
+    await page.goto(`/app/events/${eventId}/dashboard?account=${accountSlug}`)
+
+    const item = page.getByTestId('event-actionable-item').filter({ hasText: 'Revisit agenda pacing' }).first()
+    await expect(item).toBeVisible()
+    const plus = item.getByRole('button', { name: 'Create action' })
+    const [restItem, restPlus] = await Promise.all([item.boundingBox(), plus.boundingBox()])
+    await expect(plus).toHaveCSS('opacity', '0')
+
+    await item.hover()
+    await expect(plus).toHaveCSS('opacity', '1')
+    await plus.hover()
+    await expect(plus).toHaveCSS('opacity', '1')
+    expect(await item.boundingBox()).toEqual(restItem)
+    expect(await plus.boundingBox()).toEqual(restPlus)
+
+    await page.mouse.move(0, 0)
+    await plus.focus()
+    await expect(plus).toHaveCSS('opacity', '1')
+    await plus.click()
+    await expect(item.getByTestId('event-action-compact-composer')).toBeVisible()
+    await expect(item).toHaveAttribute('data-action-composer-open', 'true')
+    await item.getByRole('button', { name: 'Cancel' }).click()
+    await expect(item.getByTestId('event-action-compact-composer')).toHaveCount(0)
+  })
+
+  test('uses the custom due date and time picker in the intelligence action composer', async ({ page }) => {
+    const preEvent = { ...liveEvent, startDate: new Date(Date.now() + 36 * 60 * 60_000).toISOString(), endDate: new Date(Date.now() + 60 * 60 * 60_000).toISOString() }
+    await mockEventsAppApis(page, { events: [preEvent], analysisOverrides: { lifecyclePhase: 'PRE_EVENT', defaultLifecyclePhase: 'PRE_EVENT' } })
+    await page.goto(`/app/events/${eventId}/dashboard?account=${accountSlug}`)
+
+    const item = page.getByTestId('event-actionable-item').filter({ hasText: 'Revisit agenda pacing' }).first()
+    await item.hover()
+    await item.getByRole('button', { name: 'Create action' }).click()
+    const composer = item.getByTestId('event-action-compact-composer')
+    await composer.getByRole('button', { name: 'Date + time' }).click()
+
+    const picker = page.getByRole('dialog', { name: 'Choose due date and time' })
+    await expect(picker).toBeVisible()
+    await expect(composer.locator('input[type="datetime-local"], input[type="date"], input[type="time"]')).toHaveCount(0)
+    await picker.getByRole('gridcell').nth(5).click()
+    await picker.getByRole('option', { name: '10:00 AM' }).click()
+    await expect(picker).toHaveCount(0)
+
+    const trigger = composer.getByRole('button', { name: /Due date and time: .*10:00 AM/ })
+    await expect(trigger).toBeVisible()
+    await trigger.click()
+    await expect(picker).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(picker).toHaveCount(0)
+
+    await trigger.click()
+    await expect(picker).toBeVisible()
+    await composer.getByRole('textbox').first().click()
+    await expect(picker).toHaveCount(0)
+
+    await trigger.click()
+    await picker.getByRole('button', { name: 'Clear due date' }).click()
+    await expect(picker).toHaveCount(0)
+    await expect(composer.getByRole('button', { name: /Due date and time: choose date, choose time/ })).toBeVisible()
+  })
+
   test('renders the Events operating home without event-level kiosk/QR or SMB review language', async ({ page }) => {
     await mockEventsAppApis(page)
 
@@ -2397,7 +2473,7 @@ test.describe('Events voice journeys', () => {
     expect(overflow.delta, JSON.stringify(overflow, null, 2)).toBeLessThanOrEqual(1)
   })
 
-  test('renders the post-event closing brief and moves follow-through into Actions on mobile', async ({ page }, testInfo) => {
+  test('views and downloads the canonical post-event brief with team follow-through', async ({ page }, testInfo) => {
     const postEventBrief = postEventClosingBriefPayload()
     await mockEventsAppApis(page, {
       analysisOverrides: { lifecyclePhase: 'POST_EVENT', postEventClosingBrief: postEventBrief },
@@ -2410,7 +2486,7 @@ test.describe('Events voice journeys', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/pdf',
-          headers: { 'Content-Disposition': 'attachment; filename="signal-thread-live-experience-summit-2026-intelligence-brief.pdf"' },
+          headers: { 'Content-Disposition': 'attachment; filename="signal-thread-live-experience-summit-2026-post-event-brief.pdf"' },
           body: '%PDF-1.4\n%%EOF',
         })
         return
@@ -2421,7 +2497,8 @@ test.describe('Events voice journeys', () => {
           eventId,
           eventName: 'SignalThread Live Experience Summit 2026',
           lifecyclePhase: 'POST_EVENT',
-          postEventClosingBrief: postEventBrief,
+          brief: postEventBrief,
+          briefHash: postEventBrief.versionId,
           eventStartDate: '2026-09-17T14:00:00.000Z',
           eventEndDate: '2026-09-19T18:00:00.000Z',
         },
@@ -2430,29 +2507,37 @@ test.describe('Events voice journeys', () => {
     await page.goto(`/app/events/${eventId}/dashboard?account=${accountSlug}`)
 
     await expect(page.getByTestId('post-event-closing-brief')).toBeVisible()
-    const postEventOverview = page.getByTestId('post-event-closing-brief').locator('[data-closing-brief-section]').first()
-    await expect(postEventOverview.getByText('Brief', { exact: true })).toBeVisible()
-    await expect(postEventOverview.getByText('Turn the completed event intelligence into a ready-to-share report.')).toBeVisible()
-    await expect(postEventOverview.getByRole('button', { name: 'Generate brief' })).toBeVisible()
+    const postEventOverview = page.getByTestId('post-event-closing-brief').locator('[data-post-event-overview]')
+    const postHero = postEventOverview.getByTestId('event-lifecycle-hero')
+    await expect(postHero).toBeVisible()
+    await expect(postHero.getByText('Event overview', { exact: true })).toBeVisible()
+    await expect(postHero.getByTestId('event-lifecycle-synopsis')).toHaveText('Practical content led a positive event outcome with clear follow-through.')
+    await expect(postHero.getByTestId('event-lifecycle-overview')).toContainText('Attendee feedback highlighted useful content while identifying wayfinding as the clearest issue to resolve.')
+    await expect(postHero.getByText('42 collected', { exact: true })).toBeVisible()
+    for (const label of ['Sentiment', 'Responses', 'Coverage', 'Follow-up']) await expect(postHero.getByText(label, { exact: true })).toBeVisible()
+    const postCoverage = postHero.getByTestId('coverage-summary')
+    await expect(postCoverage.getByText('3', { exact: true })).toBeVisible()
+    await expect(postCoverage.getByText('of 4', { exact: true })).toBeVisible()
+    await expect(postCoverage.getByText('listening points', { exact: true })).toBeVisible()
+    await expect(postHero.getByRole('button', { name: 'View brief' })).toBeVisible()
+    await expect(postHero.getByRole('button', { name: 'Regenerate brief' })).toHaveCount(0)
+    await expect(postHero.getByRole('button', { name: 'Download PDF' })).toHaveCount(0)
     await expect(page.locator('header').getByRole('button', { name: 'Generate brief' })).toHaveCount(0)
-    await postEventOverview.screenshot({ path: testInfo.outputPath('post-event-brief-subsection.png') })
+    await postHero.screenshot({ path: testInfo.outputPath('post-event-overview.png') })
     await expect(page.getByRole('heading', { name: 'SignalThread Live Experience Summit 2026', exact: true })).toHaveCount(1)
     await expect(page.getByText('Close the event with evidenced outcomes, unresolved follow-through, and learning for the next event.')).toHaveCount(0)
     const closingBriefFont = await page.getByTestId('post-event-closing-brief').evaluate((element) => getComputedStyle(element).fontFamily)
     expect(closingBriefFont).toContain('Montserrat')
-    const closingBriefHeadline = page.getByRole('heading', { name: 'Practical content led a positive event outcome with clear follow-through.' })
-    await expect(closingBriefHeadline).toBeVisible()
-    await expect(closingBriefHeadline).toHaveCSS('font-size', '32px')
-    await expect(closingBriefHeadline).toHaveCSS('line-height', '36.48px')
-    await expect(page.getByText('Closing brief · Sep 19, 2026')).toBeVisible()
-    await expect(page.getByText('Attendee feedback highlighted useful content while identifying wayfinding as the clearest issue to resolve.')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Practical content led a positive event outcome with clear follow-through.' })).toHaveCount(0)
+    await expect(page.getByText('Closing brief · Sep 19, 2026')).toHaveCount(0)
     await expect(page.getByText('Protect the practical program and close the remaining wayfinding gap.')).toBeVisible()
     await expect(page.getByText(/Attendees consistently reported/)).toHaveCount(0)
     const verdictHeading = page.getByRole('heading', { name: 'The verdict' })
     await expect(verdictHeading).toBeVisible()
-    await expect(verdictHeading).toHaveCSS('font-size', '26px')
+    await expect(verdictHeading).toHaveCSS('font-size', '24px')
     await expect(page.getByRole('heading', { name: 'Key findings' })).toBeVisible()
     await expect(page.getByText('Attendees repeatedly described mismatches between physical signs and the app, making navigation harder near the elevators.')).toBeVisible()
+    await expect(page.getByTestId('post-event-closing-brief').getByRole('button', { name: 'Action created' }).first()).toHaveText('✓')
     await expect(page.getByRole('heading', { name: 'Decisions and follow-through' })).toHaveCount(0)
     await expect(page.getByText('What created friction')).toBeVisible()
     await expect(page.getByText('What should change next time')).toBeVisible()
@@ -2462,61 +2547,125 @@ test.describe('Events voice journeys', () => {
     await expect(page.getByTestId('signals-overview-filter-bar')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Refresh' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Share with team' })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Generate brief' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'View brief' })).toBeVisible()
     await expect(page.getByText('Coverage details')).toHaveCount(0)
     await expect(page.getByText('Send this to the team')).toHaveCount(0)
     const [briefPreview] = await Promise.all([
       page.waitForEvent('popup'),
-      page.getByRole('button', { name: 'Generate brief' }).click(),
+      page.getByRole('button', { name: 'View brief' }).click(),
     ])
     await expect(briefPreview.getByTestId('closing-brief-document')).toBeVisible()
-    await expect(briefPreview).toHaveTitle('SignalThread Live Experience Summit 2026 — Event Intelligence Brief')
+    await expect(briefPreview).toHaveTitle('SignalThread Live Experience Summit 2026 — Post-event brief')
     await expect(briefPreview.getByRole('heading', { name: 'SignalThread Live Experience Summit 2026', exact: true })).toBeVisible()
     await expect(briefPreview.getByText('Event Intelligence Brief')).toBeVisible()
-    await expect(briefPreview.getByText('Executive summary')).toBeVisible()
-    await expect(briefPreview.getByRole('heading', { name: 'Key findings' })).toBeVisible()
+    await expect(briefPreview.getByText('Executive update')).toBeVisible()
+    await expect(briefPreview.getByRole('heading', { name: 'What defined the event' })).toBeVisible()
+    await expect(briefPreview.getByText('Send sponsor follow-up')).toBeVisible()
     await expect(briefPreview.getByText('Representative attendee feedback')).toHaveCount(0)
     await expect(briefPreview.getByRole('navigation')).toHaveCount(0)
     await expect(briefPreview.getByRole('button', { name: 'Review evidence' })).toHaveCount(0)
     await expect(briefPreview.getByText('Open Intelligence')).toHaveCount(0)
+    await expect(briefPreview.getByRole('button', { name: 'Regenerate brief' })).toBeVisible()
     const documentFont = await briefPreview.getByTestId('closing-brief-document').evaluate((element) => getComputedStyle(element).fontFamily)
     expect(documentFont).toContain('Montserrat')
     await briefPreview.screenshot({ path: testInfo.outputPath('event-intelligence-brief-document.png'), fullPage: true })
     const downloadPromise = briefPreview.waitForEvent('download')
     await briefPreview.getByRole('button', { name: 'Download PDF' }).click()
     const downloadBrief = await downloadPromise
-    expect(downloadBrief.suggestedFilename()).toBe('signal-thread-live-experience-summit-2026-intelligence-brief.pdf')
+    expect(downloadBrief.suggestedFilename()).toBe('signal-thread-live-experience-summit-2026-post-event-brief.pdf')
+    const regenerateResponse = briefPreview.waitForResponse((response) => {
+      const url = new URL(response.url())
+      return url.pathname.endsWith(`/api/app/events/${eventId}/brief`)
+        && url.searchParams.get('mode') === 'generate'
+        && url.searchParams.get('regenerate') === '1'
+    })
+    await briefPreview.getByRole('button', { name: 'Regenerate brief' }).click()
+    await regenerateResponse
+    await expect(briefPreview.getByTestId('closing-brief-document')).toBeVisible()
     await briefPreview.close()
-    const workspaceDownload = page.waitForEvent('download')
-    await page.getByRole('button', { name: 'Download PDF' }).click()
-    expect((await workspaceDownload).suggestedFilename()).toBe('signal-thread-live-experience-summit-2026-intelligence-brief.pdf')
+    await expect(postHero.getByRole('button', { name: 'Download PDF' })).toHaveCount(0)
     await expect(page.getByRole('heading', { name: 'Supporting evidence' })).toHaveCount(0)
     await page.getByRole('button', { name: 'Review evidence' }).first().click()
     await expect(page.getByTestId('event-evidence-drawer')).toBeVisible()
-    await expect(page.getByTestId('event-evidence-drawer').getByText('4 mentions / Negative')).toBeVisible()
-    await expect(page.getByTestId('event-evidence-drawer').getByText('The afternoon agenda felt too tightly packed.')).toBeVisible()
+    await expect(page.getByTestId('event-evidence-drawer').getByText('4 mentions', { exact: true })).toBeVisible()
+    await expect(page.getByTestId('event-evidence-drawer').getByTestId('event-theme-evidence-record')).toHaveCount(4)
+    await expect(page.getByTestId('event-evidence-drawer').getByText('The far aisle near the partner booths is packed and the AI Lounge signs are hidden.')).toBeVisible()
     await page.getByTestId('event-evidence-drawer').getByRole('button', { name: 'Close', exact: true }).click()
-
-    await page.goto(`/app/events/${eventId}/dashboard?account=${accountSlug}&tab=actions&lifecycle=post-event`)
-    const followThrough = page.getByTestId('post-event-follow-through')
-    await expect(followThrough).toBeVisible()
-    await expect(followThrough.getByRole('heading', { name: 'Decisions and follow-through' })).toBeVisible()
-    for (const label of ['Still open', 'Awaiting an owner', 'Scheduled after the event']) await expect(followThrough.getByText(label, { exact: true })).toBeVisible()
-    await expect(followThrough.getByText('Move AI Lounge signage into view').first()).toBeVisible()
-    await expect(page.getByTestId('signals-actions-workspace').getByRole('heading', { name: 'Action queue' })).toHaveCount(0)
-    await expect(page.getByRole('navigation', { name: 'Action views' })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Filters' })).toHaveCount(0)
-    await expect(page.getByRole('heading', { name: 'Follow-through records' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'New follow-through' })).toBeVisible()
-    await page.getByRole('button', { name: /Move AI Lounge signage into view/ }).click()
-    await expect(page.getByTestId('action-detail')).toBeVisible()
-    await expect(page.getByTestId('action-detail').getByLabel('Owner')).toBeVisible()
-    await expect(page.getByTestId('action-detail').locator('select').nth(1)).toBeVisible()
-    await page.getByTestId('action-detail').getByRole('button', { name: 'Close', exact: true }).click()
 
     await page.setViewportSize({ width: 375, height: 812 })
     const overflow = await horizontalOverflowDiagnostics(page)
     expect(overflow.delta, JSON.stringify(overflow, null, 2)).toBeLessThanOrEqual(1)
+  })
+
+  test('reveals the shared Post action affordance without moving the finding', async ({ page }) => {
+    const postEventBrief = postEventClosingBriefPayload()
+    postEventBrief.keyFindings[0] = {
+      ...postEventBrief.keyFindings[0],
+      id: 'issue:cluster-checkin',
+      title: 'Registration queue needs another visible lane',
+      statement: 'Check-in evidence indicates a recurring queue problem.',
+      evidenceThemeKeys: ['access_checkin'],
+      issueClusterIds: ['cluster-checkin'],
+    }
+    await mockEventsAppApis(page, {
+      analysisOverrides: { lifecyclePhase: 'POST_EVENT', postEventClosingBrief: postEventBrief },
+    })
+    await page.goto(`/app/events/${eventId}/dashboard?account=${accountSlug}`)
+
+    const finding = page.locator('section[aria-labelledby="post-findings-heading"]').getByTestId('event-actionable-item').first()
+    const createAction = finding.getByRole('button', { name: 'Create action' })
+    const before = await finding.evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }))
+    await expect(createAction).toHaveCSS('opacity', '0')
+    await finding.locator(':scope > div').first().hover()
+    await expect(createAction).toHaveCSS('opacity', '1')
+    const [reviewEvidenceBox, actionAffordanceBox] = await Promise.all([
+      finding.getByRole('button', { name: 'Review evidence' }).boundingBox(),
+      createAction.boundingBox(),
+    ])
+    expect(Math.abs(((reviewEvidenceBox?.y ?? 0) + (reviewEvidenceBox?.height ?? 0) / 2) - ((actionAffordanceBox?.y ?? 0) + (actionAffordanceBox?.height ?? 0) / 2))).toBeLessThanOrEqual(1)
+    expect(await finding.evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }))).toEqual(before)
+  })
+
+  test('uses the shared action affordance for every populated Post verdict item', async ({ page }) => {
+    const postEventBrief: any = postEventClosingBriefPayload()
+    postEventBrief.decisions.nextEventLearning.actions = [{
+      id: 'cluster-wayfinding',
+      title: 'Move AI Lounge signage into view',
+      classification: 'NEXT_EVENT_LEARNING',
+      status: 'OPEN',
+      priority: 'Soon',
+      owner: 'Event Operator',
+      ownerUserId: 'user-operator',
+      dueAt: null,
+      evidenceCount: 2,
+      updateCount: 0,
+    }]
+    await mockEventsAppApis(page, {
+      analysisOverrides: { lifecyclePhase: 'POST_EVENT', postEventClosingBrief: postEventBrief },
+    })
+    await page.goto(`/app/events/${eventId}/dashboard?account=${accountSlug}`)
+
+    const verdictCards = page.locator('[data-closing-brief-verdict-card]')
+    const workedItem = verdictCards.nth(0).getByTestId('event-actionable-item').first()
+    const frictionItem = verdictCards.nth(1).getByTestId('event-actionable-item').first()
+    const nextActionItem = verdictCards.nth(2).getByTestId('event-actionable-item').first()
+    const nextLearningItem = verdictCards.nth(2).getByTestId('event-actionable-item').nth(1)
+
+    const workedBefore = await workedItem.evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }))
+    await expect(workedItem.getByRole('button', { name: 'Create action' })).toHaveCSS('opacity', '0')
+    await workedItem.hover()
+    await expect(workedItem.getByRole('button', { name: 'Create action' })).toHaveCSS('opacity', '1')
+    expect(await workedItem.evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }))).toEqual(workedBefore)
+    await workedItem.getByRole('button', { name: 'Create action' }).click()
+    await expect(workedItem.getByTestId('event-action-compact-composer')).toBeVisible()
+
+    await expect(frictionItem.getByRole('button', { name: 'Action created' })).toHaveText('✓')
+    await expect(nextActionItem.getByRole('button', { name: 'Action created' })).toHaveText('✓')
+    await nextActionItem.getByRole('button', { name: 'Action created' }).click()
+    await expect(nextActionItem.getByTestId('event-action-compact-composer')).toHaveCount(0)
+    await expect(nextLearningItem.getByRole('button', { name: 'Create action' })).toHaveCSS('opacity', '0')
+    await nextLearningItem.hover()
+    await expect(nextLearningItem.getByRole('button', { name: 'Create action' })).toHaveCSS('opacity', '1')
   })
 
   test('uses Intelligence as the canonical former Overview and opens canonical evidence', async ({ page }) => {
@@ -3800,6 +3949,7 @@ test.describe('Events voice journeys', () => {
     await expect(page.getByText('Expo floor wayfinding is hiding partner destinations').first()).toBeVisible()
 
     // Coverage and confidence is labeled as evidence quality, not performance.
+    await page.getByRole('button', { name: 'Coverage detail ▼' }).click()
     await expect(page.getByText('Coverage and confidence')).toBeVisible()
     await expect(page.getByText('Feedback Sources')).toHaveCount(0)
 
@@ -3807,11 +3957,52 @@ test.describe('Events voice journeys', () => {
     await page.getByRole('button', { name: 'Review evidence' }).first().click()
     const evidenceDrawer = page.getByTestId('event-evidence-drawer')
     await expect(evidenceDrawer).toBeVisible()
+    await expect(evidenceDrawer.getByText('2 items', { exact: true })).toBeVisible()
+    await expect(evidenceDrawer.getByTestId('event-theme-evidence-record')).toHaveCount(2)
     await expect(evidenceDrawer.getByText('The far aisle near the partner booths is packed').first()).toBeVisible()
-    await expect(evidenceDrawer.getByText('Move AI Lounge signage into view')).toBeVisible()
+    await expect(evidenceDrawer.getByText('A team member created an action from this intelligence.', { exact: false })).toBeVisible()
+    await expect(evidenceDrawer.getByRole('button', { name: 'Open action' })).toBeVisible()
     await expect(page).toHaveURL(overviewUrl)
     await evidenceDrawer.getByRole('button', { name: 'Close', exact: true }).click()
     await expect(evidenceDrawer).toBeHidden()
+  })
+
+  test('keeps the shared During action affordance fixed, hover-revealed, and composer-backed', async ({ page }) => {
+    await mockEventsAppApis(page)
+    await page.goto(`/app/events/${eventId}/dashboard?account=${accountSlug}`)
+
+    const linkedRow = page.getByTestId('needs-attention-panel').getByTestId('event-actionable-item').first()
+    await expect(linkedRow.getByRole('button', { name: 'Action created' })).toHaveText('✓')
+
+    const actionableRow = page.getByTestId('what-is-working').getByTestId('event-actionable-item').first()
+    const createAction = actionableRow.getByRole('button', { name: 'Create action' })
+    const before = await actionableRow.evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }))
+    await expect(createAction).toHaveCSS('opacity', '0')
+    await actionableRow.hover()
+    await expect(createAction).toHaveCSS('opacity', '1')
+    const [reviewEvidenceBox, actionAffordanceBox] = await Promise.all([
+      actionableRow.getByRole('button', { name: 'Review evidence' }).boundingBox(),
+      createAction.boundingBox(),
+    ])
+    expect(Math.abs(((reviewEvidenceBox?.y ?? 0) + (reviewEvidenceBox?.height ?? 0) / 2) - ((actionAffordanceBox?.y ?? 0) + (actionAffordanceBox?.height ?? 0) / 2))).toBeLessThanOrEqual(1)
+    const after = await actionableRow.evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }))
+    expect(after).toEqual(before)
+    await createAction.click()
+    await expect(actionableRow.getByTestId('event-action-compact-composer')).toBeVisible()
+    await expect(actionableRow.getByRole('region', { name: 'Create action from intelligence' })).toBeVisible()
+
+    const decisionColumns = page.locator('[data-decision-column]')
+    const keepItem = decisionColumns.nth(0).getByTestId('event-actionable-item').first()
+    const improveItem = decisionColumns.nth(1).getByTestId('event-actionable-item').first()
+    const revisitItem = decisionColumns.nth(2).getByTestId('event-actionable-item').first()
+    await expect(keepItem.getByRole('button', { name: 'Create action' })).toHaveCSS('opacity', '0')
+    await keepItem.hover()
+    await expect(keepItem.getByRole('button', { name: 'Create action' })).toHaveCSS('opacity', '1')
+    await expect(improveItem.getByRole('button', { name: 'Action created' })).toHaveText('✓')
+    const revisitBefore = await revisitItem.evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }))
+    await revisitItem.hover()
+    await expect(revisitItem.getByRole('button', { name: 'Create action' })).toHaveCSS('opacity', '1')
+    expect(await revisitItem.evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }))).toEqual(revisitBefore)
   })
 
   test('opens evidence from connected Keep and Revisit overview cards', async ({ page }) => {
@@ -3836,12 +4027,10 @@ test.describe('Events voice journeys', () => {
     await page.goto(`/app/events/${eventId}/dashboard?account=${accountSlug}`)
     await page.getByRole('button', { name: 'Review evidence' }).first().click()
     const drawer = page.getByTestId('event-evidence-drawer')
-    await expect(drawer.getByRole('heading', { name: 'Expo floor wayfinding is hiding partner destinations' })).toBeVisible()
+    await expect(drawer.getByRole('heading', { name: 'Expo floor wayfinding is hiding partner destinations', level: 2 })).toBeVisible()
     await expect(drawer.getByText(/The far aisle near the partner booths is packed/)).toBeVisible()
-    const action = drawer.getByRole('region', { name: 'Action' })
-    await expect(action).toContainText('Move AI Lounge signage into view')
-    await expect(action).toContainText('Event Operator')
-    await expect(action.getByRole('button', { name: 'Open action' })).toBeVisible()
+    await expect(drawer.getByText('A team member created an action from this intelligence.', { exact: false })).toBeVisible()
+    await expect(drawer.getByRole('button', { name: 'Open action' })).toBeVisible()
   })
 
   for (const viewport of [
@@ -3858,7 +4047,7 @@ test.describe('Events voice journeys', () => {
       await page.getByRole('button', { name: 'Review evidence' }).first().click()
       const drawer = page.getByTestId('event-evidence-drawer')
       await expect(drawer.getByText(/The far aisle near the partner booths is packed/)).toBeVisible()
-      await expect(drawer.getByRole('region', { name: 'Action' })).toContainText('Move AI Lounge signage into view')
+      await expect(drawer.getByText('A team member created an action from this intelligence.', { exact: false })).toBeVisible()
       await expect(drawer.getByRole('button', { name: 'Open action' })).toBeVisible()
 
       const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
@@ -3927,7 +4116,7 @@ test.describe('Events voice journeys', () => {
     expect((drawerBox?.x ?? 0) + (drawerBox?.width ?? 0)).toBeLessThanOrEqual(1440)
     const drawerBody = dialog.locator('div.min-h-0.flex-1.overflow-y-auto')
     await expect(drawerBody).toHaveCSS('overflow-y', 'auto')
-    await expect(drawer.getByRole('region', { name: 'Action' })).toContainText('Move AI Lounge signage into view')
+    await expect(drawer.getByText('A team member created an action from this intelligence.', { exact: false })).toBeVisible()
     await page.screenshot({ path: testInfo.outputPath('signals-overview-evidence-drawer.png'), fullPage: true })
   })
 

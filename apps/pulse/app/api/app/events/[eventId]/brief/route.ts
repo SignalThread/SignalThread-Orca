@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireEventAccess } from '@/lib/auth/require-events-event-access'
 import { getEventClosingBrief, getPersistedEventClosingBrief } from '@/lib/event-closing-brief'
 import { renderEventClosingBriefPdf } from '@/lib/event-closing-brief-pdf'
+import type { EventLifecyclePhase } from '@/lib/events-home-groups'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function filenameForEvent(name: string) {
+function parseLifecycle(value: string | null): EventLifecyclePhase | null {
+  return value === 'PRE_EVENT' || value === 'IN_EVENT' || value === 'POST_EVENT' ? value : null
+}
+
+function filenameForEvent(name: string, lifecyclePhase: EventLifecyclePhase) {
   const normalized = name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
-  return `${normalized || 'event'}-intelligence-brief.pdf`
+  const stage = lifecyclePhase === 'PRE_EVENT' ? 'pre-event' : lifecyclePhase === 'IN_EVENT' ? 'during-event' : 'post-event'
+  return `${normalized || 'event'}-${stage}-brief.pdf`
 }
 
 /**
@@ -23,6 +29,8 @@ export async function GET(request: NextRequest, { params }: { params: { eventId:
     const { searchParams } = new URL(request.url)
     const accountSlug = searchParams.get('account')
     if (!accountSlug) return NextResponse.json({ success: false, error: 'Account is required' }, { status: 400 })
+    const lifecyclePhase = parseLifecycle(searchParams.get('lifecycle'))
+    if (!lifecyclePhase) return NextResponse.json({ success: false, error: 'A valid brief lifecycle is required' }, { status: 400 })
 
     const access = await requireEventAccess(accountSlug, params.eventId)
     if (!access.ok) return access.response
@@ -32,6 +40,7 @@ export async function GET(request: NextRequest, { params }: { params: { eventId:
       const brief = await getPersistedEventClosingBrief({
         accountId: access.account.id,
         eventId: access.event.id,
+        lifecyclePhase,
         briefHash: searchParams.get('briefHash'),
       })
       const cacheLookupMs = Math.round((performance.now() - cacheStartedAt) * 10) / 10
@@ -61,8 +70,39 @@ export async function GET(request: NextRequest, { params }: { params: { eventId:
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Length': String(pdf.length),
-          'Content-Disposition': `attachment; filename="${filenameForEvent(access.event.name)}"`,
+          'Content-Disposition': `attachment; filename="${filenameForEvent(access.event.name, lifecyclePhase)}"`,
           'Cache-Control': 'private, no-store',
+        },
+      })
+    }
+
+    if (searchParams.get('mode') === 'status') {
+      const brief = await getPersistedEventClosingBrief({
+        accountId: access.account.id,
+        eventId: access.event.id,
+        lifecyclePhase,
+      })
+      return NextResponse.json({ success: true, data: { briefHash: brief?.versionId ?? brief?.editorial.inputHash ?? null } })
+    }
+
+    if (searchParams.get('mode') !== 'generate') {
+      const briefHash = searchParams.get('briefHash')
+      const brief = await getPersistedEventClosingBrief({
+        accountId: access.account.id,
+        eventId: access.event.id,
+        lifecyclePhase,
+        briefHash,
+      })
+      if (!brief || (briefHash && (brief.versionId ?? brief.editorial.inputHash) !== briefHash)) {
+        return NextResponse.json({ success: false, code: 'BRIEF_NOT_GENERATED', error: 'Generate this lifecycle brief before viewing it.' }, { status: 404 })
+      }
+      return NextResponse.json({
+        success: true,
+        data: {
+          brief,
+          briefHash: brief.versionId ?? brief.editorial.inputHash,
+          eventStartDate: access.event.startDate?.toISOString() ?? null,
+          eventEndDate: access.event.endDate?.toISOString() ?? null,
         },
       })
     }
@@ -71,14 +111,15 @@ export async function GET(request: NextRequest, { params }: { params: { eventId:
       accountId: access.account.id,
       accountSlug: access.account.slug,
       eventId: access.event.id,
-      forceEditorialRefresh: searchParams.has('cacheBust'),
+      lifecyclePhase,
+      forceEditorialRefresh: searchParams.get('regenerate') === '1',
     })
 
     return NextResponse.json({
       success: true,
       data: {
-        postEventClosingBrief: brief,
-        briefHash: brief.editorial.inputHash,
+        brief,
+        briefHash: brief.versionId ?? brief.editorial.inputHash,
         eventStartDate: access.event.startDate?.toISOString() ?? null,
         eventEndDate: access.event.endDate?.toISOString() ?? null,
       },

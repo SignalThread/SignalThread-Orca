@@ -5,14 +5,15 @@ import { CircleDashed, PartyPopper, Sparkles } from 'lucide-react'
 import { EventEvidenceDrawer } from '@/components/events/EventEvidenceDrawer'
 import { EventThemeEvidencePanel } from '@/components/events/EventThemeEvidencePanel'
 import { EventBriefAction } from '@/components/events/EventBriefAction'
-import { EventLifecycleMetricStrip } from '@/components/events/EventLifecycleHero'
+import { EventLifecycleHero } from '@/components/events/EventLifecycleHero'
+import {
+  EventActionableItem,
+  resolveEventActionSource,
+  useEventActionData,
+} from '@/components/events/EventActionComposer'
 import type { EventClosingBrief } from '@/lib/event-closing-brief'
 import { evidenceTierLabel, type EventEvidenceTier } from '@/lib/event-intelligence/evidence-model'
 import type { EventThemeEvidenceResult } from '@/lib/event-intelligence/theme-evidence'
-
-function generatedLabel(value: string) {
-  return new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 function confidencePercent(confidence: number | null) {
   return confidence === null ? 'Confidence not scored' : `${Math.round(confidence * 100)}% confidence`
@@ -133,6 +134,7 @@ export function EventPostEventClosingBrief({
   const [findingEvidenceLoading, setFindingEvidenceLoading] = useState(false)
   const [findingEvidenceError, setFindingEvidenceError] = useState<string | null>(null)
   const accountSlug = accountSlugFromIntelligenceLink(brief.links.intelligence)
+  const eventActionData = useEventActionData(brief.event.id, accountSlug ?? '')
   const findingNarrativeById = new Map(
     brief.editorial.copy.findingNarratives.map((item) => [item.findingId, item.narrative]),
   )
@@ -177,18 +179,22 @@ export function EventPostEventClosingBrief({
     })
   }
   const nextEventItems = [
-    ...brief.decisions.nextEventLearning.actions.map((action) => ({ id: action.id, title: action.title, statement: null, meta: ownerStatus(action) })),
+    ...brief.decisions.nextEventLearning.actions.map((action) => ({ id: action.id, title: action.title, statement: null, meta: ownerStatus(action), clusterId: action.id, themeKeys: [] as string[] })),
     ...brief.decisions.nextEventLearning.sessionLearning.map((item) => ({
       id: item.id,
       title: item.title,
       statement: null,
       meta: `From ${item.source} · ${evidenceTierLabel(item.evidenceTier)}`,
+      clusterId: null,
+      themeKeys: [] as string[],
     })),
     ...(brief.decisions.nextEventLearning.findings ?? []).map((item) => ({
       id: item.id,
       title: item.title,
       statement: item.statement,
       meta: `${item.mentionCount} mention${item.mentionCount === 1 ? '' : 's'} · ${evidenceTierLabel(item.evidenceTier)}`,
+      clusterId: item.issueClusterIds?.[0] ?? null,
+      themeKeys: item.evidenceThemeKeys,
     })),
   ]
   const canCelebrateEmptyVerdict = hasSufficientVerdictEvidence(brief.summary)
@@ -204,22 +210,12 @@ export function EventPostEventClosingBrief({
       className="font-brand mx-auto max-w-[1176px] space-y-5"
     >
       <div data-closing-brief-document className="space-y-5">
-      <section data-closing-brief-section data-post-event-overview className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)] lg:grid lg:grid-cols-[minmax(0,2.08fr)_minmax(310px,0.92fr)]">
-        <div className="px-5 py-5 sm:px-6 sm:py-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-blue-700">Closing brief · {generatedLabel(brief.generatedAt)}</p>
-          <h2 data-closing-brief-headline className="mt-2 max-w-[600px] text-[20px] font-semibold leading-[1.2] tracking-[-0.02em] text-slate-950 sm:text-[22px] lg:text-[24px]">{brief.editorial.copy.headline}</h2>
-          <p className="mt-2.5 max-w-[660px] text-[13px] font-normal leading-5 text-slate-600">{brief.editorial.copy.executiveSummary}</p>
-          <div className="mt-3 border-l-2 border-blue-600 bg-slate-50 px-3 py-2.5"><p className="max-w-[560px] text-[13px] font-medium leading-5 text-blue-900">{brief.editorial.copy.keyTakeaway}</p></div>
-        </div>
-        <dl className="divide-y divide-slate-200 border-t border-slate-200 bg-slate-50 px-5 lg:border-l lg:border-t-0 lg:px-6">
-          <div className="py-3.5"><dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Overall sentiment</dt><dd className="mt-1 text-[19px] font-semibold tracking-tight text-emerald-700">{brief.summary.sentiment}</dd><p className="mt-0.5 text-[11px] font-normal text-slate-500">Based on {brief.summary.answerCount.toLocaleString()} analyzed answers</p></div>
-          <div className="py-3.5"><dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Responses collected</dt><dd className="mt-1 text-[20px] font-semibold tracking-tight text-blue-700">{brief.summary.responseCount.toLocaleString()}</dd><p className="mt-0.5 text-[11px] font-normal text-slate-500">Completed event responses</p></div>
-        </dl>
-        {accountSlug && <div data-brief-subsection className="flex flex-col gap-2 border-t border-slate-200 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:col-span-2"><div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Brief</p><p className="mt-0.5 text-xs font-normal leading-5 text-slate-600">Turn the completed event intelligence into a ready-to-share report.</p></div><EventBriefAction eventId={brief.event.id} accountSlug={accountSlug} briefHash={brief.editorial.inputHash} /></div>}
-      </section>
-
-      <section data-post-event-metrics className="event-lifecycle-hero overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.035)]">
-        <EventLifecycleMetricStrip
+      <div data-post-event-overview>
+        <EventLifecycleHero
+        title="Event overview"
+        synopsis={brief.editorial.copy.headline}
+        overview={`${brief.editorial.copy.executiveSummary} ${brief.editorial.copy.keyTakeaway}`}
+        briefAction={accountSlug ? <EventBriefAction eventId={brief.event.id} accountSlug={accountSlug} lifecyclePhase="POST_EVENT" briefHash={brief.versionId} /> : null}
         sentimentPercent={brief.summary.sentimentPercent}
         sentimentDisplay={brief.summary.sentiment}
         sentimentDetail={`Based on ${brief.summary.answerCount.toLocaleString()} analyzed answers`}
@@ -258,41 +254,59 @@ export function EventPostEventClosingBrief({
           </ul> : <p className="mt-3 text-xs text-slate-500">No open follow-up actions.</p>}
         </section>}
         />
-      </section>
+      </div>
 
       <section data-closing-brief-section aria-labelledby="post-verdict-heading">
         <h2 data-closing-brief-section-heading id="post-verdict-heading" className="text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-slate-950 lg:text-[24px]">The verdict</h2>
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
           <VerdictCard eyebrow="What worked" tone="positive">
             {brief.editorial.copy.whatWorkedNarrative && <p className="text-[15px] font-normal leading-6 text-slate-700">{brief.editorial.copy.whatWorkedNarrative}</p>}
-            {brief.whatWorked.slice(0, 4).map((item) => (
-              <div key={item.title}>
-                <p className="text-sm font-semibold leading-5">{item.title}</p>
-                <p className={`mt-1 text-xs leading-5 ${evidenceTone(item.evidenceTier)}`}>{item.mentionCount} mentions · {evidenceTierLabel(item.evidenceTier)}</p>
-              </div>
-            ))}
+            {brief.whatWorked.slice(0, 4).map((item) => {
+              const actionReference = resolveEventActionSource(
+                { actions: eventActionData.actions, availableFindings: eventActionData.availableFindings },
+                { clusterId: item.issueClusterIds?.[0], title: item.title, themeKeys: item.evidenceThemeKeys, evidenceLabel: 'Evidence →' },
+              )
+              return <EventActionableItem key={item.id} eventId={brief.event.id} accountSlug={accountSlug ?? ''} owners={eventActionData.owners} source={actionReference.source} actioned={actionReference.actioned} className="rounded-md">
+                <div>
+                  <p className="text-sm font-semibold leading-5">{item.title}</p>
+                  <p className={`mt-1 text-xs leading-5 ${evidenceTone(item.evidenceTier)}`}>{item.mentionCount} mentions · {evidenceTierLabel(item.evidenceTier)}</p>
+                </div>
+              </EventActionableItem>
+            })}
             {brief.whatWorked.length === 0 && <p className="text-xs leading-5 text-slate-500">No clear strength pattern was identified in the current evidence.</p>}
           </VerdictCard>
           <VerdictCard eyebrow="What created friction" tone="negative" empty={frictionPresentation !== 'populated'}>
             {brief.friction.length > 0 && brief.editorial.copy.frictionNarrative && <p className="text-[15px] font-normal leading-6 text-slate-700">{brief.editorial.copy.frictionNarrative}</p>}
-            {brief.friction.slice(0, 4).map((item) => (
-              <div key={item.id}>
-                <p className="text-sm font-semibold leading-5">{item.title}</p>
-                <p className={`mt-1 text-xs leading-5 ${evidenceTone(item.evidenceTier)}`}>{item.mentionCount} evidence · {evidenceTierLabel(item.evidenceTier)}</p>
-              </div>
-            ))}
+            {brief.friction.slice(0, 4).map((item) => {
+              const actionReference = resolveEventActionSource(
+                { actions: eventActionData.actions, availableFindings: eventActionData.availableFindings },
+                { clusterId: item.issueClusterIds?.[0], title: item.title, themeKeys: item.evidenceThemeKeys, evidenceLabel: 'Evidence →' },
+              )
+              return <EventActionableItem key={item.id} eventId={brief.event.id} accountSlug={accountSlug ?? ''} owners={eventActionData.owners} source={actionReference.source} actioned={actionReference.actioned} className="rounded-md">
+                <div>
+                  <p className="text-sm font-semibold leading-5">{item.title}</p>
+                  <p className={`mt-1 text-xs leading-5 ${evidenceTone(item.evidenceTier)}`}>{item.mentionCount} evidence · {evidenceTierLabel(item.evidenceTier)}</p>
+                </div>
+              </EventActionableItem>
+            })}
             {frictionPresentation !== 'populated' && (frictionPresentation === 'positive'
               ? <VerdictEmptyState tone="negative" body="We didn’t find a meaningful friction pattern in attendee feedback." supporting="That’s a strong signal the experience felt smooth overall." />
               : <VerdictEmptyState tone="negative" insufficient body="We need more analyzed attendee feedback before we can draw a reliable conclusion about friction." supporting="This card will update as more feedback is analyzed." />)}
           </VerdictCard>
           <VerdictCard eyebrow="What should change next time" tone="change" empty={nextEventPresentation !== 'populated'}>
             {nextEventItems.length > 0 && brief.editorial.copy.nextEventNarrative && <p className="text-[15px] font-normal leading-6 text-slate-700">{brief.editorial.copy.nextEventNarrative}</p>}
-            {nextEventItems.slice(0, 4).map((item) => (
-              <div key={item.id}>
-                <p className="text-sm font-semibold leading-5">{item.title}</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{item.meta}</p>
-              </div>
-            ))}
+            {nextEventItems.slice(0, 4).map((item) => {
+              const actionReference = resolveEventActionSource(
+                { actions: eventActionData.actions, availableFindings: eventActionData.availableFindings },
+                { clusterId: item.clusterId, title: item.title, themeKeys: item.themeKeys, evidenceLabel: 'Evidence →' },
+              )
+              return <EventActionableItem key={item.id} eventId={brief.event.id} accountSlug={accountSlug ?? ''} owners={eventActionData.owners} source={actionReference.source} actioned={actionReference.actioned} className="rounded-md">
+                <div>
+                  <p className="text-sm font-semibold leading-5">{item.title}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">{item.meta}</p>
+                </div>
+              </EventActionableItem>
+            })}
             {nextEventPresentation !== 'populated' && (nextEventPresentation === 'positive'
               ? <VerdictEmptyState tone="change" body="Attendees didn’t surface a clear recommendation for next time." supporting="Focus on preserving what made this event work so well." />
               : <VerdictEmptyState tone="change" insufficient body="We need more analyzed attendee feedback before we can identify next-event recommendations." supporting="This card will update as more feedback is analyzed." />)}
@@ -309,8 +323,14 @@ export function EventPostEventClosingBrief({
           <a href={postEventHref(brief.links.intelligence)} className="text-xs font-bold text-indigo-700 hover:underline">Open Intelligence</a>
         </div>
         <div className="mt-4 overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          {brief.keyFindings.map((finding) => (
-            <article key={finding.id} className="grid grid-cols-[10px_minmax(0,1fr)] gap-x-3 gap-y-3 border-t border-slate-100 px-5 py-5 first:border-t-0 sm:grid-cols-[10px_minmax(0,1fr)_auto] sm:items-center sm:px-6">
+          {brief.keyFindings.map((finding) => {
+            const actionReference = resolveEventActionSource(
+              { actions: eventActionData.actions, availableFindings: eventActionData.availableFindings },
+              { clusterId: finding.issueClusterIds?.[0], title: finding.title, themeKeys: finding.evidenceThemeKeys, evidenceLabel: 'Evidence →' },
+            )
+            return <article key={finding.id} className="border-t border-slate-100 px-5 py-5 first:border-t-0 sm:px-6">
+              <EventActionableItem eventId={brief.event.id} accountSlug={accountSlug ?? ''} owners={eventActionData.owners} source={actionReference.source} actioned={actionReference.actioned} actionSlotAlign="center" className="rounded-lg">
+              <div className="grid grid-cols-[10px_minmax(0,1fr)] gap-x-3 gap-y-3 sm:grid-cols-[10px_minmax(0,1fr)_auto] sm:items-center">
               <span aria-hidden className="mt-1.5 h-2 w-2 rounded-full bg-slate-400 sm:mt-0" />
               <div className="min-w-0">
                 <p className="text-sm font-semibold leading-5 text-slate-950">{finding.title}</p>
@@ -318,8 +338,10 @@ export function EventPostEventClosingBrief({
                 <p className="mt-2 text-xs font-normal leading-5 text-slate-500">{finding.mentionCount} evidence · {confidencePercent(finding.confidence)} · <span className={`font-semibold ${evidenceTone(finding.evidenceTier)}`}>{evidenceTierLabel(finding.evidenceTier)}</span></p>
               </div>
               <button type="button" onClick={() => openFindingEvidence(finding)} disabled={(finding.evidenceThemeKeys ?? []).length === 0} className="col-span-2 inline-flex min-h-8 w-fit items-center rounded-lg border border-indigo-200 px-3 text-xs font-bold text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:justify-self-end">Review evidence →</button>
+              </div>
+              </EventActionableItem>
             </article>
-          ))}
+          })}
           {brief.keyFindings.length === 0 && <p className="px-6 py-5 text-sm text-slate-500">No evidence-backed finding is available yet.</p>}
         </div>
       </section>

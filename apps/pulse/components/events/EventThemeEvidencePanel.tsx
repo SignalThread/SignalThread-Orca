@@ -64,7 +64,7 @@ export function EventThemeEvidencePanel({
             {detail.evidence.map((row) => {
               const sentimentLabel = displayableSentimentLabel(row.sentimentLabel)
               return (
-              <article key={`${row.answerId}-${row.createdAt}`} className="min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+              <article data-testid="event-theme-evidence-record" key={`${row.answerId}-${row.createdAt}`} className="min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs text-zinc-400 dark:text-zinc-500">{formatDateTime(row.createdAt)}</span>
                   {sentimentLabel && <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">{sentimentLabel}</span>}

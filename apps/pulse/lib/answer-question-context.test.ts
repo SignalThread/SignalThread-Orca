@@ -37,6 +37,7 @@ describe('resolveAnswerQuestionContext', () => {
       questionType: 'VOICE',
       responseMode: 'VOICE_ONLY',
       scope: 'event',
+      spokenTexts: ['Legacy question'],
     })
   })
 
@@ -79,6 +80,7 @@ describe('resolveAnswerQuestionContext', () => {
       questionType: 'RATING_1_TO_5',
       responseMode: 'TEXT_ONLY',
       scope: 'survey',
+      spokenTexts: ['Survey question'],
     })
   })
 

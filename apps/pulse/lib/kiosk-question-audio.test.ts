@@ -56,4 +56,19 @@ describe('playRuntimeQuestionAudio', () => {
       }),
     )
   })
+
+  it('forwards the response id and question key so the server can verify fallback TTS text', async () => {
+    const { playRuntimeQuestionAudio } = await import('./kiosk-question-audio')
+
+    await playRuntimeQuestionAudio(
+      { id: 'q_visit', text: 'Tell us about your visit.', audioUrl: null },
+      { responseId: 'clresponse000000000000001' },
+    )
+
+    expect(playTtsMock).toHaveBeenCalledWith(
+      'Tell us about your visit.',
+      expect.objectContaining({ responseId: 'clresponse000000000000001', questionKey: 'q_visit' }),
+    )
+    expect(playTtsMock.mock.calls[0][1]).not.toHaveProperty('audioSession')
+  })
 })

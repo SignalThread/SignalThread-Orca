@@ -11,19 +11,20 @@ function fixture() {
     intelligence: {
       eventId: 'event-1', eventName: 'Voice Summit', eventStatus: 'COMPLETED', eventType: 'EVENT', accountType: 'EVENTS', filters: {},
       responseCount: 42, answerCount: 58, avgSentiment: 0.48, highUrgencyCount: 1,
-      eventPulse: { status: 'STABLE', sentimentLabel: 'POSITIVE', urgency: 'LOW', priorityLevel: 'Informational', summary: '', lastComputedAt: '' },
+      eventPulse: { status: 'STABLE', sentimentLabel: 'POSITIVE', urgency: 'LOW', priorityLevel: 'Informational', summary: 'Practical content led, while wayfinding created avoidable friction.', lastComputedAt: '' },
+      attendeeQuestions: ['How will the practical workshops be structured?'],
       topThemes: [
         { themeKey: 'content', label: 'Practical content', count: 8, sentimentLabel: 'POSITIVE', confidence: 0.9 },
         { themeKey: 'wayfinding', label: 'Wayfinding', count: 4, sentimentLabel: 'NEGATIVE', confidence: 0.82 },
       ],
       topActions: [{ themeKey: 'pacing', title: 'Change agenda pacing', description: null, count: 3, priority: 'MEDIUM', priorityLevel: 'Soon', urgency: 'MEDIUM', actionWindow: 'LATER', status: 'OPEN', confidence: 0.76 }],
       targetBreakdown: [
-        { answerCount: 20, avgSentiment: 0.5, topThemes: [{ themeKey: 'content', label: 'Practical content', count: 8, sentimentLabel: 'POSITIVE', confidence: 0.9 }] },
-        { answerCount: 18, avgSentiment: 0.5, topThemes: [] },
-        { answerCount: 20, avgSentiment: 0.45, topThemes: [] },
-        { answerCount: 0, avgSentiment: null, topThemes: [] },
+        { name: 'Main stage', category: 'SESSION', answerCount: 20, avgSentiment: 0.5, topThemes: [{ themeKey: 'content', label: 'Practical content', count: 8, sentimentLabel: 'POSITIVE', confidence: 0.9 }] },
+        { name: 'Expo hall', category: 'AREA', answerCount: 18, avgSentiment: 0.5, topThemes: [] },
+        { name: 'Workshop rooms', category: 'AREA', answerCount: 20, avgSentiment: 0.45, topThemes: [] },
+        { name: 'Registration', category: 'AREA', answerCount: 0, avgSentiment: null, topThemes: [] },
       ],
-      questionBreakdown: [{ answerCount: 58, avgSentiment: 0.48 }], urgentIssues: [], activeAttentionCount: 1, structuredMetrics: [], signalCandidates: [],
+      questionBreakdown: [{ answerCount: 58, avgSentiment: 0.48 }], urgentIssues: [], activeAttentionCount: 1, structuredMetrics: [{ key: 'overall', questionId: 'q-1', questionType: 'RATING_1_TO_5', questionLabel: 'Overall experience', surveyName: 'Event pulse', surveyTargetName: 'Main stage', count: 12, average: 4.2, distribution: {}, recent: { count: 6, average: 4.5 }, preceding: { count: 6, average: 3.9 }, change: 0.6, direction: 'improving', sampleStrength: { level: 'DIRECTIONAL', label: 'Directional', reason: 'Small sample' } }], signalCandidates: [],
       attentionQueue: [{
         id: 'cluster-wayfinding', taxonomyKey: 'wayfinding', title: 'Signs did not match the app', summary: null,
         priorityLevel: 'Immediate', legacyUrgency: 'HIGH', impactScore: 0.8, timeSensitivityScore: 0.8,
@@ -104,6 +105,30 @@ describe('post-event closing brief', () => {
       }],
     })
     expect(wayfinding?.representativeEvidence).toHaveLength(1)
+  })
+
+  it('sends a broad canonical lifecycle packet to the editorial model', () => {
+    const brief = buildEventClosingBrief({ ...fixture(), lifecyclePhase: 'PRE_EVENT' } as never)
+    const editorialInput = buildEventClosingBriefEditorialInput(brief)
+
+    expect(editorialInput.event.lifecycle).toBe('PRE_EVENT')
+    expect(editorialInput.overview).toContain('Practical content')
+    expect(editorialInput.attendeeQuestions).toEqual(['How will the practical workshops be structured?'])
+    expect(editorialInput.patterns.sessions[0]).toMatchObject({ title: 'Opening keynote', finding: 'Useful examples' })
+    expect(editorialInput.patterns.speakers[0]).toMatchObject({ name: 'Jordan Lee', finding: 'Clear explanations' })
+    expect(editorialInput.patterns.eventAreas).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'Expo hall' })]))
+    expect(editorialInput.patterns.changes[0]).toMatchObject({ question: 'Overall experience', direction: 'improving', change: 0.6 })
+    expect(editorialInput.findings.keyFindings.length).toBeGreaterThan(1)
+    expect(editorialInput.followThrough).toEqual([expect.objectContaining({ title: 'Send sponsor follow-up' })])
+  })
+
+  it('never promotes AI recommendations into canonical follow-through', () => {
+    const brief = buildEventClosingBrief(fixture() as never)
+    const editorialInput = buildEventClosingBriefEditorialInput(brief)
+
+    expect(editorialInput.findings.nextEvent.map((item) => item.title)).toContain('Change agenda pacing')
+    expect(editorialInput.followThrough.map((item) => item.title)).not.toContain('Change agenda pacing')
+    expect(editorialInput.followThrough.map((item) => item.title)).toEqual(['Send sponsor follow-up'])
   })
 
   it('keeps unresolved after-event work distinct from next-event learning', () => {

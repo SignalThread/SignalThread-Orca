@@ -10,9 +10,14 @@ export interface RuntimeQuestionPlayback {
   fallbackReason?: string | null
 }
 
+export type RuntimeQuestionPlaybackOptions = PlaybackOptions & {
+  /** The attendee's in-progress response; lets the server verify the fallback TTS text. */
+  responseId?: string
+}
+
 export async function playRuntimeQuestionAudio(
   question: RuntimeQuestionPlayback,
-  options: PlaybackOptions = {},
+  options: RuntimeQuestionPlaybackOptions = {},
 ): Promise<void> {
   if (question.audioUrl) {
     console.info('[Kiosk] Playing cached question audio asset', {
@@ -33,10 +38,14 @@ export async function playRuntimeQuestionAudio(
     locale: question.ttsLocale ?? null,
   })
 
+  const { responseId, ...playback } = options
   return playTTS(question.text, {
-    ...options,
+    ...playback,
     provider: question.ttsProvider ?? undefined,
     voice: question.ttsVoice ?? undefined,
     locale: question.ttsLocale ?? undefined,
+    responseId,
+    // Runtime questions are keyed by their question key (see /api/response/create).
+    questionKey: question.id,
   })
 }

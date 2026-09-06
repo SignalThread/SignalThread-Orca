@@ -297,9 +297,10 @@ async function seedDeletionFixture(db: PrismaClient, eventId: string) {
       locationId: 'events-real-journey-location',
       name: eventName,
       status: EventStatus.ACTIVE,
-      closingBriefSnapshot: {
+      closingBriefSnapshots: {
         create: {
           accountId: REAL_EVENTS_FIXTURE_ACCOUNT_ID,
+          lifecyclePhase: 'POST_EVENT',
           sourceHash: `${eventId}-source`,
           briefHash: `${eventId}-brief`,
           briefJson: { headline: 'Production-shaped brief' },

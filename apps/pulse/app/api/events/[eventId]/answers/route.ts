@@ -1,8 +1,9 @@
 /**
- * LEGACY PUBLIC ROUTE — NOT THE EVENTS PRODUCT SOURCE OF TRUTH
+ * LEGACY ROUTE — NOT THE EVENTS PRODUCT SOURCE OF TRUTH
  *
- * This eventId-based route under /api/events/[eventId]/* is a public,
- * unauthenticated legacy/admin surface. It currently has no known callers
+ * This eventId-based route under /api/events/[eventId]/* is an organizer-authenticated legacy/admin
+ * surface (requireLegacyEventReportingAccess: platform super admin, or an
+ * active member of the account that owns the event). It currently has no known callers
  * (candidate for future cleanup) and is NOT used by the kiosk runtime (kiosk
  * uses /api/response/create and /api/kiosk/*).
  *
@@ -11,9 +12,11 @@
  * Account.accountType === "EVENTS". The authed, account/product-scoped EVENTS
  * app API lives under /api/app/events/*.
  *
- * See docs/event-mode/LEGACY_EVENT_ROUTES.md. Behavior is intentionally unchanged.
+ * See docs/event-mode/LEGACY_EVENT_ROUTES.md. Response shapes are intentionally
+ * unchanged; only the access boundary was added (Pulse access-boundary hardening).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { requireLegacyEventReportingAccess } from '@/lib/auth/require-legacy-event-reporting-access'
 import { prisma } from '@/lib/prisma'
 import type { ApiResponse } from '@/types'
 import { z } from 'zod'
@@ -33,6 +36,9 @@ export async function GET(
 ) {
   try {
     const { eventId } = params
+
+    const access = await requireLegacyEventReportingAccess(eventId)
+    if (!access.ok) return access.response
 
     // Validate eventId
     const schema = z.object({

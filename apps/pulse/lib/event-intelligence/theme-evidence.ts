@@ -254,6 +254,13 @@ export async function getEventThemeEvidence(
         transcriptSnippet: true,
         sentimentScore: true,
         createdAt: true,
+        answer: {
+          select: {
+            promptLabel: true,
+            questionKey: true,
+            answerTranscript: { select: { text: true } },
+          },
+        },
         cluster: { select: { taxonomyKey: true, title: true, confidence: true } },
         question: { select: { id: true, key: true, label: true } },
         surveyTarget: { select: THEME_EVIDENCE_TARGET_SELECT },
@@ -267,7 +274,6 @@ export async function getEventThemeEvidence(
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: 50,
     })
     const evidence = issueRows.map((row) => {
       const effectiveTarget = resolveEffectiveResponseTarget({
@@ -283,9 +289,14 @@ export async function getEventThemeEvidence(
         responseId: row.responseId,
         questionId: row.questionId,
         surveyTargetId: effectiveTarget?.targetId ?? row.surveyTargetId,
-        transcriptSnippet: buildTranscriptSnippet(row.transcriptSnippet),
-        transcriptText: row.transcriptSnippet,
-        question: { id: row.question?.id ?? row.questionId, key: row.question?.key ?? null, label: row.question?.label ?? null, promptLabel: row.question?.label ?? null },
+        transcriptSnippet: buildTranscriptSnippet(row.transcriptSnippet || row.answer.answerTranscript?.text),
+        transcriptText: row.answer.answerTranscript?.text ?? row.transcriptSnippet,
+        question: {
+          id: row.question?.id ?? row.questionId,
+          key: row.question?.key ?? row.answer.questionKey ?? null,
+          label: row.question?.label ?? row.answer.promptLabel ?? null,
+          promptLabel: row.answer.promptLabel ?? row.question?.label ?? null,
+        },
         target: {
           id: target?.id ?? row.surveyTargetId,
           name: target?.name ?? null,
@@ -368,7 +379,6 @@ export async function getEventThemeEvidence(
     orderBy: {
       createdAt: 'desc',
     },
-    take: 50,
   })
 
   const themeLabel = rows[0]?.label ?? humanizeThemeKey(themeKey)

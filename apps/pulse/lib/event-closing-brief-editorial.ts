@@ -8,8 +8,9 @@ import {
   synthesizeEventEditorial,
 } from '@/lib/event-intelligence/editorial-engine'
 import { downloadObjectText, uploadObject } from '@/lib/objectStorage'
+import type { EventLifecyclePhase } from '@/lib/events-home-groups'
 
-export const EVENT_CLOSING_BRIEF_EDITORIAL_PROMPT_VERSION = EVENT_INTELLIGENCE_EDITORIAL_PROMPT_VERSION
+export const EVENT_CLOSING_BRIEF_EDITORIAL_PROMPT_VERSION = `${EVENT_INTELLIGENCE_EDITORIAL_PROMPT_VERSION}-brief-v3`
 export const EVENT_CLOSING_BRIEF_EDITORIAL_MODEL = process.env.EVENT_CLOSING_BRIEF_MODEL?.trim()
   || EVENT_COMMAND_CENTER_MODEL
 
@@ -105,7 +106,15 @@ export interface EventClosingBriefEditorialInput {
   event: {
     id: string
     name: string
-    lifecycle: 'POST_EVENT'
+    lifecycle: EventLifecyclePhase
+  }
+  overview: string
+  attendeeQuestions: string[]
+  patterns: {
+    sessions: Array<{ title: string; finding: string | null; evidenceTier: string; responseCount: number }>
+    speakers: Array<{ name: string; finding: string | null; evidenceTier: string; responseCount: number }>
+    eventAreas: Array<{ name: string; kind: string | null; answerCount: number; sentiment: string | null }>
+    changes: Array<{ question: string; survey: string | null; target: string | null; direction: string; change: number; count: number; strength: string }>
   }
   metrics: {
     responseCount: number
@@ -336,7 +345,7 @@ function closingBriefEditorialFacts(input: EventClosingBriefEditorialInput) {
 
 function groundedOverview(input: EventClosingBriefEditorialInput) {
   return synthesizeEventEditorial({
-    lifecycle: 'POST_EVENT',
+    lifecycle: input.event.lifecycle === 'IN_EVENT' ? 'DURING_EVENT' : input.event.lifecycle,
     eventName: input.event.name,
     facts: closingBriefEditorialFacts(input),
   })
@@ -572,7 +581,7 @@ export function buildEventClosingBriefEditorialFallback(
   const friction = input.findings.friction.map((finding) => finding.title).slice(0, 2)
   const next = input.findings.nextEvent.map((finding) => finding.title).slice(0, 2)
   const coreEditorial = synthesizeEventEditorial({
-    lifecycle: 'POST_EVENT',
+    lifecycle: input.event.lifecycle === 'IN_EVENT' ? 'DURING_EVENT' : input.event.lifecycle,
     eventName: input.event.name,
     facts: closingBriefEditorialFacts(input),
   })
@@ -583,8 +592,16 @@ export function buildEventClosingBriefEditorialFallback(
     ? `The clearest friction involved ${naturalList(friction.map(lowerLead))}.`
     : 'No recurring source of friction was established in the current evidence.'
   const nextEventNarrative = next.length
-    ? `Next-event planning should revisit ${naturalList(next.map(lowerLead))}.`
-    : 'No evidence-backed next-event priority has emerged yet.'
+    ? input.event.lifecycle === 'PRE_EVENT'
+      ? `Final preparation should center on ${naturalList(next.map(lowerLead))}.`
+      : input.event.lifecycle === 'IN_EVENT'
+        ? `The team should keep ${naturalList(next.map(lowerLead))} under active review while there is still time to respond.`
+        : `Next-event planning should revisit ${naturalList(next.map(lowerLead))}.`
+    : input.event.lifecycle === 'PRE_EVENT'
+      ? 'No additional preparation priority is supported yet.'
+      : input.event.lifecycle === 'IN_EVENT'
+        ? 'No additional live intervention priority is supported yet.'
+        : 'No evidence-backed next-event priority has emerged yet.'
   const coverageNarrative = groundedCoverageNarrative(input)
 
   return {
@@ -612,7 +629,20 @@ export function buildEventClosingBriefEditorialFallback(
 }
 
 function promptFor(input: EventClosingBriefEditorialInput, validationFeedback?: string): string {
-  return `Write the post-event JSON payload for SignalThread's canonical Event Intelligence editorial engine.
+  const stage = input.event.lifecycle === 'PRE_EVENT' ? 'pre-event' : input.event.lifecycle === 'IN_EVENT' ? 'during-event' : 'post-event'
+  const lifecycleQuestions = input.event.lifecycle === 'PRE_EVENT'
+    ? `- Explain what attendees expect and care about most.
+- Connect speaker questions, program interests, concerns, and preparation priorities.
+- Close with what leadership, production, programming, marketing, and operations should prioritize before doors open.`
+    : input.event.lifecycle === 'IN_EVENT'
+      ? `- Explain how the event is actually going, what is working, and what friction is emerging.
+- Distinguish what the team should protect, fix while there is still time, and watch.
+- Treat only supplied user-created follow-through as committed work.`
+      : `- Explain what defined the event, what worked best, and what held the experience back.
+- Make clear what post-event feedback confirmed or sharpened beyond the during-event evidence.
+- Close with what to repeat, change, carry forward, and complete.`
+
+  return `Write the ${stage} JSON payload for SignalThread's canonical Event Intelligence Brief.
 
 Return ONLY this JSON object:
 {
@@ -626,15 +656,23 @@ Return ONLY this JSON object:
   "findingNarratives": [{ "findingId": "the exact canonical finding ID", "narrative": "one or two grounded sentences" }]
 }
 
-${eventEditorialWritingRules('POST_EVENT')}
+${eventEditorialWritingRules(input.event.lifecycle === 'IN_EVENT' ? 'DURING_EVENT' : input.event.lifecycle)}
 
 Closing-brief requirements:
+- Write as a senior event organizer and strong internal communicator preparing a polished one-page update for leadership, production, programming, marketing, and operations.
 - Use the headline, executiveSummary, and keyTakeaway to tell one coherent leadership story. Do not turn the brief into a findings dump.
 - Build executiveSummary from multiple major evidence clusters when they are available; it must not collapse to the first key finding and first risk.
+- Synthesize the supplied overview, findings, strengths, friction, attendee questions, session/speaker/event-area patterns, evidence weight, meaningful sentiment, emerging patterns, and user-created follow-through. Do not mechanically enumerate the packet.
+- Avoid generic AI phrasing, including the data indicates, analyzed responses suggest, evidence demonstrates, evidence suggests, and repeated attendees said framing. Use numbers only when genuinely important to the story.
+- Recommendations may connect supported findings to practical next steps, but must not invent facts, metrics, quotes, operational issues, successes, or committed actions.
+- Only followThrough contains canonical user-created actions. Finding recommendations and session learning are intelligence, not committed actions.
 - Reflect the supplied balance of strengths and friction. Do not call the event successful unless a canonical finding says so.
 - Return one findingNarratives entry for every supplied key finding, using its exact ID. Keep each narrative within that finding's supplied statement and evidence; no invented causes, quotes, or action plans.
 - Treat EMERGING findings as early or directional. Empty groups remain empty or say that no recurring pattern was established.
 - Keep coverageNarrative factual and brief; metrics are shown elsewhere.
+
+Lifecycle questions this brief must answer:
+${lifecycleQuestions}
 
 Structured canonical intelligence:
 ${JSON.stringify(input)}${validationFeedback ? `

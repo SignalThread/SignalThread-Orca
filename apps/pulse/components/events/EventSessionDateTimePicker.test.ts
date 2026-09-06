@@ -10,6 +10,8 @@ import {
 
 const source = readFileSync('components/events/EventSessionDateTimePicker.tsx', 'utf8')
 const workspaceSource = readFileSync('components/events/EventAgendaWorkspace.tsx', 'utf8')
+const actionComposerSource = readFileSync('components/events/EventActionComposer.tsx', 'utf8')
+const actionsWorkspaceSource = readFileSync('components/events/EventActionsWorkspace.tsx', 'utf8')
 
 describe('EventSessionDateTimePicker', () => {
   it('defaults the End date to a newly selected Start date', () => {
@@ -58,5 +60,18 @@ describe('EventSessionDateTimePicker', () => {
     expect(source).toContain('formatSessionTimeValue(option)')
     expect(source).not.toContain('type="time"')
     expect(source).not.toContain('placeholder="HH:MM"')
+  })
+
+  it('is the only date/time control used by the action experience', () => {
+    expect(actionComposerSource).toContain('EventSessionDateTimePicker')
+    expect(actionsWorkspaceSource).toContain('EventSessionDateTimePicker')
+    expect(actionComposerSource).not.toContain('type="datetime-local"')
+    expect(actionsWorkspaceSource).not.toContain('type="datetime-local"')
+    expect(actionComposerSource).not.toContain('type="date"')
+    expect(actionComposerSource).not.toContain('type="time"')
+    expect(actionsWorkspaceSource).not.toContain('type="date"')
+    expect(actionsWorkspaceSource).not.toContain('type="time"')
+    expect(source).toContain('clearable = false')
+    expect(source).toContain('Clear due date')
   })
 })

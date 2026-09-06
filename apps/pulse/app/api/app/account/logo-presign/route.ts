@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { requireAccountMembership } from '@/lib/auth/require-account-membership'
 import { presignPut, getStorageConfig } from '@/lib/objectStorage'
 import { z } from 'zod'
 
@@ -19,6 +19,9 @@ const schema = z.object({
 /**
  * POST /api/app/account/logo-presign
  * Get presigned URL for logo upload. Key format: branding/{accountId}/logo-{ts}.{ext}
+ *
+ * Organizer-authenticated: the caller must be a member of the account named
+ * in the body (same guard as the settings PATCH that stores the logo URL).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -35,15 +38,11 @@ export async function POST(request: NextRequest) {
 
     const { account: accountSlug, fileName, fileSize, mimeType } = parsed.data
 
-    const account = await prisma.account.findUnique({
-      where: { slug: accountSlug },
-      select: { id: true },
-    })
-    if (!account) {
-      return NextResponse.json({ success: false, error: 'Account not found' }, { status: 404 })
-    }
+    const membership = await requireAccountMembership(accountSlug, { allowSuperAdmin: true })
+    if (!membership.ok) return membership.response
+    const account = membership.account
 
-    const ext = fileName.split('.').pop() || 'png'
+    const ext = (fileName.split('.').pop() || 'png').toLowerCase()
     const key = `branding/${account.id}/logo-${Date.now()}.${ext}`
 
     const bucket = config.bucket

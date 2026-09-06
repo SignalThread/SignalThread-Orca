@@ -108,6 +108,37 @@ describe('Event dashboard canonical selection', () => {
     expect(allPreEvent.evidenceScope).toBeNull()
   })
 
+  it('keeps PRE event-wide while preserving Sessions and Speakers for During and Post', () => {
+    for (const lifecycle of ['in-event', 'post-event'] as const) {
+      for (const intelligenceScope of ['event-areas', 'sessions', 'speakers'] as const) {
+        const selection = hydrateEventDashboardSelection({ lifecycle, intelligenceScope, raw: {}, metadata })
+        expect(selection.intelligenceScope).toBe(intelligenceScope)
+      }
+    }
+
+    const pre = hydrateEventDashboardSelection({ lifecycle: 'pre-event', intelligenceScope: 'sessions', raw: {}, metadata })
+    expect(pre.intelligenceScope).toBe('event-areas')
+  })
+
+  it('keeps Post entity scopes and their canonical filters when navigating from During', () => {
+    const duringSession = hydrateEventDashboardSelection({
+      lifecycle: 'in-event',
+      intelligenceScope: 'sessions',
+      raw: { surveyId: 'survey_session', eventStructureItemId: 'session_1' },
+      metadata,
+    })
+    const postSession = transitionEventDashboardSelection(duringSession, { type: 'set-lifecycle', lifecycle: 'post-event' }, metadata)
+    const postSpeaker = transitionEventDashboardSelection(postSession, { type: 'set-intelligence-scope', intelligenceScope: 'speakers' }, metadata)
+
+    expect(postSession).toMatchObject({ lifecycle: 'post-event', intelligenceScope: 'sessions' })
+    expect(postSession.dataScope).toEqual({
+      type: 'survey-structure',
+      surveyId: 'survey_session',
+      structure: { type: 'structure-item', eventStructureItemId: 'session_1' },
+    })
+    expect(postSpeaker).toMatchObject({ lifecycle: 'post-event', intelligenceScope: 'speakers', dataScope: { type: 'all' } })
+  })
+
   it('clears Event Area filters when moving to Sessions or Speakers', () => {
     const scoped = transitionEventDashboardSelection(allSelection, { type: 'select-survey', surveyId: 'survey_session' }, metadata)
     const sessions = transitionEventDashboardSelection(scoped, { type: 'set-intelligence-scope', intelligenceScope: 'sessions' }, metadata)

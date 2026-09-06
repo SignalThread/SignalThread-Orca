@@ -234,15 +234,37 @@ while a one-time token sat in the query string. Narrower per-path entries now ex
 for `/api/launch/:path*` and `/auth/callback`, and regression tests pin both the
 entries and their ordering.
 
-### Adding a product (Registration, Housing, Pulse, Lead Retrieval)
+### Adding a product (Registration, Housing, Lead Retrieval)
 
 1. `PRODUCT_APP_URL_ENV` entry in `apps/platform/lib/server/product-registry.ts`
-2. a return-path case in `buildProductReturnPath`
-3. a callback in the product that exchanges `token_hash` with its **anon** key
-4. the product's own RBAC
+2. `PRODUCT_AUTH_AUTHORITY` entry: `platform-core` if the product authenticates
+   against Platform Core Auth (Orca), `own` if it runs its own Supabase Auth (Pulse)
+3. a return-path case in `buildProductReturnPath`
+4. in the product: for `platform-core`, a callback that exchanges `token_hash` with
+   its **anon** key; for `own`, a `/platform-entry` that posts the token to
+   `POST /api/launch/<product>/claim` and maps the returned canonical ids locally.
+   An own-authority product should also bind the launch to the browser: send an
+   opaque `state` correlator on the launch URL, which Platform relays back
+   unchanged on the handoff redirect (correlation only — it never reaches
+   authorization). See `docs/PLATFORM_PULSE_HANDOFF.md`.
+5. the product's own RBAC
 
 `authorizeProductLaunch` is product-agnostic — asserted by a test that fails if
-Orca-specific logic appears in it. No new authorization or handoff code is required.
+product-specific logic appears in it. No new authorization or handoff code is required.
+
+### Pulse (own auth authority) — implemented
+
+Pulse owns a separate Supabase Auth project, so it must never hold a Platform Core
+session. Instead of exchanging the token itself, Pulse hands it back to
+`POST /api/launch/pulse/claim`, which exchanges it once (throwaway anon client,
+session revoked), enforces a freshness bound, **re-runs `authorizeProductLaunch`**,
+and returns only `{ platform_user_id, organization_id, event_id, product }`. Pulse
+resolves those through its mapping columns, applies its own access model, and opens
+a session in its own Auth project for the mapped user. Pulse's launch is also
+browser-bound: it sends `state=SHA-256(nonce)` (nonce kept in an HttpOnly cookie),
+Platform echoes it back on the redirect, and Pulse refuses to redeem a handoff whose
+relayed correlator does not match its own cookie. Full design, threat notes
+and proof of ordering: `docs/PLATFORM_PULSE_HANDOFF.md`.
 
 ## 4e. Environment contract (definitive, no secret values)
 
@@ -256,6 +278,9 @@ Orca-specific logic appears in it. No new authorization or handoff code is requi
 | `PLATFORM_CORE_SERVICE_ROLE_KEY` | **server-only** | production — never `NEXT_PUBLIC_` |
 | `ORCA_APP_URL` | **server-only** | production — handoff destination |
 | `NEXT_PUBLIC_ORCA_APP_URL` | client | optional fallback for the above |
+| `PULSE_APP_URL` | **server-only** | production — `https://voice.signalthread.ai` |
+| `NEXT_PUBLIC_PULSE_APP_URL` | client | optional fallback for the above |
+| `HANDOFF_MAX_AGE_SECONDS` | server-only | optional claim freshness bound (default 300) |
 | `PLATFORM_CORE_PROJECT_REF` | server-only | optional (scripts; defaults to the Platform ref) |
 | `RLS_*` | server-only | local verification only |
 

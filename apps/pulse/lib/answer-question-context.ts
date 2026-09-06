@@ -24,6 +24,14 @@ export interface AnswerQuestionContext {
   responseTarget: 'GENERAL' | 'SESSION' | 'SPEAKERS'
   responseMode: 'VOICE_ONLY' | 'TEXT_ONLY' | 'VOICE_AND_TEXT'
   scope: 'event' | 'survey'
+  /** Exact strings the kiosk may ask the server to speak for this question (label and TTS override). */
+  spokenTexts: string[]
+}
+
+function spokenTextsFor(question: { label?: string | null; ttsText?: string | null }): string[] {
+  return [question.label, question.ttsText]
+    .map((value) => value?.trim() ?? '')
+    .filter((value, index, all) => value.length > 0 && all.indexOf(value) === index)
 }
 
 export function isAnswerQuestionContextError(error: unknown): error is AnswerQuestionContextError {
@@ -123,6 +131,7 @@ export async function resolveAnswerQuestionContext(
       responseTarget: question.responseTarget,
       responseMode: response.responseMode,
       scope: 'survey',
+      spokenTexts: spokenTextsFor(question),
     }
   }
 
@@ -131,8 +140,8 @@ export async function resolveAnswerQuestionContext(
     throw new AnswerQuestionContextError('This event does not have any questions configured', 400)
   }
 
-  const questionExists = questions.some((question) => question.key === input.questionKey)
-  if (!questionExists) {
+  const eventQuestion = questions.find((question) => question.key === input.questionKey)
+  if (!eventQuestion) {
     throw new AnswerQuestionContextError(
       `Question with key "${input.questionKey}" does not exist in this event`,
       404,
@@ -149,5 +158,6 @@ export async function resolveAnswerQuestionContext(
     responseTarget: 'GENERAL',
     responseMode: response.responseMode,
     scope: 'event',
+    spokenTexts: spokenTextsFor(eventQuestion),
   }
 }

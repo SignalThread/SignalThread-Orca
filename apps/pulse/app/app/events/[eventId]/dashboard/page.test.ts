@@ -161,14 +161,18 @@ describe('EVENTS command center live refresh', () => {
     expect(dashboardPageSource).toContain('isPostEvent={isPostEventLifecycle}')
   })
 
-  it('keeps the lifecycle switcher local to the Advanced Events demo and sends only its dev override to the lifecycle APIs', () => {
+  it('keeps the lifecycle switcher on allowlisted demo events and sends its existing devLifecycle override to the lifecycle APIs', () => {
     expect(dashboardPageSource).toContain('advanced-demo-lifecycle-switcher')
-    expect(dashboardPageSource).toContain('isLocalAdvancedDemoLifecycleEnvironment')
+    expect(dashboardPageSource).toContain('getAdvancedDemoLifecycleMode')
+    expect(dashboardPageSource).toContain("advancedDemoLifecycleMode === 'production-demo'")
+    expect(dashboardPageSource).toContain("([['pre', 'Pre'], ['during', 'During'], ['post', 'Post']] as const)")
+    expect(dashboardPageSource).toContain('effectiveDemoLifecycleValue === value')
     expect(dashboardPageSource).toContain('DEV_LIFECYCLE_QUERY_PARAM')
-    expect(dashboardPageSource).toContain('resolveLocalAdvancedDemoLifecycleOverride')
+    expect(dashboardPageSource).toContain('resolveAdvancedDemoLifecycleOverride')
     expect(dashboardPageSource).toContain('[DEV_LIFECYCLE_QUERY_PARAM]: value')
     expect(dashboardPageSource).toContain('analysisParams.set(DEV_LIFECYCLE_QUERY_PARAM, devLifecycleOverride)')
     expect(dashboardPageSource).toContain('params.set(DEV_LIFECYCLE_QUERY_PARAM, devLifecycleOverride)')
+    expect(dashboardPageSource).toContain('new URLSearchParams(searchParams.toString())')
   })
 
   it('removes view-specific drilldown state when switching Signals tabs', () => {

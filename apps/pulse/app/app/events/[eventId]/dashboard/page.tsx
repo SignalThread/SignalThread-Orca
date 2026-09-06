@@ -23,9 +23,9 @@ import type { EventClosingBrief } from '@/lib/event-closing-brief'
 import { getEventDisplayStatusForPhase, type EventLifecyclePhase } from '@/lib/events-home-groups'
 import {
   DEV_LIFECYCLE_QUERY_PARAM,
-  isLocalAdvancedDemoLifecycleEnvironment,
+  getAdvancedDemoLifecycleMode,
   parseAdvancedDemoLifecycleOverride,
-  resolveLocalAdvancedDemoLifecycleOverride,
+  resolveAdvancedDemoLifecycleOverride,
 } from '@/lib/advanced-events-demo-lifecycle'
 import { dashboardHumanizeAction } from '@/lib/insights/dashboard-humanize'
 import { isEventsAccount, isRetailAccount } from '@/lib/account-product-mode'
@@ -1601,23 +1601,31 @@ function EventDashboardContent() {
   const refreshDashboardRef = useRef<() => void>(() => {})
   const activeSignalsTabRef = useRef<HTMLAnchorElement>(null)
   const localDevHostname = mounted ? window.location.hostname : null
-  const isLocalAdvancedDemoLifecycleQa = isLocalAdvancedDemoLifecycleEnvironment({
+  const advancedDemoLifecycleMode = getAdvancedDemoLifecycleMode({
     eventId,
     accountSlug,
     hostname: localDevHostname,
   })
-  const devLifecycleOverride = isLocalAdvancedDemoLifecycleQa
+  const isAdvancedDemoLifecycleQa = advancedDemoLifecycleMode !== null
+  const devLifecycleOverride = isAdvancedDemoLifecycleQa
     ? parseAdvancedDemoLifecycleOverride(searchParams.get(DEV_LIFECYCLE_QUERY_PARAM))
     : null
-  const devLifecyclePhase = resolveLocalAdvancedDemoLifecycleOverride({
+  const devLifecyclePhase = resolveAdvancedDemoLifecycleOverride({
     eventId,
     accountSlug,
     hostname: localDevHostname,
     value: searchParams.get(DEV_LIFECYCLE_QUERY_PARAM),
   })
-  // Production always receives the canonical date-derived phase. The one local
-  // Advanced Events demo may opt into a QA-only effective phase.
+  // Normal events always receive the canonical date-derived phase. Only the
+  // explicitly allowlisted local and production demo events may override it.
   const effectiveLifecyclePhase = devLifecyclePhase ?? analysisData?.lifecyclePhase
+  const effectiveDemoLifecycleValue = effectiveLifecyclePhase === 'PRE_EVENT'
+    ? 'pre'
+    : effectiveLifecyclePhase === 'POST_EVENT'
+      ? 'post'
+      : effectiveLifecyclePhase === 'IN_EVENT'
+        ? 'during'
+        : null
   const isPreEventLifecycleForSelection = effectiveLifecyclePhase === 'PRE_EVENT'
   const selectionMetadata = useMemo(() => ({
     surveys: surveys
@@ -2639,10 +2647,16 @@ function EventDashboardContent() {
         signalsTab === 'intelligence' ? (
           <section className="mx-auto w-full max-w-[1176px] space-y-5">
                 {!isPreEventIntelligence && intelligenceScopeControls}
-                {isLocalAdvancedDemoLifecycleQa && <div data-testid="advanced-demo-lifecycle-switcher" className="flex flex-wrap items-center justify-end gap-1.5 text-[10px] font-semibold text-slate-500">
-                  <span className="mr-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-black tracking-[0.12em] text-amber-700">DEV</span>
-                  {([['pre', 'Pre'], ['during', 'During'], ['post', 'Post'], [null, 'Auto']] as const).map(([value, label]) => {
-                    const selected = value === null ? !devLifecycleOverride : devLifecycleOverride === value
+                {isAdvancedDemoLifecycleQa && <div data-testid="advanced-demo-lifecycle-switcher" className="flex flex-wrap items-center justify-end gap-1.5 text-[10px] font-semibold text-slate-500">
+                  <span className="mr-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-black tracking-[0.12em] text-amber-700">{advancedDemoLifecycleMode === 'production-demo' ? 'DEMO' : 'DEV'}</span>
+                  {(advancedDemoLifecycleMode === 'production-demo'
+                    ? ([['pre', 'Pre'], ['during', 'During'], ['post', 'Post']] as const)
+                    : ([['pre', 'Pre'], ['during', 'During'], ['post', 'Post'], [null, 'Auto']] as const)
+                  ).map(([value, label]) => {
+                    const selected = value === null
+                      ? !devLifecycleOverride
+                      : devLifecycleOverride === value
+                        || (advancedDemoLifecycleMode === 'production-demo' && !devLifecycleOverride && effectiveDemoLifecycleValue === value)
                     return <button key={label} type="button" aria-pressed={selected} onClick={() => router.replace(buildDashboardQueryPath({ [DEV_LIFECYCLE_QUERY_PARAM]: value }))} className={`rounded-md border px-2 py-1 transition-colors ${selected ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-transparent bg-slate-50 text-slate-500 hover:border-slate-200 hover:bg-white'}`}>{label}</button>
                   })}
                 </div>}

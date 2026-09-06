@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { requireAuthenticatedPulseUser } from '@/lib/auth/require-authenticated-user'
 import {
   buildQuestionPrompt,
   normalizeGeneratedQuestions,
@@ -14,9 +15,16 @@ export const dynamic = 'force-dynamic'
  *
  * Generate survey questions using OpenAI gpt-4o-mini. Supports an event-native
  * generation mode while preserving the original retail/SMB behavior.
+ *
+ * Organizer-authenticated: this is a billable drafting aid inside the survey
+ * builder, so the caller must be an active Pulse user (or platform super
+ * admin). It is not bound to one account resource, hence no slug parameter.
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuthenticatedPulseUser()
+    if (!auth.ok) return auth.response
+
     const body = await request.json()
     const normalized = normalizeQuestionRequest(body)
 

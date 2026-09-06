@@ -9,6 +9,14 @@ import {
 function input(overrides: Partial<EventClosingBriefEditorialInput['metrics']> = {}): EventClosingBriefEditorialInput {
   return {
     event: { id: 'event-toronto', name: 'Toronto Clubhouse', lifecycle: 'POST_EVENT' },
+    overview: 'Networking led the experience while pacing created avoidable friction.',
+    attendeeQuestions: ['How can we make introductions easier?'],
+    patterns: {
+      sessions: [{ title: 'Opening keynote', finding: 'Useful practical examples', evidenceTier: 'REPEATED', responseCount: 8 }],
+      speakers: [{ name: 'Jordan Lee', finding: 'Clear delivery', evidenceTier: 'REPEATED', responseCount: 6 }],
+      eventAreas: [{ name: 'Main lounge', kind: 'AREA', answerCount: 14, sentiment: 'POSITIVE' }],
+      changes: [{ question: 'Overall experience', survey: 'Event pulse', target: null, direction: 'improving', change: 0.4, count: 12, strength: 'Directional' }],
+    },
     metrics: {
       responseCount: 25,
       answerCount: 91,

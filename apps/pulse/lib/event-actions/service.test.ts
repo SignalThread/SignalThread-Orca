@@ -186,7 +186,10 @@ describe('canonical EventIssueCluster action service', () => {
       where: expect.objectContaining({
         actionClassification: { not: null },
         actionStatus: { not: null },
-        evidence: { some: { response: { collectionPhase: { in: ['DURING', 'POST'] } } } },
+        OR: [
+          { ruleType: 'MANUAL_ACTION' },
+          { evidence: { some: { response: { collectionPhase: { in: ['DURING', 'POST'] } } } } },
+        ],
       }),
       include: expect.objectContaining({
         _count: { select: { evidence: { where: { response: { collectionPhase: { in: ['DURING', 'POST'] } } } }, actionUpdates: true } },
@@ -335,7 +338,7 @@ describe('canonical EventIssueCluster action service', () => {
     expect(provider.send).toHaveBeenCalledTimes(1)
   })
 
-  it('enforces valid transitions and required blocked/resolution context', async () => {
+  it('enforces blocked context while allowing the simplified one-click completion', async () => {
     const db = dbMock(cluster({ ownerUserId: 'owner_1', actionStatus: 'OPEN' }))
     await expect(transitionEventAction({
       accountId: 'account_1', eventId: 'event_1', clusterId: 'cluster_1', actorUserId: 'actor_1',
@@ -344,7 +347,7 @@ describe('canonical EventIssueCluster action service', () => {
     await expect(transitionEventAction({
       accountId: 'account_1', eventId: 'event_1', clusterId: 'cluster_1', actorUserId: 'actor_1',
       status: 'COMPLETE', idempotencyKey: 'complete-request-1', now,
-    }, db as never)).rejects.toMatchObject({ status: 400 })
+    }, db as never)).resolves.toMatchObject({ actionStatus: 'COMPLETE', actionResolution: 'Marked done' })
     await expect(transitionEventAction({
       accountId: 'account_1', eventId: 'event_1', clusterId: 'cluster_1', actorUserId: 'actor_1',
       status: 'UNASSIGNED', idempotencyKey: 'unassign-request-1', now,

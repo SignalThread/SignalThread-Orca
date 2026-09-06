@@ -17,6 +17,14 @@ model Account {
   name String
   slug String @unique // URL-safe identifier
 
+  /// Canonical SignalThread Platform Core organization id. Additive, nullable and
+  /// explicitly assigned. Deliberately NOT unique: one Account maps to at most one
+  /// organization, but an organization may own several Pulse Accounts (production has a
+  /// single contact email across 12 RETAIL accounts, and RETAIL/EVENTS are separate
+  /// account types). Resolution treats more than one match as ambiguous rather than
+  /// picking a row. See docs/PLATFORM_IDENTITY_MAPPING.md.
+  platformOrganizationId String? @db.Uuid
+
   // Account type and tier
   accountType AccountType @default(RETAIL)
   tier        String      @default("starter") // starter, growth, enterprise (plan)
@@ -64,6 +72,7 @@ model Account {
   @@index([slug])
   @@index([accountType])
   @@index([isActive])
+  @@index([platformOrganizationId])
 }
 
 enum AccountType {
@@ -150,6 +159,13 @@ model Event {
   name        String
   description String? @db.Text
 
+  /// Canonical SignalThread Platform Core event id. Pulse Event is overloaded: it backs
+  /// both Events-product workspaces and Retail feedback campaigns, so this stays nullable
+  /// and is assigned explicitly — a Retail campaign never receives one and nothing infers
+  /// a mapping from name, slug or demo data. Unique so a canonical event resolves to one
+  /// Pulse workspace; Postgres allows unlimited NULLs, so unmapped rows are unaffected.
+  platformEventId String? @unique @db.Uuid
+
   // Kiosk / survey: how respondents may answer (voice, text, or both)
   responseMode ResponseMode @default(VOICE_ONLY)
 
@@ -212,7 +228,7 @@ model Event {
   eventActionDeliveryAttempts EventActionDeliveryAttempt[]
   speakerAssignments          EventSessionSpeakerAssignment[] @relation("EventSpeakerAssignmentEvent")
   agendaImportJobs            EventAgendaImportJob[]
-  closingBriefSnapshot        EventClosingBriefSnapshot?
+  closingBriefSnapshots       EventClosingBriefSnapshot[]
 
   @@index([locationId])
   @@index([status])
@@ -227,7 +243,8 @@ model Event {
 model EventClosingBriefSnapshot {
   id          String   @id @default(cuid())
   accountId   String
-  eventId     String   @unique
+  eventId     String
+  lifecyclePhase String
   sourceHash  String
   briefHash   String
   briefJson   Json
@@ -241,6 +258,7 @@ model EventClosingBriefSnapshot {
   @@index([accountId])
   @@index([accountId, eventId])
   @@index([briefHash])
+  @@unique([eventId, lifecyclePhase])
 }
 
 model Question {
@@ -1125,6 +1143,12 @@ model EventIssueCluster {
   actionResolution        String?                    @db.Text
   actionConvertedAt       DateTime?
   actionConvertedByUserId String?
+  /// The redesigned action layer keeps urgency as one explicit, optional flag.
+  /// Legacy priority remains available for older consumers but no longer drives
+  /// the Events action experience.
+  actionUrgent            Boolean                    @default(false)
+  /// Owners receive the single 15-minute reminder unless the creator turns it off.
+  actionReminderEnabled   Boolean                    @default(true)
   createdAt               DateTime                   @default(now())
   updatedAt               DateTime                   @updatedAt
 
@@ -1533,6 +1557,11 @@ model ProcessingLog {
 model User {
   id                     String                  @id // Supabase user.id (uuid)
   email                  String                  @unique
+  /// Canonical SignalThread Platform Core user id. Additive and nullable during the
+  /// transition; assigned explicitly, never inferred from email. Unique because a
+  /// canonical Platform user must resolve to exactly one Pulse user. Pulse keeps its own
+  /// primary key (the Pulse Supabase Auth uuid).
+  platformUserId         String?                 @unique @db.Uuid
   firstName              String?
   lastName               String?
   role                   UserRole                @default(ADMIN)
@@ -1559,7 +1588,11 @@ model AccountUserMembership {
   userId    String
   accountId String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // 20260817160000_add_account_user_memberships created this column as
+  // NOT NULL DEFAULT CURRENT_TIMESTAMP, mirroring createdAt. @updatedAt keeps
+  // Prisma Client writing the value on every update; @default(now()) is what
+  // makes this model match the DDL that is already applied everywhere.
+  updatedAt DateTime @default(now()) @updatedAt
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)

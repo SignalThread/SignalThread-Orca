@@ -4,6 +4,13 @@ import type { EventIntelligenceEvidenceStrength, EventIntelligenceFinding } from
 import type { ReactNode } from 'react'
 import { evidenceTierLabel, type EventEvidenceTier } from '@/lib/event-intelligence/evidence-model'
 import type { InEventOverviewIssueItem } from '@/components/events/EventInEventOverview'
+import {
+  EventActionableItem,
+  resolveEventActionSource,
+  type CanonicalEventAction,
+  type CanonicalEventActionFinding,
+  type EventActionOwner,
+} from '@/components/events/EventActionComposer'
 
 interface IntelligenceCoverageOption {
   id: string
@@ -28,6 +35,11 @@ interface EventInEventIntelligenceProps {
   onQuestionChange: (id: string) => void
   onReviewFinding: (finding: EventIntelligenceFinding) => void
   onReviewIssue: (issue: InEventOverviewIssueItem) => void
+  eventId: string
+  accountSlug: string
+  actionOwners: EventActionOwner[]
+  canonicalActions: CanonicalEventAction[]
+  canonicalActionFindings: CanonicalEventActionFinding[]
 }
 
 function IntelligenceRow({
@@ -41,6 +53,13 @@ function IntelligenceRow({
   action,
   selected,
   onReview,
+  eventId,
+  accountSlug,
+  actionOwners,
+  canonicalActions,
+  canonicalActionFindings,
+  clusterId,
+  themeKeys,
 }: {
   title: string
   description: string
@@ -52,10 +71,22 @@ function IntelligenceRow({
   action?: string
   selected: boolean
   onReview: () => void
+  eventId: string
+  accountSlug: string
+  actionOwners: EventActionOwner[]
+  canonicalActions: CanonicalEventAction[]
+  canonicalActionFindings: CanonicalEventActionFinding[]
+  clusterId?: string | null
+  themeKeys?: string[]
 }) {
   const tone = strength === 'strong' ? 'text-emerald-700' : strength === 'directional' ? 'text-amber-700' : 'text-slate-500'
+  const actionReference = resolveEventActionSource(
+    { actions: canonicalActions, availableFindings: canonicalActionFindings },
+    { clusterId, title, themeKeys, evidenceLabel: 'Evidence →' },
+  )
   return (
     <article className={`relative border-b border-slate-200 px-5 py-[18px] last:border-b-0 ${selected ? 'bg-violet-50/50' : 'bg-white'}`}>
+      <EventActionableItem eventId={eventId} accountSlug={accountSlug} owners={actionOwners} source={actionReference.source} actioned={actionReference.actioned} className="rounded-lg">
       <div className="flex items-start gap-4">
         <span className={`mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${strength === 'strong' ? 'bg-emerald-50 text-emerald-700' : strength === 'directional' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'}`} aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-[18px] w-[18px]"><circle cx="12" cy="12" r="3" /><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1" /></svg>
@@ -73,6 +104,7 @@ function IntelligenceRow({
           Review evidence
         </button>
       </div>
+      </EventActionableItem>
     </article>
   )
 }
@@ -95,16 +127,21 @@ export function EventInEventIntelligence({
   onQuestionChange,
   onReviewFinding,
   onReviewIssue,
+  eventId,
+  accountSlug,
+  actionOwners,
+  canonicalActions,
+  canonicalActionFindings,
 }: EventInEventIntelligenceProps) {
   const immediateItems = [...currentIssues.slice(0, 5), ...currentFindings].slice(0, 5)
   const futureItems = [...nextEventFindings, ...afterEventFindings]
 
   const renderFinding = (finding: EventIntelligenceFinding) => (
-    <IntelligenceRow key={finding.id} title={finding.title} description={finding.description || 'Review the linked attendee evidence.'} count={finding.mentionCount} analyzedResponseCount={finding.evidence.uniqueAnalyzedResponseCount} sources={finding.sourceCount} strength={finding.evidenceStrength} evidenceTier={finding.evidenceTier} selected={selectedThemeKey === finding.evidenceThemeKey} onReview={() => onReviewFinding(finding)} />
+    <IntelligenceRow key={finding.id} eventId={eventId} accountSlug={accountSlug} actionOwners={actionOwners} canonicalActions={canonicalActions} canonicalActionFindings={canonicalActionFindings} themeKeys={finding.evidenceThemeKeys} title={finding.title} description={finding.description || 'Review the linked attendee evidence.'} count={finding.mentionCount} analyzedResponseCount={finding.evidence.uniqueAnalyzedResponseCount} sources={finding.sourceCount} strength={finding.evidenceStrength} evidenceTier={finding.evidenceTier} selected={selectedThemeKey === finding.evidenceThemeKey} onReview={() => onReviewFinding(finding)} />
   )
 
   const renderIssue = (item: InEventOverviewIssueItem | EventIntelligenceFinding) => 'evidenceCount' in item ? (
-    <IntelligenceRow key={item.id ?? item.taxonomyKey} title={item.title} description={item.summary || item.recommendedNextStep || 'Review the linked attendee evidence before acting.'} count={item.evidenceCount} sources={item.affectedTarget ? 1 : 0} strength="weak" evidenceTier="ISOLATED" selected={selectedIssue?.id === item.id} onReview={() => onReviewIssue(item)} />
+    <IntelligenceRow key={item.id ?? item.taxonomyKey} eventId={eventId} accountSlug={accountSlug} actionOwners={actionOwners} canonicalActions={canonicalActions} canonicalActionFindings={canonicalActionFindings} clusterId={item.id} themeKeys={[item.taxonomyKey]} title={item.title} description={item.summary || item.recommendedNextStep || 'Review the linked attendee evidence before acting.'} count={item.evidenceCount} sources={item.affectedTarget ? 1 : 0} strength="weak" evidenceTier="ISOLATED" selected={selectedIssue?.id === item.id} onReview={() => onReviewIssue(item)} />
   ) : renderFinding(item)
 
   const EvidenceGroup = ({ title, subtitle, children, empty, tone = 'slate' }: { title: string; subtitle: string; children: ReactNode; empty: string; tone?: 'slate' | 'emerald' | 'amber' | 'violet' }) => {

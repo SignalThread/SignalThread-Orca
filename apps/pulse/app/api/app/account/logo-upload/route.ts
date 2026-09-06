@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { requireAccountMembership } from '@/lib/auth/require-account-membership'
 import { getS3Client, getStorageConfig } from '@/lib/objectStorage'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 
@@ -13,6 +13,9 @@ const ALLOWED_TYPES = ['image/png', 'image/svg+xml', 'image/jpeg', 'image/jpg']
  * POST /api/app/account/logo-upload
  * Server-side logo upload. Accepts multipart form: file, account.
  * Uploads to S3, returns logoUrl. Avoids CORS issues with direct presigned PUT.
+ *
+ * Organizer-authenticated: the caller must be a member of the account named
+ * in the form (same guard as the settings PATCH that stores the logo URL).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -38,13 +41,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Logo must be under 2MB' }, { status: 400 })
     }
 
-    const account = await prisma.account.findUnique({
-      where: { slug: accountSlug },
-      select: { id: true },
-    })
-    if (!account) {
-      return NextResponse.json({ success: false, error: 'Account not found' }, { status: 404 })
-    }
+    const membership = await requireAccountMembership(accountSlug, { allowSuperAdmin: true })
+    if (!membership.ok) return membership.response
+    const account = membership.account
 
     const config = getStorageConfig()
     if (!config) {

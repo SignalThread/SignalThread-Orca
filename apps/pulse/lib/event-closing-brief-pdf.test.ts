@@ -17,7 +17,7 @@ describe('renderEventClosingBriefPdf', () => {
   })
 
   it('renders report content from the canonical brief payload without dashboard controls', () => {
-    for (const label of ['Executive summary', 'The verdict', 'Key findings', 'Recommendations']) {
+    for (const label of ['Executive summary', 'What the team should prepare for', 'The live read', 'What defined the event']) {
       expect(source).toContain(label)
     }
     expect(source).toContain('brief.editorial.copy.executiveSummary')
@@ -25,15 +25,16 @@ describe('renderEventClosingBriefPdf', () => {
     expect(source).not.toContain('window.print')
     expect(source).not.toContain('Review evidence')
     expect(source).not.toContain('Open Intelligence')
-    expect(source).toContain("sectionHeading('Key findings')")
-    expect(source).toContain('document.circle(PAGE.left + 16, top + 18, 2).fill(colors.muted)')
-    expect(source).toContain('const findingTextLeft = PAGE.left + 26')
+    expect(source).toContain('sectionHeading(language.priorities)')
+    expect(source).toContain('brief.decisions.afterEventFollowUp')
+    expect(source).not.toContain('const metrics =')
     expect(source).not.toContain("sectionHeading('Representative attendee feedback')")
   })
 
   it('renders long canonical copy and missing optional values into an embedded-Montserrat PDF', async () => {
     const longFinding = Array.from({ length: 18 }, (_, index) => `Attendee evidence segment ${index + 1} describes practical value, clear takeaways, and the follow-through expected after the event.`).join(' ')
     const brief = {
+      lifecyclePhase: 'POST_EVENT',
       event: { id: 'event-brief', name: 'SignalThread Summit' },
       generatedAt: '2026-08-14T12:00:00.000Z',
       summary: { sentiment: 'Mostly positive', responseCount: 12, answerCount: 28, representedPercent: 80 },
@@ -50,7 +51,7 @@ describe('renderEventClosingBriefPdf', () => {
       },
       whatWorked: [{ id: 'finding-1', title: 'Practical content', statement: 'Attendees valued useful examples.', mentionCount: 8, evidenceTier: 'STRONG' }],
       friction: [{ id: 'finding-2', title: 'Wayfinding', statement: 'Some signs were hard to follow.', mentionCount: 2, evidenceTier: 'EMERGING' }],
-      decisions: { nextEventLearning: { actions: [], sessionLearning: [], findings: [] } },
+      decisions: { afterEventFollowUp: [], nextEventLearning: { actions: [], sessionLearning: [], findings: [] } },
       keyFindings: [{ id: 'finding-1', title: 'Practical content', statement: null, mentionCount: 8, responseCount: undefined, evidenceTier: 'STRONG' }],
       supportingEvidence: [{ id: 'evidence-1', quote: 'The practical examples were immediately useful.', question: 'What worked?', source: 'Main stage' }],
     } as unknown as EventClosingBrief

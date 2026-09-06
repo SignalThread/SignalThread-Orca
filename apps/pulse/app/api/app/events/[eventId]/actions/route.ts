@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireEventsEventAccess } from '@/lib/auth/require-events-event-access'
 import {
   convertEventFindingToAction,
+  createManualEventAction,
   EventActionError,
   listEventActions,
 } from '@/lib/event-actions/service'
@@ -64,24 +65,23 @@ export async function POST(
   } catch {
     return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 })
   }
-  const clusterId = typeof body.clusterId === 'string' ? body.clusterId.trim() : ''
-  if (!clusterId) {
-    return NextResponse.json({ success: false, error: 'clusterId is required' }, { status: 400 })
-  }
   try {
-    const data = await convertEventFindingToAction({
-      accountId: auth.accountId!,
-      eventId: params.eventId,
-      clusterId,
-      actorUserId: auth.actorUserId!,
-      classification: body.classification,
-      title: body.title,
-      ownerUserId: body.ownerUserId,
-      priority: body.priority,
-      dueAt: body.dueAt,
-      initialUpdate: body.initialUpdate,
-      idempotencyKey: body.idempotencyKey,
-    })
+    const clusterId = typeof body.clusterId === 'string' ? body.clusterId.trim() : ''
+    const data = clusterId
+      ? await convertEventFindingToAction({
+        accountId: auth.accountId!, eventId: params.eventId, clusterId, actorUserId: auth.actorUserId!,
+        // Classification is retained only for backwards-compatible storage;
+        // the redesigned UI derives urgency from time and never exposes it.
+        classification: body.classification ?? 'DURING_EVENT', title: body.title,
+        ownerUserId: body.ownerUserId, priority: body.priority, dueAt: body.dueAt,
+        initialUpdate: body.initialUpdate, urgent: body.urgent, reminderEnabled: body.reminderEnabled,
+        idempotencyKey: body.idempotencyKey,
+      })
+      : await createManualEventAction({
+        accountId: auth.accountId!, eventId: params.eventId, actorUserId: auth.actorUserId!,
+        title: body.title, note: body.note, dueAt: body.dueAt, urgent: body.urgent,
+        reminderEnabled: body.reminderEnabled, idempotencyKey: body.idempotencyKey,
+      })
     return NextResponse.json({ success: true, data }, { status: 201 })
   } catch (error) {
     return failure(error)

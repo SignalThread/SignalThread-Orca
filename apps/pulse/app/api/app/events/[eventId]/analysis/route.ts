@@ -87,6 +87,7 @@ export async function GET(
           accountId: account.id,
           accountSlug: account.slug,
           eventId,
+          lifecyclePhase: 'POST_EVENT',
           forceEditorialRefresh: searchParams.has('cacheBust'),
         })
       : null

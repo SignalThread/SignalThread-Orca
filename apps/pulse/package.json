@@ -31,7 +31,8 @@
     "db:prod:migrate": "dotenv -e .env.prod -- prisma migrate deploy",
     "db:prod:push": "dotenv -e .env.prod -- prisma db push",
     "db:prod:studio": "dotenv -e .env.prod -- prisma studio",
-    "db:prod:generate": "dotenv -e .env.prod -- prisma generate"
+    "db:prod:generate": "dotenv -e .env.prod -- prisma generate",
+    "platform:assign-mapping": "npx tsx scripts/assign-platform-mapping.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.511.0",

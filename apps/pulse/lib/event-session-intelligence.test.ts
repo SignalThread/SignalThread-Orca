@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   EVENT_SESSION_MINIMUM_EVIDENCE_RESPONSES,
   EVENT_SESSION_STRONG_EVIDENCE_MINIMUM,
   buildEventSessionIntelligence,
+  getEventSessionIntelligence,
 } from '@/lib/event-session-intelligence'
 
 const session = (overrides: Record<string, unknown> = {}) => ({
@@ -171,5 +172,32 @@ describe('buildEventSessionIntelligence', () => {
     expect(result.sessions[0].findings).toEqual([
       expect.objectContaining({ label: 'Practical content', mentionCount: 2, themeKeys: ['practical_content', 'practical_content_rating'] }),
     ])
+  })
+
+  it('uses both DURING and POST evidence cohorts for Post session intelligence', async () => {
+    const db = {
+      event: { findFirst: vi.fn().mockResolvedValue({
+        id: 'event_1', name: 'Summit', eventType: 'ADVANCED', status: 'ACTIVE',
+        startDate: new Date('2026-09-17T13:00:00.000Z'), endDate: new Date('2026-09-17T21:00:00.000Z'),
+        location: { accountId: 'account_1', timezone: 'America/New_York' },
+      }) },
+      eventStructureItem: { findMany: vi.fn().mockResolvedValue([session()]) },
+      surveyTarget: { findMany: vi.fn().mockResolvedValue([target(0)]) },
+      response: { findMany: vi.fn().mockResolvedValue([]) },
+      answerEventIntelligence: { findMany: vi.fn().mockResolvedValue([]) },
+      eventIssueCluster: { findMany: vi.fn().mockResolvedValue([]) },
+    }
+
+    await getEventSessionIntelligence({ accountId: 'account_1', eventId: 'event_1', lifecyclePhase: 'POST_EVENT' }, db as never)
+
+    expect(db.response.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ collectionPhase: { in: ['DURING', 'POST'] } }),
+    }))
+    expect(db.answerEventIntelligence.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ response: expect.objectContaining({ collectionPhase: { in: ['DURING', 'POST'] } }) }),
+    }))
+    expect(db.eventIssueCluster.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ evidence: { some: { response: { collectionPhase: { in: ['DURING', 'POST'] } } } } }),
+    }))
   })
 })

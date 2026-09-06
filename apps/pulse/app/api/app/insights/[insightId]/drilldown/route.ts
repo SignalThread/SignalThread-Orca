@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { requireAccountMembership } from '@/lib/auth/require-account-membership'
 import { getInsightDrilldownForAccount } from '@/lib/insights/drilldown'
 
 export const runtime = 'nodejs'
@@ -8,6 +8,9 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/app/insights/[insightId]/drilldown?account=<slug>&sentiment=&questionKey=&dateFrom=&dateTo=&textContains=&page=&pageSize=
  * Optional: textContains or driver — case-insensitive substring on transcript text (full linked set, server-filtered).
+ *
+ * Organizer-authenticated: drill-downs return attendee transcript text, so the
+ * caller must be a member of the account (platform super admins included).
  */
 export async function GET(
   request: NextRequest,
@@ -25,17 +28,9 @@ export async function GET(
       )
     }
 
-    const account = await prisma.account.findUnique({
-      where: { slug: accountSlug },
-      select: { id: true },
-    })
-
-    if (!account) {
-      return NextResponse.json(
-        { success: false, message: 'Account not found' },
-        { status: 404 }
-      )
-    }
+    const membership = await requireAccountMembership(accountSlug, { allowSuperAdmin: true })
+    if (!membership.ok) return membership.response
+    const account = membership.account
 
     const sentiment = searchParams.get('sentiment') as
       | 'positive'

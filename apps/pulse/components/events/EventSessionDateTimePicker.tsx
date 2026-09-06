@@ -92,6 +92,11 @@ export function EventSessionDateTimePicker({
   onChange,
   minValue,
   align = 'start',
+  open: controlledOpen,
+  onOpenChange,
+  clearable = false,
+  hideLabel = false,
+  compact = false,
 }: {
   label: string
   value: string
@@ -99,12 +104,21 @@ export function EventSessionDateTimePicker({
   /** A complete wall-time lower bound. Used by End to prevent values at or before Start. */
   minValue?: string
   align?: 'start' | 'end'
+  /** Allows a nearby flow, such as the Action composer's Date + time control, to open this shared picker. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Actions may deliberately remove a due time; sessions keep their existing required-time behavior. */
+  clearable?: boolean
+  hideLabel?: boolean
+  /** Dense action-composer treatment; other date/time surfaces retain their normal size. */
+  compact?: boolean
 }) {
   const { date, time } = sessionDateTimeParts(value)
   const minParts = sessionDateTimeParts(minValue ?? '')
   const selectedDate = useMemo(() => parseDate(date), [date])
   const minimumDate = useMemo(() => parseDate(minParts.date), [minParts.date])
-  const [open, setOpen] = useState(false)
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const open = controlledOpen ?? uncontrolledOpen
   const initialMonth = selectedDate ?? minimumDate ?? todayDate()
   const [viewYear, setViewYear] = useState(initialMonth.year)
   const [viewMonth, setViewMonth] = useState(initialMonth.month)
@@ -112,15 +126,20 @@ export function EventSessionDateTimePicker({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const selectedTimeRef = useRef<HTMLButtonElement>(null)
 
+  const setPickerOpen = (nextOpen: boolean) => {
+    if (controlledOpen === undefined) setUncontrolledOpen(nextOpen)
+    onOpenChange?.(nextOpen)
+  }
+
   const openPicker = () => {
     const anchor = selectedDate ?? minimumDate ?? todayDate()
     setViewYear(anchor.year)
     setViewMonth(anchor.month)
-    setOpen(true)
+    setPickerOpen(true)
   }
 
   const closePicker = (returnFocus = true) => {
-    setOpen(false)
+    setPickerOpen(false)
     if (returnFocus) triggerRef.current?.focus()
   }
 
@@ -166,6 +185,11 @@ export function EventSessionDateTimePicker({
     closePicker()
   }
 
+  const clear = () => {
+    onChange('')
+    closePicker()
+  }
+
   const dayCount = daysInMonth(viewYear, viewMonth)
   const leadingBlanks = new Date(viewYear, viewMonth - 1, 1).getDay()
   const cells: Array<CalendarDate | null> = [
@@ -189,8 +213,8 @@ export function EventSessionDateTimePicker({
 
   return (
     <div className="block text-xs font-semibold text-slate-600 dark:text-zinc-300">
-      <span>{label}</span>
-      <div ref={containerRef} className="relative mt-1">
+      <span className={hideLabel ? 'sr-only' : undefined}>{label}</span>
+      <div ref={containerRef} className={hideLabel ? 'relative' : 'relative mt-1'}>
         <button
           ref={triggerRef}
           type="button"
@@ -198,15 +222,15 @@ export function EventSessionDateTimePicker({
           aria-haspopup="dialog"
           aria-expanded={open}
           onClick={() => (open ? closePicker() : openPicker())}
-          className="flex min-h-11 w-full items-center rounded-xl border border-slate-200 bg-white px-3 text-left text-sm text-slate-950 shadow-sm transition hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:hover:border-zinc-600"
+          className={`flex w-full items-center rounded-xl border border-slate-200 bg-white text-left text-slate-950 shadow-sm transition hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:hover:border-zinc-600 ${compact ? 'min-h-9 px-2.5 text-xs' : 'min-h-11 px-3 text-sm'}`}
         >
           <span className="flex min-w-0 flex-1 items-center gap-2">
-            <svg aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></svg>
+            <svg aria-hidden="true" className={`${compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} shrink-0 text-slate-400`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></svg>
             <span className={displayDate ? 'truncate font-semibold' : 'truncate text-slate-400'}>{displayDate || 'Select date'}</span>
           </span>
-          <span aria-hidden="true" className="mx-3 h-5 w-px bg-slate-200 dark:bg-zinc-700" />
+          <span aria-hidden="true" className={`${compact ? 'mx-2 h-4' : 'mx-3 h-5'} w-px bg-slate-200 dark:bg-zinc-700`} />
           <span className="flex shrink-0 items-center gap-2">
-            <svg aria-hidden="true" className="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
+            <svg aria-hidden="true" className={`${compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-slate-400`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
             <span className={displayTime ? 'font-semibold tabular-nums' : 'text-slate-400'}>{displayTime || 'Select time'}</span>
           </span>
           <svg aria-hidden="true" className={`ml-2 h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m7 10 5 5 5-5" /></svg>
@@ -268,6 +292,7 @@ export function EventSessionDateTimePicker({
                 </div>
               </div>
             </div>
+            {clearable && <div className="flex justify-end border-t border-slate-100 px-3 py-2 dark:border-zinc-800"><button type="button" onClick={clear} className="rounded-md px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/40 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">Clear due date</button></div>}
           </div>
         )}
       </div>

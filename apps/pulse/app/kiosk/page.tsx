@@ -296,6 +296,7 @@ function KioskContent() {
       await playRuntimeQuestionAudio(question, {
         signal: abortController.signal,
         audioSession,
+        responseId: responseId ?? undefined,
         onStart: () => {
           // Already set isSpeaking above
         },

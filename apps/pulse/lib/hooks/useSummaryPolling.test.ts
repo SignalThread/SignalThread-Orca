@@ -42,4 +42,22 @@ describe('resolveSummaryPollingDecision', () => {
       { status: 'FAILED', transcript: null, analysis: null },
     ])).toEqual({ kind: 'hard_failure', reason: 'all_answers_failed' })
   })
+
+  it('treats the attendee-scoped poll (hasTranscript, no transcript text) exactly like a transcript', () => {
+    expect(resolveSummaryPollingDecision('COMPLETED', [
+      { status: 'PROCESSING_ANALYSIS', hasTranscript: true, analysis: null },
+    ])).toEqual({ kind: 'pending' })
+
+    expect(resolveSummaryPollingDecision('COMPLETED', [
+      { status: 'COMPLETED', hasTranscript: true, analysis: { summary: 'The attendee enjoyed the room.' } },
+    ])).toEqual({ kind: 'summary', summaries: ['The attendee enjoyed the room.'] })
+
+    expect(resolveSummaryPollingDecision('COMPLETED', [
+      { status: 'COMPLETED', hasTranscript: true, analysis: { summary: '', evidenceState: 'INSUFFICIENT_EVIDENCE' } },
+    ])).toEqual({ kind: 'plain_confirmation' })
+
+    expect(resolveSummaryPollingDecision('COMPLETED', [
+      { status: 'COMPLETED', hasTranscript: false, analysis: null },
+    ])).toEqual({ kind: 'plain_confirmation' })
+  })
 })

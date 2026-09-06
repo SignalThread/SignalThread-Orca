@@ -29,7 +29,7 @@ describe('event Intelligence IA', () => {
     expect(intelligenceSource).toContain('immediateItems.map(renderIssue)')
     expect(intelligenceSource).toContain('futureItems.map(renderFinding)')
     expect(workspaceSource).toContain("const intelligenceScope: IntelligenceScope")
-    expect(workspaceSource).toContain("query.set('intelligenceScope', scope)")
+    expect(workspaceSource).toContain("{ type: 'set-intelligence-scope', intelligenceScope: scope }")
   })
 
   it('preserves canonical review-evidence interactions', () => {

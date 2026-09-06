@@ -29,6 +29,10 @@ export interface TTSOptions extends PlaybackOptions {
   provider?: string
   voice?: string
   locale?: string
+  /** In-progress kiosk response the spoken question belongs to; required by /api/tts. */
+  responseId?: string
+  /** Question key within that response; the server speaks only that question's text. */
+  questionKey?: string
 }
 
 async function playAudioSource(url: string, options: PlaybackOptions = {}): Promise<void> {
@@ -139,6 +143,8 @@ export async function playTTS(text: string, options: TTSOptions = {}): Promise<v
       provider: options.provider,
       voice: options.voice,
       locale: options.locale,
+      responseId: options.responseId,
+      questionKey: options.questionKey,
     }),
     signal: options.signal,
   })

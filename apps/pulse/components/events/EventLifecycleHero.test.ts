@@ -9,14 +9,15 @@ const duringSource = fs.readFileSync(path.join(process.cwd(), 'components/events
 const postSource = fs.readFileSync(path.join(process.cwd(), 'components/events/EventPostEventClosingBrief.tsx'), 'utf8')
 
 describe('EventLifecycleHero', () => {
-  it('uses one full hero shell for PRE and DURING while POST reuses only the metric strip', () => {
-    for (const source of [preSource, duringSource]) {
+  it('uses one full hero shell for PRE, DURING, and POST', () => {
+    for (const source of [preSource, duringSource, postSource]) {
       expect(source).toContain("import { EventLifecycleHero } from '@/components/events/EventLifecycleHero'")
       expect(source).toContain('<EventLifecycleHero')
     }
-    expect(postSource).toContain("import { EventLifecycleMetricStrip } from '@/components/events/EventLifecycleHero'")
-    expect(postSource).toContain('<EventLifecycleMetricStrip')
-    expect(postSource).not.toContain('<EventLifecycleHero')
+    expect(postSource).not.toContain('EventLifecycleMetricStrip')
+    expect(postSource).not.toContain('data-brief-subsection')
+    expect(postSource).not.toContain('data-post-event-metrics')
+    expect(postSource).not.toContain('lg:grid-cols-[minmax(0,2.08fr)_minmax(310px,0.92fr)]')
     expect(heroSource).toContain('event-intelligence-metrics grid')
     expect(heroSource).toContain('event-lifecycle-hero event-intelligence-summary')
     for (const label of ['Sentiment', 'Responses', 'Coverage', 'Follow-up']) expect(heroSource).toContain(`>${label}</p>`)
@@ -33,6 +34,14 @@ describe('EventLifecycleHero', () => {
       expect(source).toContain('coverageDetail=')
       expect(source).toContain('followUpDetailContent=')
     }
+  })
+
+  it('presents coverage with a baseline-aligned denominator and a separate unit line', () => {
+    expect(heroSource).toContain('data-testid="coverage-summary"')
+    expect(heroSource).toContain('items-baseline')
+    expect(heroSource).toContain('of {configuredFeedbackPoints || representedFeedbackPoints}')
+    expect(heroSource).toContain('>{coverageUnit}</p>')
+    expect(heroSource).not.toContain('>/{configuredFeedbackPoints || representedFeedbackPoints}</span>')
   })
 
   it('keeps lifecycle copy as props, omits unsupported synopses, and has no AI-written badge', () => {

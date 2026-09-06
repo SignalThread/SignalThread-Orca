@@ -10,12 +10,15 @@ import type { NextRequest, NextResponse } from 'next/server'
  */
 export function createRouteHandlerClient(
   request: NextRequest,
-  response: NextResponse
+  response: NextResponse,
+  /** Merged over the @supabase/ssr defaults for every cookie this client writes (e.g. `secure`). */
+  cookieOptions?: CookieOptions,
 ) {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...(cookieOptions ? { cookieOptions } : {}),
       cookies: {
         get(name: string) {
           return request.cookies.get(name)?.value

@@ -9,7 +9,10 @@ export const dynamic = 'force-dynamic'
  * GET /api/health/db
  * 
  * Database health check - tests Prisma connection with SELECT 1
- * Returns ok:true if connection succeeds, ok:false with error details if it fails
+ * Returns ok:true if connection succeeds, ok:false if it fails.
+ *
+ * Internal/dev-only diagnostics: the error code and message are included only
+ * outside production so uptime monitors keep a stable, non-revealing probe.
  */
 export async function GET() {
   const startTime = Date.now()
@@ -54,11 +57,16 @@ export async function GET() {
       duration,
     })
     
+    const exposeDiagnostics = process.env.NODE_ENV !== 'production'
     return NextResponse.json(
       {
         ok: false,
-        code: error.code || 'UNKNOWN_ERROR',
-        message: error.message || 'Database connection failed',
+        ...(exposeDiagnostics
+          ? {
+              code: error.code || 'UNKNOWN_ERROR',
+              message: error.message || 'Database connection failed',
+            }
+          : {}),
         duration,
         timestamp: new Date().toISOString(),
       },

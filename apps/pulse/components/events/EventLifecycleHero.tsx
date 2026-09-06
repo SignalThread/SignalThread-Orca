@@ -106,7 +106,13 @@ export function EventLifecycleMetricStrip({
         </div>
         <div className="min-w-0 px-5 py-3">
           <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-400">Coverage</p>
-          <p className="mt-1 text-[22px] font-bold tracking-[-0.04em] text-slate-950">{representedFeedbackPoints}<span className="text-[12px] font-semibold text-slate-400">/{configuredFeedbackPoints || representedFeedbackPoints}</span> <span className="text-[10px] font-medium tracking-normal text-slate-500">{coverageUnit}</span></p>
+          <div data-testid="coverage-summary" className="mt-1 min-w-0">
+            <div className="flex min-w-0 items-baseline gap-1.5 whitespace-nowrap">
+              <span className="text-[22px] font-bold tracking-[-0.04em] text-slate-950">{representedFeedbackPoints}</span>
+              <span className="text-[11px] font-semibold tracking-normal text-slate-400">of {configuredFeedbackPoints || representedFeedbackPoints}</span>
+            </div>
+            <p className="mt-0.5 text-[10px] font-medium tracking-normal text-slate-500">{coverageUnit}</p>
+          </div>
           <div className="mt-2 flex h-[3px] overflow-hidden rounded-full bg-slate-100" aria-label="Coverage distribution">{coverageRows.map((row) => row.value > 0 && <span key={row.label} className={row.bar} style={{ width: `${(row.value / coverageTotal) * 100}%` }} />)}</div>
           {coverageDetail && <button data-testid="coverage-detail-toggle" type="button" aria-expanded={expandedDetail === 'coverage'} aria-controls="coverage-detail-panel" onClick={() => toggleDetail('coverage')} className="mt-1.5 text-[9.5px] font-bold text-indigo-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300">{expandedDetail === 'coverage' ? 'Hide coverage detail ▲' : 'Coverage detail ▼'}</button>}
         </div>

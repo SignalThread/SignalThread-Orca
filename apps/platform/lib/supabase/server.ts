@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { requirePlatformAuthConfig } from "./config";
+import { platformAuthCookieOptions } from "./cookie-options";
 
 /** Server-side Platform Core client bound to the request's cookie jar. */
 export async function createPlatformServerClient() {
@@ -8,6 +9,7 @@ export async function createPlatformServerClient() {
   const { url, anonKey } = requirePlatformAuthConfig();
 
   return createServerClient(url, anonKey, {
+    cookieOptions: platformAuthCookieOptions(),
     cookies: {
       getAll() {
         return cookieStore.getAll();

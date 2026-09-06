@@ -6,6 +6,7 @@ import { EventEvidenceDrawer } from '@/components/events/EventEvidenceDrawer'
 import { EventInEventOverview } from '@/components/events/EventInEventOverview'
 import { EventInEventIntelligence } from '@/components/events/EventInEventIntelligence'
 import { EventIntelligenceActionPanel } from '@/components/events/EventIntelligenceActionPanel'
+import { useEventActionData } from '@/components/events/EventActionComposer'
 import type { AnalyticsSignals, KeyInsightsSignalsPayload } from '@/lib/analytics/signals'
 import type { EventThemeEvidenceResult } from '@/lib/event-intelligence/theme-evidence'
 import {
@@ -891,6 +892,9 @@ export function Dashboard2({
   const [selectedAlertDetail, setSelectedAlertDetail] = useState<EventAlertDetail | null>(null)
   const [selectedAlertLoading, setSelectedAlertLoading] = useState(false)
   const [selectedAlertError, setSelectedAlertError] = useState<string | null>(null)
+  const [selectedIssueEvidenceDetail, setSelectedIssueEvidenceDetail] = useState<EventThemeEvidenceResult | null>(null)
+  const [selectedIssueEvidenceLoading, setSelectedIssueEvidenceLoading] = useState(false)
+  const [selectedIssueEvidenceError, setSelectedIssueEvidenceError] = useState<string | null>(null)
   const [actionReason, setActionReason] = useState('')
   const [noteDraft, setNoteDraft] = useState('')
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
@@ -905,6 +909,7 @@ export function Dashboard2({
     needsAttentionRef.current = node
     setNeedsAttentionPanel(node)
   }, [])
+  const eventActionData = useEventActionData(eventId, accountSlug ?? '')
 
   const copyToClipboard = async (key: string, text: string) => {
     try {
@@ -1232,15 +1237,32 @@ export function Dashboard2({
   }, [needsAttentionPanel])
 
   useEffect(() => {
-    const clusterId = selectedIssueDetailItem?.id
+    const issue = selectedIssueDetailItem
     setActionReason('')
     setNoteDraft('')
-    if (!clusterId || !accountSlug) {
-      setSelectedAlertDetail(null)
+    setSelectedIssueEvidenceDetail(null)
+    setSelectedIssueEvidenceError(null)
+    if (!issue?.id || !accountSlug) {
+      setSelectedIssueEvidenceLoading(false)
       return
     }
-    void loadSelectedAlertDetail(clusterId)
-  }, [selectedIssueDetailItem?.id, accountSlug, eventId])
+
+    let cancelled = false
+    setSelectedIssueEvidenceLoading(true)
+    const params = serializeEventDashboardRequest({ kind: 'evidence', accountSlug, selection: dashboardSelection })
+    params.set('issueClusterIds', issue.id)
+    fetch(`/api/app/events/${encodeURIComponent(eventId)}/themes/${encodeURIComponent(issue.taxonomyKey)}/evidence?${params.toString()}`, { credentials: 'include', cache: 'no-store' })
+      .then(async (response) => {
+        const body = await response.json().catch(() => ({}))
+        if (!response.ok || !body.success) throw new Error(body.error || 'Unable to load linked evidence')
+        if (!cancelled) setSelectedIssueEvidenceDetail(body.data as EventThemeEvidenceResult)
+      })
+      .catch((error) => {
+        if (!cancelled) setSelectedIssueEvidenceError(error instanceof Error ? error.message : 'Unable to load linked evidence')
+      })
+      .finally(() => { if (!cancelled) setSelectedIssueEvidenceLoading(false) })
+    return () => { cancelled = true }
+  }, [selectedIssueDetailItem, accountSlug, dashboardSelection, eventId])
 
   const selectAttentionEvidenceById = (evidenceId: string) => {
     const item = displayAttentionQueue.find((candidate) =>
@@ -1350,6 +1372,8 @@ export function Dashboard2({
     setSelectedAlertLoading(false)
     setSelectedIssueDetailItem(null)
     setSelectedIssueEvidenceId(null)
+    setSelectedIssueEvidenceDetail(null)
+    setSelectedIssueEvidenceError(null)
   }
   const evidenceDrawers = (
     <>
@@ -1374,7 +1398,14 @@ export function Dashboard2({
             <div><dt className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">Status</dt><dd className="mt-1 font-bold text-slate-800">{humanizeIntelligenceLabel(selectedIssueDetailItem.status)}</dd></div>
             <div><dt className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">Source</dt><dd className="mt-1 font-bold text-slate-800">{selectedIssueDetailItem.affectedTarget?.name ?? 'Event-wide feedback'}</dd></div>
           </dl>
-          <div><p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">What people said</p><div className="mt-3 space-y-3">{selectedAlertLoading ? <div data-testid="issue-evidence-loading" className="h-28 animate-pulse rounded-2xl bg-slate-100" /> : selectedAlertError ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{selectedAlertError}</p> : selectedIssueEvidence.length ? selectedIssueEvidence.map((evidence) => <article key={evidence.id} className="rounded-2xl border border-slate-200 border-l-4 border-l-indigo-200 p-4"><p className="text-[14px] leading-6 text-slate-700">&ldquo;{evidence.transcriptSnippet || evidence.answer.answerTranscript?.text || 'Transcript unavailable.'}&rdquo;</p><p className="mt-2 text-[11px] text-slate-400">{formatIntelligenceDate(evidence.createdAt)} · {humanizeIntelligenceLabel(evidence.priorityLevel)}</p></article>) : <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">Evidence will appear as analyzed responses accumulate.</p>}</div></div>
+          <EventThemeEvidencePanel
+            loading={selectedIssueEvidenceLoading}
+            error={selectedIssueEvidenceError}
+            detail={selectedIssueEvidenceDetail}
+            fallbackTheme={{ label: selectedIssueDetailItem.title, count: selectedIssueDetailItem.evidenceCount, sentimentLabel: null }}
+            heading="What people said"
+            onClear={closeIssueEvidence}
+          />
           <EventIntelligenceActionPanel
             eventId={eventId}
             accountSlug={accountSlug ?? ''}
@@ -1408,6 +1439,11 @@ export function Dashboard2({
         {intelligenceError && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Refresh failed. Showing the most recent intelligence.</div>}
         {intelligenceLoading && <div role="status" className="sr-only">Refreshing intelligence</div>}
         <EventInEventIntelligence
+          eventId={eventId}
+          accountSlug={accountSlug ?? ''}
+          actionOwners={eventActionData.owners}
+          canonicalActions={eventActionData.actions}
+          canonicalActionFindings={eventActionData.availableFindings}
           currentIssues={activeAttentionQueue}
           currentFindings={visibleIntelligenceFindings.filter((finding) => finding.classification === 'current-event' || (finding.kind === 'risk' && finding.evidenceTier !== 'ISOLATED'))}
           workingFindings={visibleIntelligenceFindings.filter((finding) => finding.kind === 'positive')}
@@ -1600,6 +1636,9 @@ export function Dashboard2({
         <EventInEventOverview
           eventId={eventId}
           accountSlug={accountSlug ?? ''}
+          actionOwners={eventActionData.owners}
+          canonicalActions={eventActionData.actions}
+          canonicalActionFindings={eventActionData.availableFindings}
           summary={overviewSummary}
           sentimentPercent={factualSnapshot?.sentiment.percent ?? null}
           sentimentBreakdown={factualSnapshot?.sentiment ?? { favorable: 0, neutral: 0, negative: 0, total: 0 }}

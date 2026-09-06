@@ -220,7 +220,7 @@ describe('GET /api/app/events/[eventId]/analysis', () => {
     expect(json.data.totalAnswers).toBe(67)
     expect(json.data.overallSummary).toBe(closingBrief.summary.verdict)
     expect(json.data.avgSentimentScore).toBe(0.7)
-    expect(getEventClosingBriefMock).toHaveBeenCalledWith({ accountId: 'acct_123', accountSlug: 'events-co', eventId: 'event_123', forceEditorialRefresh: false })
+    expect(getEventClosingBriefMock).toHaveBeenCalledWith({ accountId: 'acct_123', accountSlug: 'events-co', eventId: 'event_123', lifecyclePhase: 'POST_EVENT', forceEditorialRefresh: false })
     expect(getEventPreEventReadinessMock).not.toHaveBeenCalled()
     expect(prismaMock.response.count).not.toHaveBeenCalled()
     expect(prismaMock.response.findFirst).not.toHaveBeenCalled()

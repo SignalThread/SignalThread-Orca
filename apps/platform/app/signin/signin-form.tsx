@@ -1,53 +1,41 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { createPlatformBrowserClient } from "@/lib/supabase/browser";
+import { useActionState } from "react";
+import { signInAction, type SignInState } from "./actions";
 
 /**
  * Email + password sign-in.
  *
  * The provider choice is not arbitrary: the Platform Core project has only the
  * `email` provider enabled (no OAuth, no phone, no SAML), so password grant is
- * the one flow that works today. Magic link is also email-based but depends on
- * outbound mail, which is rate-limited on the default SMTP sender, so it is left
- * for a later pass rather than made the only way in.
+ * the one flow that works today.
+ *
+ * Submission is a **server action**, deliberately. An earlier version used only
+ * an `onSubmit` handler on a form with no `method` and no `action`; before React
+ * hydrated, the browser's default submission took over and issued a GET with
+ * `email` and `password` as query parameters. `useActionState` keeps the pending
+ * and error UX while guaranteeing POST semantics even with JavaScript disabled,
+ * so there is no degraded path that can put a credential in a URL.
  */
+
+const INITIAL: SignInState = { error: null };
+
 export function SignInForm({ nextPath }: { nextPath: string }) {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setPending(true);
-
-    try {
-      const supabase = createPlatformBrowserClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (signInError) {
-        // Deliberately not distinguishing "no such user" from "wrong password":
-        // that difference is an account-enumeration oracle.
-        setError("That email and password combination did not match an account.");
-        setPending(false);
-        return;
-      }
-
-      // Refresh so the server re-reads the freshly set auth cookies.
-      router.replace(nextPath);
-      router.refresh();
-    } catch {
-      setError("Sign-in is unavailable right now. Please try again.");
-      setPending(false);
-    }
-  }
+  const [state, formAction, pending] = useActionState(signInAction, INITIAL);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      action={formAction}
+      // No explicit `method` attribute: React renders server-action forms as POST on
+      // the server but normalises the attribute to lower case on the client, so any
+      // literal here hydration-mismatches. POST is guaranteed structurally by
+      // `action={formAction}` -- a server action has no GET form -- and the
+      // regression test pins that the server action is what submits this form.
+      className="space-y-4"
+    >
+      {/* Carried in the body, never the query string. */}
+      <input type="hidden" name="next" value={nextPath} />
+
       <div className="space-y-1.5">
         <label htmlFor="email" className="block text-sm font-medium">
           Email
@@ -58,8 +46,6 @@ export function SignInForm({ nextPath }: { nextPath: string }) {
           type="email"
           autoComplete="email"
           required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
           className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2"
           style={{ borderColor: "var(--border)", background: "var(--surface)" }}
         />
@@ -75,16 +61,14 @@ export function SignInForm({ nextPath }: { nextPath: string }) {
           type="password"
           autoComplete="current-password"
           required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
           className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2"
           style={{ borderColor: "var(--border)", background: "var(--surface)" }}
         />
       </div>
 
-      {error ? (
+      {state.error ? (
         <p role="alert" className="text-sm" style={{ color: "#b91c1c" }}>
-          {error}
+          {state.error}
         </p>
       ) : null}
 
