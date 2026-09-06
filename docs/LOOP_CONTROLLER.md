@@ -33,6 +33,8 @@ Schema mode:
 Allowed scope:
 Out-of-scope areas:
 Canonical models/services:
+Model:
+Strength:
 ```
 
 These should normally be stated in the prompt document or in the human’s starting message.
@@ -379,6 +381,29 @@ The prompts doc explains the implementation sequence.
 
 The loop controller explains how the agent should move through the prompts safely.
 
+## Model And Strength Selection
+
+Every prompt executed through this controller carries an explicit model and
+Strength, written exactly as:
+
+```txt
+Model: [model]
+Strength: [strength]
+```
+
+Do not use `Recommended model:`, `Reasoning:`, or `Thinking:`.
+
+Select the best available model for the specific prompt, at the lowest Strength
+that is still fully capable of completing it correctly and safely. Do not
+default a whole prompt pack to one model/Strength pair — each prompt is rated on
+its own complexity, risk, scope, and autonomy requirements.
+
+If the human questions a model or Strength choice, re-verify it against the
+active prompt scope and explain the result. A challenge is a request to verify,
+not a request to downgrade.
+
+Current model guidance for this repository: `MODEL_SELECTION.md`.
+
 ## Starting Message Template
 
 Use this when starting a new agent session:
@@ -406,6 +431,12 @@ Allowed scope:
 
 Out of scope:
 [short scope]
+
+Model:
+[model]
+
+Strength:
+[strength]
 
 Execute the prompts in order. Stop only on the hard stops in the loop controller.
 ```

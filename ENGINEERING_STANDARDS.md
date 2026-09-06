@@ -362,6 +362,104 @@ In practical terms, the standard is:
 - no hidden state leaks
 - no brittle patches
 
+## Prompt Model Selection
+
+This section is durable policy. It does not name specific models, because model
+availability changes. For the current model and Strength guidance, see
+[`MODEL_SELECTION.md`](./MODEL_SELECTION.md).
+
+### Core rule
+
+Select the best currently available model for the specific task.
+
+Use the lowest Strength that is still fully capable of completing the work
+correctly and safely.
+
+Optimize for BOTH:
+
+- capability
+- token / usage efficiency
+
+Do not automatically choose the strongest model.
+
+Do not deliberately underpower difficult work to save tokens.
+
+Choose based on:
+
+- task complexity
+- architectural risk
+- ambiguity
+- number of interacting components
+- regression risk
+- scope of files/systems involved
+- amount of autonomous reasoning required
+- debugging difficulty
+- migration/data risk
+- product/UX reasoning required
+- expected iteration length
+
+### Recommendation challenge rule
+
+When the user questions a model or Strength recommendation, treat that as a
+request to VERIFY the recommendation.
+
+It is NOT a request to automatically downgrade it.
+
+For example:
+
+- "Why Sol High?"
+- "Do we really need High?"
+- "Are you sure?"
+- "Is that overkill?"
+
+should trigger a fresh evaluation of:
+
+- complexity
+- risk
+- scope
+- autonomy required
+- likely token cost
+- whether a cheaper option is fully sufficient
+
+If the original recommendation is still the best fit, KEEP IT and explain why.
+
+Only change the recommendation when re-evaluation genuinely supports a different
+choice.
+
+Do not become more conservative merely because the recommendation was
+challenged.
+
+The objective is:
+
+**BEST MODEL FOR THE JOB + LOWEST SUFFICIENT STRENGTH**
+
+Not `CHEAPEST POSSIBLE`, and not `STRONGEST POSSIBLE`.
+
+### Prompt header format
+
+Active prompt-writing guides and prompt packs in this repository use exactly:
+
+```txt
+Model: [model]
+Strength: [strength]
+```
+
+Example:
+
+```txt
+Model: Sol
+Strength: High
+```
+
+Do not use `Recommended model:`, `Reasoning:`, or `Thinking:` in active prompts.
+
+Every concrete example should carry the appropriate model and the lowest
+sufficient Strength for THAT example. Do not normalize every prompt to one
+model/Strength pair.
+
+Historical records, archived prompt packs, and completed ledgers are evidence of
+what was actually run. Leave their original headers intact.
+
 ## How to Use This Document
 Use this doc when:
 - writing implementation prompts

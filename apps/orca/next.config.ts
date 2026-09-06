@@ -21,6 +21,12 @@ const SECURITY_HEADERS = [
 ] as const;
 
 const nextConfig: NextConfig = {
+  // Development only. Lets the dev server serve assets when the app is reached
+  // through a hostname other than localhost, which is required to exercise the
+  // production-like cross-subdomain flow locally (platform.localtest.me /
+  // orca.localtest.me both resolve to 127.0.0.1). Has no effect on a production
+  // build, where assets are served from the deployment's own origin.
+  allowedDevOrigins: ["platform.localtest.me", "orca.localtest.me"],
   serverExternalPackages: ["@napi-rs/canvas"],
   transpilePackages: ["@signalthread/ui"],
   turbopack: {
@@ -35,6 +41,13 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: SECURITY_HEADERS.map((header) => ({ ...header })),
+      },
+      {
+        // The auth callback receives a one-time handoff token in its query string.
+        // Config headers are applied after route handlers, so the stricter policy
+        // must be declared here or the global value wins.
+        source: "/auth/callback",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       },
     ];
   },

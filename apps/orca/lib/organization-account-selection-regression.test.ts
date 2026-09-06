@@ -37,7 +37,9 @@ test("every completed login clears prior account and platform context before pic
   assert.match(callbackSource, /PLATFORM_CONTEXT_COOKIE_NAME/);
   assert.match(legacyLoginSource, /method: "DELETE"/);
   assert.match(legacyLoginSource, /await fetch\("\/api\/me"/);
-  assert.match(callbackSource, /new URL\("\/select-account"/);
+  // The default continuation is still /select-account; it is now a named constant
+  // because the callback also accepts a validated `next` for product handoffs.
+  assert.match(callbackSource, /DEFAULT_CONTINUATION = "\/select-account"/);
   assert.match(legacyLoginSource, /await supabase\.auth\.getSession\(\)/);
   assert.match(legacyLoginSource, /router\.replace\("\/select-account"\)/);
   // The entry route itself must not sign anyone in any more.

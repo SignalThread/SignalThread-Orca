@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { requireAuthAuthorityConfig } from "@/src/lib/supabase/auth-authority";
+import { orcaAuthCookieOptions } from "@/src/lib/supabase/cookie-options";
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
@@ -11,6 +12,7 @@ export async function createServerSupabaseClient() {
     authAuthority.url,
     authAuthority.anonKey,
     {
+      cookieOptions: orcaAuthCookieOptions(),
       cookies: {
         getAll() {
           return cookieStore.getAll();
