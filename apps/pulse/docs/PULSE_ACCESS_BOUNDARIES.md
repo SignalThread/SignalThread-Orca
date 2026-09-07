@@ -10,7 +10,7 @@ handoff were added in later phases (see `docs/PLATFORM_IDENTITY_MAPPING.md` and
 
 | Layer | Control | Where |
 |---|---|---|
-| Database | Supabase Data API roles (`anon`, `authenticated`) hold **no** privilege on any Pulse table, sequence, function, or the `public` schema; default privileges for future tables are revoked; row level security is **enabled with no policies** on every Prisma model table. Prisma connects as the table owner and is unaffected (RLS is not `FORCE`d). `service_role` is untouched (server-only, used for Supabase Auth admin calls, never for table reads). | `prisma/migrations/20260905180000_lock_down_data_api_access/migration.sql` |
+| Database | Supabase Data API roles (`anon`, `authenticated`) hold **no** privilege on any Pulse table, sequence, function, or the `public` schema; default privileges for future tables are revoked; row level security is **enabled with no policies** on every Prisma model table. Prisma connects as the table owner and is unaffected (RLS is not `FORCE`d). `service_role` is untouched (server-only, used for Supabase Auth admin calls, never for table reads). | `test-fixtures/legacy-pulse-migrations/20260905180000_lock_down_data_api_access/migration.sql` (historical); carried forward verbatim by the active clean baseline `prisma/migrations/20260906180000_pulse_clean_baseline/migration.sql` |
 | Application | Every route is classified below. Organizer routes call a `require*` guard from `lib/auth/`; attendee routes never do; provider callbacks verify signatures. | `app/api/**/route.ts`, source-guarded by `app/api/access-boundaries.guard.test.ts` |
 
 Why not RLS policies keyed on `auth.uid()`? Pulse's browser never queries tables

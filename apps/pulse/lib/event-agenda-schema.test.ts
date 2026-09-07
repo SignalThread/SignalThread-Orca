@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest'
 
 const schema = readFileSync('prisma/schema.prisma', 'utf8')
 const migration = readFileSync(
-  'prisma/migrations/20260730130000_add_event_agenda_foundation/migration.sql',
+  'test-fixtures/legacy-pulse-migrations/20260730130000_add_event_agenda_foundation/migration.sql',
   'utf8',
 )
 const rosterMigration = readFileSync(
-  'prisma/migrations/20260817120000_add_event_speaker_roster_membership/migration.sql',
+  'test-fixtures/legacy-pulse-migrations/20260817120000_add_event_speaker_roster_membership/migration.sql',
   'utf8',
 )
 

@@ -251,7 +251,7 @@ describe('event speaker intelligence', () => {
 
   it('adds a nullable, production-safe canonical relation without inferring legacy evidence', () => {
     const schema = readFileSync('prisma/schema.prisma', 'utf8')
-    const migration = readFileSync('prisma/migrations/20260730170000_add_speaker_scoped_listening_target/migration.sql', 'utf8')
+    const migration = readFileSync('test-fixtures/legacy-pulse-migrations/20260730170000_add_speaker_scoped_listening_target/migration.sql', 'utf8')
     expect(schema).toContain('speakerAssignmentId  String?')
     expect(schema).toContain('@relation("SurveyTargetSpeakerAssignment"')
     expect(migration).toContain('ADD COLUMN "speakerAssignmentId" TEXT')

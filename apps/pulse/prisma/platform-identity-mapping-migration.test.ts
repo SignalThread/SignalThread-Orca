@@ -3,7 +3,9 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const schema = readFileSync('prisma/schema.prisma', 'utf8')
-const MIGRATION_DIR = 'prisma/migrations/20260906120000_add_platform_identity_mapping'
+/** The pre-baseline chain is historical evidence and test fixtures only. */
+const LEGACY_MIGRATIONS_DIR = 'test-fixtures/legacy-pulse-migrations'
+const MIGRATION_DIR = `${LEGACY_MIGRATIONS_DIR}/20260906120000_add_platform_identity_mapping`
 const migration = readFileSync(join(MIGRATION_DIR, 'migration.sql'), 'utf8')
 
 const model = (name: string) =>
@@ -69,10 +71,12 @@ describe('Platform identity mapping migration', () => {
     }
   })
 
-  it('is the only migration that introduces the mapping columns', () => {
-    const others = readdirSync('prisma/migrations')
+  it('is the only legacy migration that introduces the mapping columns', () => {
+    // The clean baseline (prisma/migrations) carries the columns forward by construction;
+    // within the historical chain exactly this migration introduced them.
+    const others = readdirSync(LEGACY_MIGRATIONS_DIR)
       .filter((entry) => /^\d{14}_/.test(entry) && !MIGRATION_DIR.endsWith(entry))
-      .map((entry) => readFileSync(join('prisma/migrations', entry, 'migration.sql'), 'utf8'))
+      .map((entry) => readFileSync(join(LEGACY_MIGRATIONS_DIR, entry, 'migration.sql'), 'utf8'))
       .join('\n')
     for (const column of ['platformUserId', 'platformOrganizationId', 'platformEventId']) {
       expect(others).not.toContain(column)

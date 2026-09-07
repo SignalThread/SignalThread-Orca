@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const migration = fs.readFileSync(path.join(
   process.cwd(),
-  'prisma/migrations/20260818110000_add_advanced_event_creation_type/migration.sql',
+  'test-fixtures/legacy-pulse-migrations/20260818110000_add_advanced_event_creation_type/migration.sql',
 ), 'utf8')
 
 describe('ADVANCED EventType migration', () => {

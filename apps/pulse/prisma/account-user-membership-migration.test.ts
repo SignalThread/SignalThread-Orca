@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 const schema = fs.readFileSync(path.join(process.cwd(), 'prisma/schema.prisma'), 'utf8')
 const migration = fs.readFileSync(path.join(
   process.cwd(),
-  'prisma/migrations/20260817160000_add_account_user_memberships/migration.sql',
+  'test-fixtures/legacy-pulse-migrations/20260817160000_add_account_user_memberships/migration.sql',
 ), 'utf8')
 
 describe('AccountUserMembership migration', () => {

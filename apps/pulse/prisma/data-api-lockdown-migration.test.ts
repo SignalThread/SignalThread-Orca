@@ -3,15 +3,21 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const schema = readFileSync('prisma/schema.prisma', 'utf8')
+/** The active migration chain: the clean baseline plus everything shipped after it. */
 const migrationsDir = 'prisma/migrations'
+/** The pre-baseline chain is historical evidence and test fixtures only. */
+const legacyMigrationsDir = 'test-fixtures/legacy-pulse-migrations'
 const lockdown = readFileSync(
-  join(migrationsDir, '20260905180000_lock_down_data_api_access/migration.sql'),
+  join(legacyMigrationsDir, '20260905180000_lock_down_data_api_access/migration.sql'),
   'utf8',
 )
 
 const modelTables = [...schema.matchAll(/^model\s+(\w+)\s*\{/gm)].map((match) => match[1])
 
-/** Every committed migration, so a later migration may enable RLS for a table it introduces. */
+/**
+ * Every active migration (the clean baseline carries the lockdown forward), so a later
+ * migration may enable RLS for a table it introduces.
+ */
 const allMigrationSql = readdirSync(migrationsDir)
   .filter((entry) => /^\d{14}_/.test(entry))
   .map((entry) => readFileSync(join(migrationsDir, entry, 'migration.sql'), 'utf8'))
@@ -51,9 +57,11 @@ describe('Data API lockdown migration', () => {
     // A new model must ship with its own ENABLE ROW LEVEL SECURITY statement, in
     // this migration or a later one. Default privileges are already revoked, but
     // RLS is the second, independent control and must not be forgotten.
-    const missing = modelTables.filter(
-      (table) => !allMigrationSql.includes(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;`),
-    )
+    // The clean baseline is a native dump and schema-qualifies its tables (`public."T"`);
+    // hand-written migrations use the bare Prisma form. Both spellings are the same DDL.
+    const enablesRls = (table: string) =>
+      new RegExp(`ALTER TABLE (?:public\\.)?"${table}" ENABLE ROW LEVEL SECURITY;`).test(allMigrationSql)
+    const missing = modelTables.filter((table) => !enablesRls(table))
     expect(missing).toEqual([])
     expect(allMigrationSql).not.toMatch(/DISABLE ROW LEVEL SECURITY/i)
     expect(allMigrationSql).not.toMatch(/FORCE ROW LEVEL SECURITY/i)
