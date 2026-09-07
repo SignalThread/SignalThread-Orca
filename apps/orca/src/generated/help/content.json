@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceDigest": "9c54738585c06ab1b8bea781af3c479dce3df07b337368ae10628c7cb6507693",
-  "generatedAt": "2026-07-13T22:26:13.990Z",
+  "sourceDigest": "ef733b7f2d228409bdfd9c8f4fd70c57a57d4edd61dfad9ab3bac835a46ff9cf",
+  "generatedAt": "2026-09-07T06:46:28.256Z",
   "categories": [
     {
       "slug": "getting-started",
@@ -46,6 +46,7 @@
         "submit-and-review-budget-approvals",
         "use-the-run-of-show",
         "choose-board-or-list-view",
+        "manage-registration-agenda",
         "create-and-edit-sessions",
         "use-the-session-workspace",
         "manage-room-sets-and-seating",
@@ -1278,14 +1279,14 @@
     {
       "slug": "use-workspace-settings",
       "title": "Use Workspace Settings",
-      "description": "Understand the current placeholder state of account workspace and organization settings.",
+      "description": "Manage organization-wide display terminology and understand which account controls are not available.",
       "category": "Portfolio",
       "filePath": "portfolio/use-workspace-settings.md",
-      "status": "coming-soon",
+      "status": "published",
       "order": 120,
       "tags": [
         "settings",
-        "coming-soon"
+        "terminology"
       ],
       "related": [
         "configure-event-settings",
@@ -1294,16 +1295,16 @@
       "sourceRoutes": [
         "/settings"
       ],
-      "screenshotStatus": "none",
+      "screenshotStatus": "needed",
       "subcategory": "",
       "audience": [
         "planner"
       ],
       "difficulty": "beginner",
-      "estimatedReadTime": 6,
-      "lastReviewed": "2026-07-13",
+      "estimatedReadTime": 4,
+      "lastReviewed": "2026-09-04",
       "categorySlug": "portfolio",
-      "bodyMarkdown": "Understand the current placeholder state of account workspace and organization settings.\n\n## Overview\n\nThe current **Settings** page is a placeholder. It does not yet expose organization preferences, integrations, or member management.\n\n## When You’ll Use It\n\n- Open this guide when you need to understand the current placeholder state of account workspace and organization settings.\n- Return to it during portfolio review before choosing which event or source record needs action.\n\n## Before You Begin\n\n- Select the organization whose event portfolio you need to review.\n- Remember that portfolio values come from the event modules you can access.\n\n## Open Workspace Settings\n\n1. Select **Settings** in the account sidebar.\n2. The page currently contains placeholder copy and no editable workspace controls.\n\n## Open Settings\n\n1. Open Settings from account navigation.\n2. Review the page state. Current workspace and organization controls are not yet available here.\n3. Use Event Settings for supported event-specific configuration.\n\n## Understand Important Concepts\n\n- The current **Settings** page is a placeholder. It does not yet expose organization preferences, integrations, or member management.\n\n## In-product Helper Text\n\n> Workspace and organization settings will appear here when the account settings workflow is released.\n\n## Planner Tips\n\n- Record organization-wide decisions outside this page until controls are shipped; do not assume an event setting applies to every event.\n\n## Best Practices\n\n- Do not assume event settings apply across the organization.\n- Use Event Settings only for the selected event's supported Run of Show configuration.\n\n## Troubleshooting\n\n### A control is missing or disabled\n\nConfirm the correct organization is selected and that you can access the events expected to contribute data.\n\n## Frequently Asked Questions\n\n### Where is the system of record?\n\nPortfolio views summarize records from visible events. Open the linked event module before changing or reporting a disputed value.\n",
+      "bodyMarkdown": "Manage the display terminology inherited by events in your organization.\n\n## Overview\n\nAccount **Settings** currently provides organization-wide **Event terminology** controls. You can change the display labels used for Agenda, Run of Show, Matrix, and Show Flow.\n\nMember administration and external integration controls are not available on this page. Orca does not display inactive controls or link to an unfinished integrations page.\n\n## Before You Begin\n\n- Select the correct organization.\n- Confirm that you are authorized to change organization defaults.\n- Remember that an event can override these display labels in its own **Settings** page.\n\n## Update Organization Terminology\n\n1. Select **Settings** in the account sidebar.\n2. In **Event terminology**, edit one or more display labels.\n3. Select **Save terminology**.\n4. Wait for the saved confirmation before navigating away.\n\nThese changes affect display terminology only. Routes, permissions, analytics, and stored records remain unchanged.\n\n## Understand Event Overrides\n\nEvents inherit organization labels unless an event editor selects an event-specific override. Open the event and select **Settings** to inspect or change its inherited values.\n\n## Planner Tips\n\n- Agree on organization vocabulary before active program planning begins.\n- Use event overrides sparingly so planners can recognize the same workspace across the portfolio.\n- Do not expect organization member management or integration setup on this page; those workflows are not currently available here.\n\n## Troubleshooting\n\n### Settings do not load\n\nConfirm that the correct organization is active and retry the page. If loading fails, the form shows the returned error instead of presenting stale values as saved.\n\n### An event still uses a different label\n\nOpen that event's **Settings** and inspect **Event terminology**. A saved event override takes precedence over the organization label.\n\n## Screenshots\n\n<!-- SCREENSHOT NEEDED\nRoute: /settings\nState: Account Settings with the Event terminology form loaded for an organization.\nPurpose: Show which account-level controls are available and distinguish them from event-specific settings.\nAnnotation targets:\n1. Event terminology fields\n2. Save terminology action\n3. Organization-wide scope helper text\n-->\n",
       "headings": [
         {
           "depth": 2,
@@ -1312,33 +1313,18 @@
         },
         {
           "depth": 2,
-          "id": "when-youll-use-it",
-          "text": "When You’ll Use It"
-        },
-        {
-          "depth": 2,
           "id": "before-you-begin",
           "text": "Before You Begin"
         },
         {
           "depth": 2,
-          "id": "open-workspace-settings",
-          "text": "Open Workspace Settings"
+          "id": "update-organization-terminology",
+          "text": "Update Organization Terminology"
         },
         {
           "depth": 2,
-          "id": "open-settings",
-          "text": "Open Settings"
-        },
-        {
-          "depth": 2,
-          "id": "understand-important-concepts",
-          "text": "Understand Important Concepts"
-        },
-        {
-          "depth": 2,
-          "id": "in-product-helper-text",
-          "text": "In-product Helper Text"
+          "id": "understand-event-overrides",
+          "text": "Understand Event Overrides"
         },
         {
           "depth": 2,
@@ -1347,28 +1333,23 @@
         },
         {
           "depth": 2,
-          "id": "best-practices",
-          "text": "Best Practices"
-        },
-        {
-          "depth": 2,
           "id": "troubleshooting",
           "text": "Troubleshooting"
         },
         {
           "depth": 3,
-          "id": "a-control-is-missing-or-disabled",
-          "text": "A control is missing or disabled"
-        },
-        {
-          "depth": 2,
-          "id": "frequently-asked-questions",
-          "text": "Frequently Asked Questions"
+          "id": "settings-do-not-load",
+          "text": "Settings do not load"
         },
         {
           "depth": 3,
-          "id": "where-is-the-system-of-record",
-          "text": "Where is the system of record?"
+          "id": "an-event-still-uses-a-different-label",
+          "text": "An event still uses a different label"
+        },
+        {
+          "depth": 2,
+          "id": "screenshots",
+          "text": "Screenshots"
         }
       ]
     },
@@ -2242,9 +2223,9 @@
       ],
       "difficulty": "intermediate",
       "estimatedReadTime": 6,
-      "lastReviewed": "2026-07-13",
+      "lastReviewed": "2026-09-04",
       "categorySlug": "event-planning",
-      "bodyMarkdown": "Plan what happens, when it happens, where it happens, and what each session requires.\n\n## Overview\n\nThe active surface is the newer Run of Show workspace; older Matrix routes remain for compatibility.\n\nQuick modules include Details, Speakers, AV, F\\&B, Staffing, and Conflicts. Room Set and Seating can appear as unavailable or disabled while that feature remains **Coming soon** in production.\n\n## When You’ll Use It\n\n- Open this guide when you need to plan what happens, when it happens, where it happens, and what each session requires.\n- Return during early planning, weekly review, client review, final preparation, and closeout whenever this record changes.\n\n## Before You Begin\n\n- Open the correct event and confirm its name and dates.\n- Editing requires event editor access; Viewers can inspect supported pages but cannot save protected changes.\n\n## Open the Run of Show\n\n1. Open an event and select **Run of Show** under **Planning**.\n2. Choose an event **Date**, then select **Board** or **List**.\n\n## Review the Schedule\n\n1. Open Run of Show from the event sidebar.\n2. Choose the event date you need to review.\n3. Search or filter sessions and scan conflict indicators.\n4. Open a session drawer for a quick update or open its full workspace for detailed planning.\n\n## Adjust the Schedule\n\n1. In Board view, confirm the board orientation.\n2. Drag a supported session to a new room or time.\n3. Review any new conflicts after the move.\n4. Open session Details to confirm start, end, and room values.\n\n## Understand Important Concepts\n\n- The active surface is the newer Run of Show workspace; older Matrix routes remain for compatibility.\n- Quick modules include Details, Speakers, AV, F\\&B, Staffing, and Conflicts. Room Set and Seating can appear as unavailable or disabled while that feature remains **Coming soon** in production.\n\n## In-product Helper Text\n\n> Run of Show is the operational schedule. Roadmap tracks planning work and deadlines.\n\n## Planner Tips\n\n- Review schedule shape on the Board, then use List to clean missing fields and compare many sessions.\n\n## Best Practices\n\n- Review room transitions in **Board**, then use **List** for missing-resource cleanup.\n- Model meals, rehearsals, breaks, and holds as sessions when they consume time or room capacity.\n\n## Troubleshooting\n\n### A control is missing or disabled\n\nCheck your event role, the record's current approval or lock state, and whether the documented feature is available in production.\n\n## Frequently Asked Questions\n\n### Where is the system of record?\n\nRun of Show owns session schedule and room placement. Opening a session exposes the same record's detailed speaker, AV, F\\&B, staffing, file, and onsite planning.\n\n## Screenshots\n\n![Run of Show board in Rooms by time orientation with multiple rooms and overlapping sessions.](/help/screenshots/hc-23-use-the-run-of-show.png)\n",
+      "bodyMarkdown": "Plan what happens, when it happens, where it happens, and what each session requires.\n\n## Overview\n\nThe active surface is the newer Run of Show workspace; older Matrix routes remain for compatibility.\n\nQuick modules include Details, Speakers, AV, F\\&B, Staffing, and Conflicts. Room Set and Seating can appear as unavailable or disabled while that feature remains **Coming soon** in production.\n\nSessions marked **Official agenda** are the approved subset that can be staged in **Reg Agenda**. Unmarked sessions remain internal planning records and are excluded from attendee-facing agenda publication.\n\n## When You’ll Use It\n\n- Open this guide when you need to plan what happens, when it happens, where it happens, and what each session requires.\n- Return during early planning, weekly review, client review, final preparation, and closeout whenever this record changes.\n\n## Before You Begin\n\n- Open the correct event and confirm its name and dates.\n- Editing requires event editor access; Viewers can inspect supported pages but cannot save protected changes.\n\n## Open the Run of Show\n\n1. Open an event and select **Run of Show** under **Planning**.\n2. Choose an event **Date**, then select **Board** or **List**.\n\n## Review the Schedule\n\n1. Open Run of Show from the event sidebar.\n2. Choose the event date you need to review.\n3. Search or filter sessions and scan conflict indicators.\n4. Open a session drawer for a quick update or open its full workspace for detailed planning.\n\n## Adjust the Schedule\n\n1. In Board view, confirm the board orientation.\n2. Drag a supported session to a new room or time.\n3. Review any new conflicts after the move.\n4. Open session Details to confirm start, end, and room values.\n\n## Mark the Official Agenda\n\n1. Open a session drawer or full session workspace.\n2. Select **Include in official agenda** when the session is approved for attendee-facing use.\n3. Save the session.\n4. Use the official-agenda filter to review the publishable subset before opening **Reg Agenda**.\n\nRemoving the designation keeps the session in Run of Show but removes it from attendee-facing agenda results. If it was previously imported to Registration Agenda staging, the staged entry is archived and unpublished during the next ShowOps import.\n\n## Understand Important Concepts\n\n- The active surface is the newer Run of Show workspace; older Matrix routes remain for compatibility.\n- Quick modules include Details, Speakers, AV, F\\&B, Staffing, and Conflicts. Room Set and Seating can appear as unavailable or disabled while that feature remains **Coming soon** in production.\n- Run of Show remains the planning system of record. Registration Agenda stages attendee-facing copies and never turns internal-only sessions into official sessions.\n\n## In-product Helper Text\n\n> Run of Show is the operational schedule. Roadmap tracks planning work and deadlines.\n\n## Planner Tips\n\n- Review schedule shape on the Board, then use List to clean missing fields and compare many sessions.\n\n## Best Practices\n\n- Review room transitions in **Board**, then use **List** for missing-resource cleanup.\n- Model meals, rehearsals, breaks, and holds as sessions when they consume time or room capacity.\n- Mark only approved attendee-facing sessions as **Official agenda**; keep rehearsals, holds, and internal production cues unmarked unless attendees truly need to see them.\n\n## Troubleshooting\n\n### A control is missing or disabled\n\nCheck your event role, the record's current approval or lock state, and whether the documented feature is available in production.\n\n## Frequently Asked Questions\n\n### Where is the system of record?\n\nRun of Show owns session schedule and room placement. Opening a session exposes the same record's detailed speaker, AV, F\\&B, staffing, file, and onsite planning.\n\n## Screenshots\n\n![Run of Show board in Rooms by time orientation with multiple rooms and overlapping sessions.](/help/screenshots/hc-23-use-the-run-of-show.png)\n",
       "headings": [
         {
           "depth": 2,
@@ -2275,6 +2256,11 @@
           "depth": 2,
           "id": "adjust-the-schedule",
           "text": "Adjust the Schedule"
+        },
+        {
+          "depth": 2,
+          "id": "mark-the-official-agenda",
+          "text": "Mark the Official Agenda"
         },
         {
           "depth": 2,
@@ -2423,6 +2409,105 @@
           "depth": 3,
           "id": "where-is-the-system-of-record",
           "text": "Where is the system of record?"
+        },
+        {
+          "depth": 2,
+          "id": "screenshots",
+          "text": "Screenshots"
+        }
+      ]
+    },
+    {
+      "slug": "manage-registration-agenda",
+      "title": "Manage Registration Agenda",
+      "description": "Stage attendee-facing agenda entries from official Run of Show sessions, spreadsheets, or manual entry.",
+      "category": "Event Planning",
+      "filePath": "event-planning/manage-registration-agenda.md",
+      "status": "published",
+      "order": 225,
+      "tags": [
+        "registration",
+        "agenda",
+        "showops"
+      ],
+      "related": [
+        "use-the-run-of-show",
+        "spreadsheet-import-problems",
+        "use-the-directory"
+      ],
+      "sourceRoutes": [
+        "/events/{eventId}/registration/agenda"
+      ],
+      "screenshotStatus": "needed",
+      "subcategory": "",
+      "audience": [
+        "planner"
+      ],
+      "difficulty": "intermediate",
+      "estimatedReadTime": 7,
+      "lastReviewed": "2026-09-04",
+      "categorySlug": "event-planning",
+      "bodyMarkdown": "Prepare the attendee-facing agenda in a dedicated Registration staging workspace.\n\n## Overview\n\n**Reg Agenda** owns staged attendee-facing agenda entries. You can import sessions designated **Official agenda** in Run of Show, upload a spreadsheet, or create entries manually.\n\nThe current adapter stores entries inside Orca. It does not publish to an external registration provider, and the interface reports external synchronization as unavailable rather than implying success.\n\n## Before You Begin\n\n- Confirm that approved attendee-facing sessions are marked **Official agenda** in Run of Show.\n- Clean session titles, dates, times, rooms, descriptions, tracks, and speaker information before import.\n- You need event editor access to create, edit, publish, unpublish, archive, or import entries.\n\n## Import Official ShowOps Sessions\n\n1. Open the event and select **Reg Agenda**.\n2. Select **Import official ShowOps sessions**.\n3. Review imported, updated, unchanged, archived, warning, and error counts.\n4. Resolve validation warnings before publishing entries.\n\nThe import is idempotent: unchanged sessions are not duplicated, and changed sessions update the existing staged entry. If an imported session is later unmarked in Run of Show, the next import archives and unpublishes its staged entry.\n\n## Import a Spreadsheet\n\n1. Choose a CSV, XLS, or XLSX file.\n2. Review the detected column mapping and preview rows.\n3. Correct invalid rows or mapping problems.\n4. Confirm the import.\n\nImports recognize common agenda column names and report duplicates instead of silently creating repeated entries. Files are limited to 1,000 rows.\n\n## Create or Edit an Entry Manually\n\nUse manual entry for attendee-facing content that does not originate in Run of Show. Enter the title, date, start and end times, and other available details, then save. Open an existing entry to edit its staged values.\n\n## Publish and Unpublish\n\nPublish makes a valid staged entry available to Registration Agenda consumers inside Orca. Unpublish returns it to draft without deleting it. Remove archives the staged entry after confirmation.\n\nPublishing here does not synchronize to an external registration platform. External publication remains unavailable until a provider adapter is configured.\n\n## Attach a PDF Reference\n\nYou can attach a valid PDF as source reference metadata. Orca records the filename and type but does not extract agenda entries from the PDF. Use manual entry or a spreadsheet when structured import is required.\n\n## Planner Tips\n\n- Treat Run of Show as operational truth and Reg Agenda as attendee-facing staging.\n- Re-run the ShowOps import after official session or speaker details change.\n- Review warnings rather than assuming every staged entry is ready to publish.\n- Use stable source IDs and clean spreadsheet rows to minimize duplicates.\n\n## Troubleshooting\n\n### An expected session was not imported\n\nOpen the session in Run of Show and confirm **Include in official agenda** is selected. Internal-only sessions are intentionally excluded.\n\n### A spreadsheet row is invalid\n\nReview the preview's field mapping and row-level validation. Correct the source file, then preview it again before confirming.\n\n### External sync did not occur\n\nThis environment uses Orca's internal Registration staging adapter. No external provider sync is performed or reported as successful.\n\n## Screenshots\n\n<!-- SCREENSHOT NEEDED\nRoute: /events/{eventId}/registration/agenda\nState: Registration Agenda showing source-path controls, staged entries, validation state, and publication actions.\nPurpose: Explain the boundary between official ShowOps sessions, Registration staging, and unavailable external synchronization.\nAnnotation targets:\n1. Import official ShowOps sessions action\n2. Spreadsheet, manual, and PDF reference paths\n3. Draft, published, and archived entry actions\n-->\n",
+      "headings": [
+        {
+          "depth": 2,
+          "id": "overview",
+          "text": "Overview"
+        },
+        {
+          "depth": 2,
+          "id": "before-you-begin",
+          "text": "Before You Begin"
+        },
+        {
+          "depth": 2,
+          "id": "import-official-showops-sessions",
+          "text": "Import Official ShowOps Sessions"
+        },
+        {
+          "depth": 2,
+          "id": "import-a-spreadsheet",
+          "text": "Import a Spreadsheet"
+        },
+        {
+          "depth": 2,
+          "id": "create-or-edit-an-entry-manually",
+          "text": "Create or Edit an Entry Manually"
+        },
+        {
+          "depth": 2,
+          "id": "publish-and-unpublish",
+          "text": "Publish and Unpublish"
+        },
+        {
+          "depth": 2,
+          "id": "attach-a-pdf-reference",
+          "text": "Attach a PDF Reference"
+        },
+        {
+          "depth": 2,
+          "id": "planner-tips",
+          "text": "Planner Tips"
+        },
+        {
+          "depth": 2,
+          "id": "troubleshooting",
+          "text": "Troubleshooting"
+        },
+        {
+          "depth": 3,
+          "id": "an-expected-session-was-not-imported",
+          "text": "An expected session was not imported"
+        },
+        {
+          "depth": 3,
+          "id": "a-spreadsheet-row-is-invalid",
+          "text": "A spreadsheet row is invalid"
+        },
+        {
+          "depth": 3,
+          "id": "external-sync-did-not-occur",
+          "text": "External sync did not occur"
         },
         {
           "depth": 2,
@@ -2860,7 +2945,7 @@
     {
       "slug": "configure-event-settings",
       "title": "Configure Event Settings",
-      "description": "Configure reusable Run of Show options and event workspace actions for one event.",
+      "description": "Edit event details, approval workflows, display labels, reusable requirements, and workspace actions.",
       "category": "Event Planning",
       "filePath": "event-planning/configure-event-settings.md",
       "status": "published",
@@ -2876,16 +2961,16 @@
       "sourceRoutes": [
         "/events/{eventId}/settings"
       ],
-      "screenshotStatus": "captured",
+      "screenshotStatus": "needed",
       "subcategory": "",
       "audience": [
         "planner"
       ],
-      "difficulty": "advanced",
+      "difficulty": "intermediate",
       "estimatedReadTime": 6,
-      "lastReviewed": "2026-07-13",
+      "lastReviewed": "2026-09-04",
       "categorySlug": "event-planning",
-      "bodyMarkdown": "Configure reusable Run of Show options and event workspace actions for one event.\n\n## Overview\n\nEvent settings manages reusable Run of Show options for one event: **Session Types**, **AV Requirements**, **Staffing**, and **Status options**. **Workspace actions** contains the permanent **Delete Event** action.\n\nThis page does not edit event name, dates, timezone, organization settings, or integrations. **Session Types** currently shows read-only defaults.\n\n## When You’ll Use It\n\n- Open this guide when you need to configure reusable Run of Show options and event workspace actions for one event.\n- Return during early planning, weekly review, client review, final preparation, and closeout whenever this record changes.\n\n## Before You Begin\n\n- Open the correct event and confirm its name and dates.\n- Editing requires event editor access; Viewers can inspect supported pages but cannot save protected changes.\n\n## Open Event Settings\n\n1. Open an event and select **Settings**.\n2. Choose **Session Types**, **AV Requirements**, **Staffing**, **Status options**, or **Workspace actions**, then select **Manage**.\n\n## Update Event Configuration\n\n1. Open the relevant settings card and select **Manage**.\n2. For **AV Requirements**, **Staffing**, or **Status options**, update the reusable sections and items supported by that screen.\n3. Return to Run of Show and verify the options appear in session planning.\n4. Do not expect **Session Types** to save custom types; the page labels them **Read-only defaults**.\n\n## Configure Session Requirements\n\n1. Open the session requirements settings area.\n2. Create or edit template sections and items.\n3. Return to a session workspace to confirm the template structure is available.\n\n## Understand Important Concepts\n\n- Event Settings applies to one event. The account **Settings** page is a separate placeholder surface.\n- Danger actions can affect the whole event and should be limited to authorized planners.\n\n## In-product Helper Text\n\n> Event Settings changes the selected event only.\n\n## Planner Tips\n\n- Set requirement templates before the production team begins detailed session review so every session is checked against the same standard.\n\n## Best Practices\n\n- Configure AV, Staffing, and Status options before detailed session planning begins.\n- Treat **Session Types** as read-only defaults; custom type administration is not available here.\n\n## Troubleshooting\n\n### A control is missing or disabled\n\nCheck your event role, the record's current approval or lock state, and whether the documented feature is available in production.\n\n## Frequently Asked Questions\n\n### Where is the system of record?\n\nEvent Settings owns reusable AV, staffing, and status options. Each Run of Show session owns the options selected for that session.\n\n## Screenshots\n\n![Event settings overview showing Run of Show and workspace cards.](/help/screenshots/hc-33-configure-event-settings.png)\n\n![AV Requirements settings detail showing reusable sections and items.](/help/screenshots/hc-34-configure-event-settings.png)\n",
+      "bodyMarkdown": "Configure the selected event without leaving its workspace.\n\n## Overview\n\n**Event Settings** is organized into event details, approval workflows, display terminology, reusable session requirements, built-in session types, and workspace actions. Changes apply only to the event you opened.\n\nBuilt-in session types are read-only. The page labels this state explicitly and does not offer add, edit, or delete controls.\n\n## Before You Begin\n\n- Confirm that you opened the correct event.\n- You need event editor access to save changes. Read-only users can inspect the current configuration.\n- Organization-wide terminology is managed separately in account **Settings**.\n\n## Edit Event Details\n\n1. Open an event and select **Settings**.\n2. In **Event details**, update the event name, status, start and end dates, time zone, location or venue, or client.\n3. Select **Save changes**.\n4. If you do not want to keep the unsaved edits, select **Cancel changes**.\n\nThe end date cannot be earlier than the start date. Dates are stored as event calendar days.\n\n## Configure Approval Workflows\n\nUse the approval workflow controls to enable or disable new budget and document approval requests for the event. These controls save immediately and do not retroactively change completed decisions.\n\n## Choose Event Display Labels\n\n1. In **Event terminology**, choose an approved display label for Agenda, Run of Show, Matrix, or Show Flow.\n2. Select **Save labels**.\n3. Select **Discard changes** to restore the last saved labels, or **Use organization labels** to prepare inherited values for saving.\n\nDisplay terminology changes visible labels only. Routes, API fields, permissions, analytics keys, and stored records remain unchanged.\n\n## Configure Reusable Session Requirements\n\nOpen **AV Requirements**, **Staffing**, **Supplies**, or **Signage** to manage reusable sections and items. Return to a session workspace to confirm that the expected requirement structure is available.\n\n## Review Built-in Session Types\n\nOpen **Built-in session types** and select **View defaults**. The listed starter types are read-only. Sessions can still retain per-session free-text type values, but event-scoped type administration is not available from this page.\n\n## Workspace Actions\n\n**Workspace actions** contains event-level danger actions, including permanent event deletion. Review the event name and impact carefully before using a destructive action.\n\n## Planner Tips\n\n- Set reusable requirements before detailed production review so sessions follow a consistent checklist.\n- Use event terminology for client-specific vocabulary without changing the underlying data model.\n- Treat built-in session types as reference values, not an editable taxonomy.\n\n## Troubleshooting\n\n### Save is disabled\n\nConfirm that you have editor access and that at least one value differs from the saved version. A save control remains disabled while a request is in progress.\n\n### A settings card is read-only\n\nThe built-in session type list is intentionally read-only. Other settings can also be read-only when your event role does not allow edits.\n\n## Screenshots\n\n<!-- SCREENSHOT NEEDED\nRoute: /events/{eventId}/settings\nState: Event Settings overview with event details, approval workflows, terminology, reusable requirement cards, and Built-in session types visible.\nPurpose: Orient planners to the settings that apply to one event and the read-only session type state.\nAnnotation targets:\n1. Event details save and cancel controls\n2. Event terminology save and discard controls\n3. Built-in session types View defaults action\n-->\n",
       "headings": [
         {
           "depth": 2,
@@ -2894,38 +2979,38 @@
         },
         {
           "depth": 2,
-          "id": "when-youll-use-it",
-          "text": "When You’ll Use It"
-        },
-        {
-          "depth": 2,
           "id": "before-you-begin",
           "text": "Before You Begin"
         },
         {
           "depth": 2,
-          "id": "open-event-settings",
-          "text": "Open Event Settings"
+          "id": "edit-event-details",
+          "text": "Edit Event Details"
         },
         {
           "depth": 2,
-          "id": "update-event-configuration",
-          "text": "Update Event Configuration"
+          "id": "configure-approval-workflows",
+          "text": "Configure Approval Workflows"
         },
         {
           "depth": 2,
-          "id": "configure-session-requirements",
-          "text": "Configure Session Requirements"
+          "id": "choose-event-display-labels",
+          "text": "Choose Event Display Labels"
         },
         {
           "depth": 2,
-          "id": "understand-important-concepts",
-          "text": "Understand Important Concepts"
+          "id": "configure-reusable-session-requirements",
+          "text": "Configure Reusable Session Requirements"
         },
         {
           "depth": 2,
-          "id": "in-product-helper-text",
-          "text": "In-product Helper Text"
+          "id": "review-built-in-session-types",
+          "text": "Review Built-in Session Types"
+        },
+        {
+          "depth": 2,
+          "id": "workspace-actions",
+          "text": "Workspace Actions"
         },
         {
           "depth": 2,
@@ -2934,28 +3019,18 @@
         },
         {
           "depth": 2,
-          "id": "best-practices",
-          "text": "Best Practices"
-        },
-        {
-          "depth": 2,
           "id": "troubleshooting",
           "text": "Troubleshooting"
         },
         {
           "depth": 3,
-          "id": "a-control-is-missing-or-disabled",
-          "text": "A control is missing or disabled"
-        },
-        {
-          "depth": 2,
-          "id": "frequently-asked-questions",
-          "text": "Frequently Asked Questions"
+          "id": "save-is-disabled",
+          "text": "Save is disabled"
         },
         {
           "depth": 3,
-          "id": "where-is-the-system-of-record",
-          "text": "Where is the system of record?"
+          "id": "a-settings-card-is-read-only",
+          "text": "A settings card is read-only"
         },
         {
           "depth": 2,
@@ -3202,9 +3277,9 @@
       ],
       "difficulty": "beginner",
       "estimatedReadTime": 6,
-      "lastReviewed": "2026-07-13",
+      "lastReviewed": "2026-09-04",
       "categorySlug": "people-and-program",
-      "bodyMarkdown": "Maintain the canonical event people list and the roles each person holds.\n\n## Overview\n\nOne canonical person can hold several event roles, such as Speaker and Attendee.\n\nSource labels explain how a role or identity entered the event.\n\n## When You’ll Use It\n\n- Open this guide when you need to maintain the canonical event people list and the roles each person holds.\n- Return before program publishing, external communication, and onsite handoff when people or readiness data changes.\n\n## Before You Begin\n\n- Open the correct event and search Event Directory before creating a new person.\n- Editing requires event editor access; external speaker links do not grant planner access.\n\n## Open the Directory\n\n1. Open an event and select **Event Directory** under **Planning**.\n2. Use **Add person**, **Import people**, search, role/status filters, and person drawers.\n\n## Find and Add People\n\n1. Open Directory in the event workspace.\n2. Search or filter by role and status.\n3. Choose Add person to create a record.\n4. Open a person drawer to review identity, roles, sources, and linked context.\n\n## Use Directory Selections\n\n1. Select people or use the current filtered scope.\n2. Create a Marketing audience or use the available directory email action.\n3. Review the selected scope before continuing.\n\n## Understand Important Concepts\n\n- One canonical person can hold several event roles, such as Speaker and Attendee.\n- Source labels explain how a role or identity entered the event.\n\n## In-product Helper Text\n\n> Directory is the canonical people record for the event.\n\n## Planner Tips\n\n- Use one person record with multiple roles. Creating separate speaker and attendee identities causes duplicate communications and reporting.\n\n## Best Practices\n\n- Create one person and add roles rather than duplicating identities.\n- Clean missing or invalid email before creating an audience or selecting **Email selected**.\n\n## Troubleshooting\n\n### A control is missing or disabled\n\nCheck the canonical Directory person, your event role, and any review or token state described in this article.\n\n## Frequently Asked Questions\n\n### Where is the system of record?\n\nEvent Directory owns the canonical person identity, contact details, roles, and source labels used by attendee, speaker, session, and Marketing workflows.\n\n## Screenshots\n\n![Event Directory with mixed roles and the selection toolbar visible.](/help/screenshots/hc-35-use-the-directory.png)\n",
+      "bodyMarkdown": "Maintain the canonical event people list and the roles each person holds.\n\n## Overview\n\nOne canonical person can hold several event roles, such as Speaker and Attendee.\n\nSource labels explain how a role or identity entered the event.\n\nThe person drawer shows role-specific context from canonical attendee and speaker records. Attendee details can include registration status and housing assignment; speaker details can include headshot, biography, and assigned sessions.\n\n## When You’ll Use It\n\n- Open this guide when you need to maintain the canonical event people list and the roles each person holds.\n- Return before program publishing, external communication, and onsite handoff when people or readiness data changes.\n\n## Before You Begin\n\n- Open the correct event and search Event Directory before creating a new person.\n- Editing requires event editor access; external speaker links do not grant planner access.\n\n## Open the Directory\n\n1. Open an event and select **Event Directory** under **Planning**.\n2. Use **Add person**, **Import people**, search, role/status filters, and person drawers.\n\n## Find and Add People\n\n1. Open Directory in the event workspace.\n2. Search or filter by role and status.\n3. Choose Add person to create a record.\n4. Open a person drawer to review identity, roles, sources, and linked context.\n\n## Work with Registration-backed Details\n\n1. Open an attendee in the person drawer.\n2. Review the canonical registration status and housing assignment.\n3. Add or update hotel and room details when housing changes.\n4. Use **Cancel registration** only after confirming the destructive action.\n\nRegistration transfer and confirmation resend controls remain disabled when no external provider adapter is configured. The drawer explains that limitation instead of reporting a successful external action.\n\n## Review Speaker Context\n\nOpen a speaker to review headshot and biography readiness. Assigned sessions link back to the canonical session workspace. Portal resend is unavailable when no delivery provider is configured and does not claim that a message was sent.\n\n## Use Directory Selections\n\n1. Select people or use the current filtered scope.\n2. Create a Marketing audience or use the available directory email action.\n3. Review the selected scope before continuing.\n\n## Understand Important Concepts\n\n- One canonical person can hold several event roles, such as Speaker and Attendee.\n- Source labels explain how a role or identity entered the event.\n- Directory actions update canonical attendee or speaker records; unavailable external-provider actions remain visibly disabled.\n\n## In-product Helper Text\n\n> Directory is the canonical people record for the event.\n\n## Planner Tips\n\n- Use one person record with multiple roles. Creating separate speaker and attendee identities causes duplicate communications and reporting.\n\n## Best Practices\n\n- Create one person and add roles rather than duplicating identities.\n- Clean missing or invalid email before creating an audience or selecting **Email selected**.\n- Confirm the person and registration status before cancellation; the action changes the canonical attendee record.\n\n## Troubleshooting\n\n### A control is missing or disabled\n\nCheck the canonical Directory person, your event role, and any review or token state described in this article.\n\n## Frequently Asked Questions\n\n### Where is the system of record?\n\nEvent Directory owns the canonical person identity, contact details, roles, and source labels used by attendee, speaker, session, and Marketing workflows.\n\n## Screenshots\n\n![Event Directory with mixed roles and the selection toolbar visible.](/help/screenshots/hc-35-use-the-directory.png)\n",
       "headings": [
         {
           "depth": 2,
@@ -3230,6 +3305,16 @@
           "depth": 2,
           "id": "find-and-add-people",
           "text": "Find and Add People"
+        },
+        {
+          "depth": 2,
+          "id": "work-with-registration-backed-details",
+          "text": "Work with Registration-backed Details"
+        },
+        {
+          "depth": 2,
+          "id": "review-speaker-context",
+          "text": "Review Speaker Context"
         },
         {
           "depth": 2,

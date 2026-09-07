@@ -109,6 +109,10 @@ type EventTemplateContext = {
   sessionRequirementTemplateId: string | null;
 };
 
+function isLegacySuppliesRequirement(input: { key: string; label: string }): boolean {
+  return inferSessionRequirementCatalogType(input) === "SUPPLIES";
+}
+
 const templateQueryArgs = {
   select: {
     id: true,
@@ -699,6 +703,7 @@ export async function saveSessionRequirementSelections(input: {
         select: {
           id: true,
           hasQuantity: true,
+          section: { select: { key: true, label: true } },
         },
       })
     : [];
@@ -708,7 +713,13 @@ export async function saveSessionRequirementSelections(input: {
   }
 
   const itemById = new Map(allowedItems.map((item) => [item.id, item]));
-  const payload = normalizedSelections.map((selection) => {
+  // Supplies moved to the dedicated Event Supply Catalog and session allocations.
+  // Leave legacy selections untouched so historic data and existing Budget records survive,
+  // but never let this generic requirements writer create, update, or delete them.
+  const payload = normalizedSelections.filter((selection) => {
+    const item = itemById.get(selection.itemId);
+    return item && !isLegacySuppliesRequirement(item.section);
+  }).map((selection) => {
     const item = itemById.get(selection.itemId);
     if (!item) {
       throw new SessionRequirementError("One or more requirement items are invalid for this event", 400);
@@ -727,11 +738,12 @@ export async function saveSessionRequirementSelections(input: {
     select: {
       itemId: true,
       quantity: true,
+      item: { select: { section: { select: { key: true, label: true } } } },
     },
   });
 
   const persistencePlan = buildSessionRequirementSelectionPersistencePlan(
-    existingSelections.map((selection) => ({
+    existingSelections.filter((selection) => !isLegacySuppliesRequirement(selection.item.section)).map((selection) => ({
       itemId: selection.itemId,
       quantity: selection.quantity ?? null,
     })),
@@ -862,11 +874,15 @@ export async function updateSessionRequirementBudgetLink(input: {
     },
     select: {
       id: true,
+      section: { select: { key: true, label: true } },
     },
   });
 
   if (!item) {
     throw new SessionRequirementError("Requirement item not found", 404);
+  }
+  if (isLegacySuppliesRequirement(item.section)) {
+    throw new SessionRequirementError("Supplies are planned in the Supplies tab, not through Budget links.", 409);
   }
 
   const selectionSelect = {

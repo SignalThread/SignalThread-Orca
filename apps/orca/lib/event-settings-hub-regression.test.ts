@@ -25,8 +25,9 @@ test("event settings page renders the categorized settings hub", () => {
 test("run of show settings exposes session types and supported catalogs", () => {
   const hubSource = readSource("app/(shell)/events/[eventId]/settings/_components/event-settings-hub.tsx");
 
-  assert.match(hubSource, /title: "Session Types"/);
-  assert.match(hubSource, /Manage the chips, filters, and grouping options shown in \{terminology\.runOfShow\}\./);
+  assert.match(hubSource, /title: "Built-in session types"/);
+  assert.match(hubSource, /View the starter chips, filters, and grouping options shown in \{terminology\.runOfShow\}\./);
+  assert.match(hubSource, /actionLabel: "View defaults"/);
   assert.match(hubSource, /title: "AV Requirements"/);
   assert.match(hubSource, /title: "Staffing"/);
   assert.match(hubSource, /title: "Supplies"/);

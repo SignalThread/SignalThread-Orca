@@ -70,20 +70,6 @@ export const SESSION_REQUIREMENT_PLATFORM_DEFAULT_CATALOGS: SessionRequirementCa
     ],
   },
   {
-    type: "SUPPLIES",
-    key: "supplies",
-    label: "Supplies",
-    icon: "package",
-    items: [
-      { key: "notepads", label: "Notepads", hasQuantity: true },
-      { key: "pens", label: "Pens", hasQuantity: true },
-      { key: "flip-charts", label: "Flip charts", hasQuantity: true },
-      { key: "easels", label: "Easels", hasQuantity: true },
-      { key: "name-tents", label: "Name tents", hasQuantity: true },
-      { key: "workshop-material-kits", label: "Workshop material kits", hasQuantity: true },
-    ],
-  },
-  {
     type: "SIGNAGE",
     key: "signage",
     label: "Signage",

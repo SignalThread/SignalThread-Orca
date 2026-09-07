@@ -63,6 +63,7 @@ export type Matrix2Session = {
   roomId: string | null;
   roomName: string;
   title: string;
+  includeInOfficialAgenda?: boolean;
   sessionType: string;
   status: string;
   expectedAttendance: number | null;
@@ -152,6 +153,7 @@ export type Matrix2ZoomConfig = {
 
 export type Matrix2ConflictType =
   | "SPEAKER_DOUBLE_BOOKED"
+  | "STAFF_DOUBLE_BOOKED"
   | "ROOM_OVERLAP"
   | "ROOM_CAPACITY_EXCEEDED";
 
@@ -161,8 +163,12 @@ export type Matrix2Conflict = {
   severity: "warning" | "error";
   sessionIds: string[];
   message: string;
+  affectedSessionTitle: string;
+  reason: string;
+  relatedSessionId?: string;
   roomName?: string;
   speakerName?: string;
+  staffName?: string;
 };
 
 export type Matrix2Template = {

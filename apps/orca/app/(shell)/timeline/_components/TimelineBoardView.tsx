@@ -20,6 +20,7 @@ function workstreamKeyFor(item: TimelineItemRecord): string {
 type TimelineBoardViewProps = {
   items: TimelineItemRecord[];
   onMoveStatus: (itemId: string, status: TimelineStatus) => Promise<void>;
+  onOpenItem: (itemId: string) => void;
 };
 
 type BoardColumn = "NOT_STARTED" | "IN_PROGRESS" | "AT_RISK" | "COMPLETE";
@@ -53,7 +54,7 @@ function getColumnTone(column: BoardColumn): string {
   return "bg-slate-50";
 }
 
-export default function TimelineBoardView({ items, onMoveStatus }: TimelineBoardViewProps) {
+export default function TimelineBoardView({ items, onMoveStatus, onOpenItem }: TimelineBoardViewProps) {
   function onDropToStatus(event: DragEvent<HTMLElement>, column: BoardColumn) {
     event.preventDefault();
     const itemId = event.dataTransfer.getData("text/timeline-item-id");
@@ -62,7 +63,10 @@ export default function TimelineBoardView({ items, onMoveStatus }: TimelineBoard
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-5">
+    <div
+      className="grid gap-4"
+      style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))" }}
+    >
       {COLUMNS.map((column) => {
         const columnItems = items.filter((item) => columnForItem(item) === column.key);
         return (
@@ -116,6 +120,14 @@ export default function TimelineBoardView({ items, onMoveStatus }: TimelineBoard
                       {item.ownerUser?.name?.trim() || "Unassigned"}
                     </span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => onOpenItem(item.id)}
+                    className="inline-flex min-h-9 w-full items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    aria-label={`Open ${item.title}`}
+                  >
+                    Open item
+                  </button>
                 </article>
               ))}
               {columnItems.length === 0 ? (

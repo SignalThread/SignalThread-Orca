@@ -241,8 +241,9 @@ test("budget grid uses an explicit colgroup so columns cannot collapse/overlap",
   // visible column a real width even after user reordering.
   assert.equal(fullBudgetGridSource.includes("table-fixed"), true);
   assert.equal(fullBudgetGridSource.includes("<colgroup>"), true);
-  assert.equal(fullBudgetGridSource.includes("<col style={{ width: 88 }} />"), true);
-  assert.equal(fullBudgetGridSource.includes("<col style={{ width: 210 }} />"), true);
+  assert.equal(fullBudgetGridSource.includes("<col style={{ width: 72 }} />"), true);
+  assert.equal(fullBudgetGridSource.includes("<col style={{ width: 200 }} />"), true);
+  assert.equal(fullBudgetGridSource.includes("<col style={{ width: 180 }} />"), true);
   assert.equal(fullBudgetGridSource.includes("BUDGET_COLUMN_WIDTHS[column.id]"), true);
   assert.equal(fullBudgetGridSource.includes("orderedColumns.map((column) => ("), true);
   assert.equal(fullBudgetGridSource.includes(">Line Item</th>"), false);
@@ -275,7 +276,7 @@ test("imported currency values render via formatMoney without clipping wrappers"
 test("horizontal scrolling is preserved for the wide grid", () => {
   assert.equal(fullBudgetGridSource.includes("overflow-x-auto"), true);
   // Still wide enough for spreadsheet editing after removing Line Item + Actions.
-  assert.equal(fullBudgetGridSource.includes("min-w-[1508px]"), true);
+  assert.equal(fullBudgetGridSource.includes("min-w-[1546px]"), true);
 });
 
 // --- Issue 4: new categories/subcategories are added as line-item text ---

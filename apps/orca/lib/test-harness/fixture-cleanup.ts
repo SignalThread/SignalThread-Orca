@@ -363,7 +363,7 @@ export async function cleanupTestFixtureOrganizations(
     await tx.membership.deleteMany({ where: { orgId: { in: organizationIds } } });
     await tx.user.deleteMany({ where: { id: { in: userIds } } });
     await tx.organization.deleteMany({ where: { id: { in: organizationIds } } });
-  }, { timeout: 30_000 });
+  }, { maxWait: 10_000, timeout: 120_000 });
 
   const remaining = await db.organization.count({ where: { id: { in: organizationIds } } });
   if (remaining !== 0) {

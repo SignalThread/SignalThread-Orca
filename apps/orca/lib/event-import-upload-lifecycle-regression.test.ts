@@ -80,7 +80,7 @@ test("creation flow can search and directly enter an existing event", () => {
 test("successful document uploads enter the event while partial failures preserve recovery", () => {
   assert.match(
     builderSource,
-    /if \(results\.every\(\(result\) => result\.ok\)\) \{\s*router\.push\(`\/events\/\$\{eventId\}\?created=1`\);/,
+    /if \(results\.every\(\(result\) => result\.ok\)\) \{\s*router\.replace\(`\/events\/\$\{eventId\}\?created=1`\);/,
   );
   assert.match(
     builderSource,

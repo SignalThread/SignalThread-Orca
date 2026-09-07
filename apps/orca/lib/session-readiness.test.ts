@@ -10,6 +10,7 @@ import {
   deriveDetailsReadiness,
   deriveFnbReadiness,
   deriveNotesActivityReadiness,
+  deriveOptionalSessionModuleReadiness,
   deriveOperationalRequirementReadiness,
   deriveRoomSetReadiness,
   deriveSeatingReadiness,
@@ -87,6 +88,12 @@ test("not_needed is explicit and not a fallback", () => {
   assert.equal(deriveConservativeReadinessStatus({ applies: false }), "not_needed");
   assert.equal(deriveConservativeReadinessStatus({ hasRequiredData: false, hasStarted: false }), "needs_info");
   assert.equal(deriveAvReadiness({ required: false }).status, "not_needed");
+});
+
+test("optional modules are neutral while disabled and actionable only when enabled", () => {
+  assert.equal(deriveOptionalSessionModuleReadiness("accessibility", { enabled: false }).status, "not_needed");
+  assert.equal(deriveOptionalSessionModuleReadiness("vendor-production", { enabled: true }).status, "not_started");
+  assert.equal(deriveOptionalSessionModuleReadiness("safety-escalation", { enabled: true, allNotNeeded: true }).status, "not_needed");
 });
 
 const completeDetails = {

@@ -1312,9 +1312,19 @@ function MatrixOverviewTable({
                                   className={overviewInputClassName("min-w-[190px]")}
                                 />
                               ) : (
-                                <button type="button" onClick={() => startEditing(session)} className="block max-w-[220px] truncate text-left font-semibold text-slate-900 hover:text-[#28439A]">
-                                  {session.title}
-                                </button>
+                                <div className="space-y-1">
+                                  <button type="button" onClick={() => startEditing(session)} className="block max-w-[220px] truncate text-left font-semibold text-slate-900 hover:text-[#28439A]">
+                                    {session.title}
+                                  </button>
+                                  <span className={[
+                                    "inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-semibold",
+                                    session.includeInOfficialAgenda
+                                      ? "border-blue-200 bg-blue-50 text-blue-700"
+                                      : "border-slate-200 bg-slate-50 text-slate-500",
+                                  ].join(" ")}>
+                                    {session.includeInOfficialAgenda ? "Official agenda" : "Internal/operational only"}
+                                  </span>
+                                </div>
                               )}
                             </td>
                           );
@@ -1621,6 +1631,7 @@ export default function Matrix2Page({ eventIdOverride = "", hideEventSelector = 
   const [isMutating, setIsMutating] = useState(false);
   const [isAddSessionOpen, setIsAddSessionOpen] = useState(false);
   const [addSessionType, setAddSessionType] = useState(DEFAULT_SESSION_TYPE);
+  const [addSessionIncludeInOfficialAgenda, setAddSessionIncludeInOfficialAgenda] = useState(false);
   const [addSessionDate, setAddSessionDate] = useState("");
   const [addSessionRoomId, setAddSessionRoomId] = useState("");
   const [addSessionStartTime, setAddSessionStartTime] = useState("09:00");
@@ -1894,6 +1905,8 @@ export default function Matrix2Page({ eventIdOverride = "", hideEventSelector = 
   const listVisibleSessions = useMemo(() => {
     return visibleSessions.filter((session) => {
       if (listFilters.type && session.sessionType !== listFilters.type) return false;
+      if (listFilters.officialAgenda === "OFFICIAL" && !session.includeInOfficialAgenda) return false;
+      if (listFilters.officialAgenda === "INTERNAL" && session.includeInOfficialAgenda) return false;
 
       if (listFilters.roomId) {
         if (listFilters.roomId === "__unassigned__") {
@@ -2251,6 +2264,7 @@ export default function Matrix2Page({ eventIdOverride = "", hideEventSelector = 
     }
 
     setAddSessionType(DEFAULT_SESSION_TYPE);
+    setAddSessionIncludeInOfficialAgenda(false);
     setAddSessionDate(date);
     setAddSessionRoomId(snapshot.rooms[0]?.id ?? "");
     setAddSessionStartTime(minutesToTime(startMinutes));
@@ -2324,6 +2338,7 @@ export default function Matrix2Page({ eventIdOverride = "", hideEventSelector = 
           roomId: room?.id ?? null,
           room: room?.name ?? "",
           sessionName: sessionType,
+          includeInOfficialAgenda: addSessionIncludeInOfficialAgenda,
           setup: template?.defaultSetup ?? "",
           attendance: template?.defaultAttendance ?? null,
           meal: template?.defaultMeal ?? "",
@@ -2368,6 +2383,7 @@ export default function Matrix2Page({ eventIdOverride = "", hideEventSelector = 
   }, [
     addSessionDate,
     addSessionEndTime,
+    addSessionIncludeInOfficialAgenda,
     addSessionRoomId,
     addSessionStartTime,
     addSessionType,
@@ -2505,6 +2521,7 @@ export default function Matrix2Page({ eventIdOverride = "", hideEventSelector = 
       sessionId: string,
       payload: {
         title: string;
+        includeInOfficialAgenda: boolean;
         sessionType: string;
         status: string;
         roomId: string | null;
@@ -2567,6 +2584,7 @@ export default function Matrix2Page({ eventIdOverride = "", hideEventSelector = 
               ? {
                   ...entry,
                   title: payload.title,
+                  includeInOfficialAgenda: payload.includeInOfficialAgenda,
                   sessionType: payload.sessionType,
                   status: payload.status,
                   roomId: payload.roomId,
@@ -4032,6 +4050,19 @@ export default function Matrix2Page({ eventIdOverride = "", hideEventSelector = 
                       </option>
                     ))}
                   </select>
+                </label>
+
+                <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={addSessionIncludeInOfficialAgenda}
+                    onChange={(event) => setAddSessionIncludeInOfficialAgenda(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#28439A] focus:ring-[#28439A]"
+                  />
+                  <span>
+                    <span className="block text-[12px] font-semibold text-slate-700">Include in official agenda</span>
+                    <span className="mt-0.5 block text-[11px] text-slate-500">Leave off for rehearsals, setup blocks, and other internal operations.</span>
+                  </span>
                 </label>
 
                 <label className="grid gap-1">

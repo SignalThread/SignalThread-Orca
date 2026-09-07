@@ -1,0 +1,3 @@
+CREATE TABLE "SecurityComplianceRecord" ("id" UUID NOT NULL, "eventId" UUID NOT NULL, "area" TEXT NOT NULL, "title" TEXT NOT NULL, "status" TEXT NOT NULL DEFAULT 'NEEDS_REVIEW', "owner" TEXT, "dueDate" TIMESTAMP(3), "reviewedAt" TIMESTAMP(3), "details" TEXT, "evidenceUrl" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "SecurityComplianceRecord_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "SecurityComplianceRecord_eventId_area_status_idx" ON "SecurityComplianceRecord"("eventId", "area", "status");
+ALTER TABLE "SecurityComplianceRecord" ADD CONSTRAINT "SecurityComplianceRecord_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;

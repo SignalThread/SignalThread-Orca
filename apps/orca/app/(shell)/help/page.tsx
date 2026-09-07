@@ -31,8 +31,8 @@ const utilities = [
   },
   {
     title: "Product Walkthroughs",
-    description: "Follow step-by-step guides for learning the workspace.",
-    action: "Explore getting started",
+    description: "Follow written, step-by-step guides. Video walkthroughs are not available yet.",
+    action: "Open written walkthroughs",
     href: "/help/category/getting-started",
     icon: PlayCircle,
   },

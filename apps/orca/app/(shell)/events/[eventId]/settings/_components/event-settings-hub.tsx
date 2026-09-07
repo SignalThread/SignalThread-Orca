@@ -65,6 +65,7 @@ type SettingsCard = {
   description: string;
   meta?: string;
   disabled?: boolean;
+  actionLabel?: string;
 };
 
 function CardButton({ card, onOpen }: { card: SettingsCard; onOpen: (detail: SettingsDetail) => void }) {
@@ -84,7 +85,7 @@ function CardButton({ card, onOpen }: { card: SettingsCard; onOpen: (detail: Set
       <span className="mt-4 flex items-center justify-between gap-3">
         <span className="text-[12px] font-medium text-slate-500">{card.meta}</span>
         <span className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-[12px] font-semibold text-slate-700 transition group-hover:border-[#28439A]/25 group-hover:bg-white group-hover:text-[#28439A]">
-          Manage
+          {card.actionLabel ?? "Manage"}
           <ChevronRight className="h-3.5 w-3.5" />
         </span>
       </span>
@@ -135,9 +136,9 @@ function SessionTypesDetail({ onBack }: { onBack: () => void }) {
       </button>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-[20px] leading-[24px] font-semibold text-slate-900">Session Types</h3>
+          <h3 className="text-[20px] leading-[24px] font-semibold text-slate-900">Built-in session types</h3>
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-slate-600">
-            Manage the chips, filters, and grouping options shown in {terminology.runOfShow}.
+            View the starter chips, filters, and grouping options shown in {terminology.runOfShow}.
           </p>
         </div>
         <span className="inline-flex h-9 items-center rounded-full border border-amber-200 bg-amber-50 px-3 text-[12px] font-semibold text-amber-800">
@@ -249,6 +250,7 @@ function EventTerminologySettings({ eventId, canEdit, initialTerminology }: Even
       </div>
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <button type="button" disabled={!canEdit || !dirty || state === "saving"} onClick={() => void save()} className="inline-flex h-10 items-center rounded-xl bg-[#28439A] px-4 text-[13px] font-semibold text-white transition hover:bg-[#20377f] disabled:cursor-not-allowed disabled:opacity-50">{state === "saving" ? "Saving…" : "Save labels"}</button>
+        <button type="button" disabled={!canEdit || !dirty || state === "saving"} onClick={() => { setValues(saved); setState("idle"); setMessage(""); }} className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Discard changes</button>
         <button type="button" disabled={!canEdit || state === "saving"} onClick={() => setValues({ agenda: null, runOfShow: null, matrix: null, showFlow: null })} className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Use organization labels</button>
         {message ? <p role={state === "error" ? "alert" : "status"} className={`text-[13px] font-medium ${state === "error" ? "text-rose-700" : "text-emerald-700"}`}>{message}</p> : null}
       </div>
@@ -387,9 +389,14 @@ function EventDetailsSettings({
         <p aria-live="polite" className={`text-[13px] ${state === "error" ? "text-red-700" : state === "success" ? "text-emerald-700" : "text-slate-500"}`}>
           {message || (canEdit ? "Dates are saved as event calendar days." : "You need editor access to change event details.")}
         </p>
-        <button type="button" onClick={() => void save()} disabled={!canEdit || !isDirty || state === "saving"} className="inline-flex h-9 items-center rounded-lg bg-[#28439A] px-3.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#20377e] disabled:cursor-not-allowed disabled:bg-slate-300">
-          {state === "saving" ? "Saving…" : "Save changes"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => { setValues(savedValues); setState("idle"); setMessage(""); }} disabled={!canEdit || !isDirty || state === "saving"} className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+            Cancel changes
+          </button>
+          <button type="button" onClick={() => void save()} disabled={!canEdit || !isDirty || state === "saving"} className="inline-flex h-9 items-center rounded-lg bg-[#28439A] px-3.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#20377e] disabled:cursor-not-allowed disabled:bg-slate-300">
+            {state === "saving" ? "Saving…" : "Save changes"}
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -485,9 +492,10 @@ export function EventSettingsHub(props: EventSettingsHubProps) {
     {
       id: "session-types",
       icon: <Tags className="h-5 w-5" />,
-      title: "Session Types",
-      description: `Manage the chips, filters, and grouping options shown in ${props.initialTerminology.terms.runOfShow}.`,
+      title: "Built-in session types",
+      description: `View the read-only starter types used in ${props.initialTerminology.terms.runOfShow}.`,
       meta: `${MATRIX2_TEMPLATES.length} default types`,
+      actionLabel: "View defaults",
     },
     {
       id: "av",

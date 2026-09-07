@@ -19,6 +19,13 @@ import { cleanupTestFixtureOrganizations } from "./fixture-cleanup";
 
 test("fixture organization markers identify only test-created organizations", () => {
   assert.equal(isTestFixtureOrganization({ name: "Fixture Org run-123", slug: "fixture-org-run-123" }), true);
+  assert.equal(
+    hasTestFixtureOrganizationIdentity({
+      name: "Fixture Org First event event-create-run-123",
+      slug: "fixture-org-first-event-event-create-run-123",
+    }),
+    true,
+  );
   assert.equal(isTestFixtureOrganization({ name: "Browser Budget Org browser-budget-p0", slug: "browser-budget-org-browser-budget-p0" }), true);
   assert.equal(isTestFixtureOrganization({ name: "PF020 Org pf020-show-flow-run", slug: "pf020-org-pf020-show-flow-run" }), true);
   assert.equal(isTestFixtureOrganization({ name: "Acme Events", slug: "acme-events" }), false);

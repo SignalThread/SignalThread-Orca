@@ -868,6 +868,16 @@ export default function TimelinePage({ eventIdOverride = "", hideEventSelector =
     [items, selectedEventId],
   );
 
+  const handleRefreshItem = useCallback(async (itemId: string): Promise<TimelineItemRecord | null> => {
+    if (!selectedEventId) return null;
+    const response = await fetch(`/api/events/${selectedEventId}/timeline-items`, { credentials: "include" });
+    const payload: unknown = await response.json();
+    if (!response.ok || !Array.isArray(payload)) return null;
+    const refreshedItems = payload as TimelineItemRecord[];
+    setItems(refreshedItems);
+    return refreshedItems.find((item) => item.id === itemId) ?? null;
+  }, [selectedEventId]);
+
   /**
    * Reorder one roadmap item among its siblings.
    *
@@ -1605,6 +1615,10 @@ export default function TimelinePage({ eventIdOverride = "", hideEventSelector =
           refreshToken={dashboardRefreshToken}
           onViewItems={() => setViewMode("LIST")}
           onViewStage={viewStageItems}
+          onOpenItem={(itemId) => {
+            setSelectedTimelineItemId(itemId);
+            setViewMode("TIMELINE");
+          }}
           onAddWorkstream={openCreateWorkstreamModal}
           onAddItem={() => openCreateItemModal()}
           onAddMilestone={() => openInlineDraft(defaultInlineWorkstream, "MILESTONE")}
@@ -1631,7 +1645,16 @@ export default function TimelinePage({ eventIdOverride = "", hideEventSelector =
       if (activeTaskItems.length === 0) {
         return renderTimelineTaskEmptyState();
       }
-      return <TimelineBoardView items={activeTaskItems} onMoveStatus={handleMoveStatus} />;
+      return (
+        <TimelineBoardView
+          items={activeTaskItems}
+          onMoveStatus={handleMoveStatus}
+          onOpenItem={(itemId) => {
+            setSelectedTimelineItemId(itemId);
+            setViewMode("TIMELINE");
+          }}
+        />
+      );
     }
 
     if (viewMode === "TIMELINE") {
@@ -1666,7 +1689,7 @@ export default function TimelinePage({ eventIdOverride = "", hideEventSelector =
 
     return (
       <div className="space-y-3">
-      <TimelineDependencyPanel eventId={selectedEventId} items={taskItems} canEdit={canEdit} />
+      <TimelineDependencyPanel eventId={selectedEventId} items={taskItems} canEdit={canEdit} onDependenciesChanged={() => setDashboardRefreshToken((current) => current + 1)} />
       <TimelineListView
         eventId={selectedEventId}
         items={taskItems}
@@ -1677,6 +1700,7 @@ export default function TimelinePage({ eventIdOverride = "", hideEventSelector =
         onReorder={handleReorderItem}
         onBulkUpdate={handleBulkUpdateItems}
         onBulkDelete={handleBulkDeleteItems}
+        onRefreshItem={handleRefreshItem}
         ownerOptions={ownerOptions}
         filtersOpen={listFiltersOpen}
       />

@@ -138,6 +138,7 @@ test("expected attendance persists its truthful provenance without relabeling le
 
   try {
     const roles = await harness.createRoleAccessFixture();
+    await harness.createSessionRequirementTemplate({ eventId: roles.event.id });
     const legacy = await harness.createMatrixRow({
       eventId: roles.event.id,
       sessionName: "Legacy attendance session",

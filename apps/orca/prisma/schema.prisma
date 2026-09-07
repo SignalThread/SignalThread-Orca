@@ -229,6 +229,10 @@ model Event {
   tasks                         Task[]
   sessionRequirementTemplate    SessionRequirementTemplate?            @relation("EventSessionRequirementTemplate", fields: [sessionRequirementTemplateId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   sessionRequirementTemplates   SessionRequirementTemplate[]           @relation("EventOwnedSessionRequirementTemplates")
+  sessionModuleDefaults         EventSessionModuleDefault[]
+  sessionModuleOverrides        SessionModuleOverride[]
+  sessionOperationalRecords     SessionOperationalRecord[]
+  securityComplianceRecords     SecurityComplianceRecord[]
   marketingPlans                MarketingPlan[]
   marketingCampaigns            MarketingCampaign[]
   marketingAudiences            MarketingAudience[]
@@ -250,6 +254,8 @@ model Event {
   sessionShowFlowItems          SessionShowFlowItem[]
   sessionShowFlowStates         SessionShowFlowState[]
   sessionAgendaPublications     SessionAgendaPublication[]
+  registrationAgendaEntries     RegistrationAgendaEntry[]
+  registrationAgendaImports     RegistrationAgendaImportBatch[]
 
   SessionSupplyAllocation SessionSupplyAllocation[]
   SessionSupplyState      SessionSupplyState[]
@@ -1465,6 +1471,7 @@ model MatrixRow {
   sortOrder                    Int                                    @default(0)
   roomName                     String?                                @db.Text
   sessionName                  String?                                @db.Text
+  includeInOfficialAgenda      Boolean                                @default(false)
   setupType                    String?                                @db.Text
   attendance                   Int?
   // Canonical provenance for the optional expected-attendance value. A null
@@ -1498,8 +1505,11 @@ model MatrixRow {
   showFlowItems                SessionShowFlowItem[]
   showFlowState                SessionShowFlowState?
   agendaPublications           SessionAgendaPublication[]
+  registrationAgendaEntry      RegistrationAgendaEntry?
   fnbRequirements              SessionFnbRequirement[]
   fnbSafetyResolutions         SessionFnbAssignmentSafetyResolution[]
+  sessionModuleOverrides       SessionModuleOverride[]
+  operationalRecords           SessionOperationalRecord[]
 
   MatrixRowSpeaker         MatrixRowSpeaker[]
   MatrixRowStaffAssignment MatrixRowStaffAssignment[]
@@ -1632,6 +1642,74 @@ model SessionAgendaPublication {
   @@index([publishedByUserId])
 }
 
+// Provider-neutral Registration agenda staging. ShowOps owns the source
+// schedule; Registration owns public formatting and publication state.
+model RegistrationAgendaEntry {
+  id                String                              @id @default(uuid()) @db.Uuid
+  eventId           String                              @db.Uuid
+  source            RegistrationAgendaSource
+  sourceKey         String                              @db.Text
+  sourceSessionId   String?                             @unique @db.Uuid
+  sourceUpdatedAt   DateTime?
+  title             String                              @db.Text
+  description       String?                             @db.Text
+  dayDate           DateTime                            @db.Date
+  startTime         DateTime                            @db.Time(6)
+  endTime           DateTime                            @db.Time(6)
+  location          String?                             @db.Text
+  sessionType       String?                             @db.Text
+  officialStatus    String?                             @db.Text
+  speakers          Json                                @default("[]")
+  publicationStatus RegistrationAgendaPublicationStatus @default(DRAFT)
+  sourceFileName    String?                             @db.Text
+  sourceReference   String?                             @db.Text
+  archivedAt        DateTime?
+  createdByUserId   String?                             @db.Uuid
+  updatedByUserId   String?                             @db.Uuid
+  createdAt         DateTime                            @default(now())
+  updatedAt         DateTime                            @updatedAt
+  event             Event                               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sourceSession     MatrixRow?                          @relation(fields: [sourceSessionId], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, source, sourceKey])
+  @@index([eventId, archivedAt, dayDate, startTime])
+  @@index([eventId, publicationStatus])
+}
+
+enum RegistrationAgendaSource {
+  SHOWOPS
+  SPREADSHEET
+  MANUAL
+  PDF_REFERENCE
+}
+
+enum RegistrationAgendaPublicationStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+}
+
+model RegistrationAgendaImportBatch {
+  id              String                   @id @default(uuid()) @db.Uuid
+  eventId         String                   @db.Uuid
+  source          RegistrationAgendaSource
+  fileName        String                   @db.Text
+  mimeType        String?                  @db.Text
+  sizeBytes       Int
+  mapping         Json?
+  rowCount        Int                      @default(0)
+  importedCount   Int                      @default(0)
+  invalidCount    Int                      @default(0)
+  duplicateCount  Int                      @default(0)
+  status          String                   @db.Text
+  referenceOnly   Boolean                  @default(false)
+  createdByUserId String?                  @db.Uuid
+  createdAt       DateTime                 @default(now())
+  event           Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, createdAt])
+}
+
 model SessionRequirementTemplate {
   id               String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   eventId          String                      @db.Uuid
@@ -1694,20 +1772,105 @@ model SessionRequirementSelection {
   @@index([itemId])
 }
 
+enum SessionOptionalModule {
+  ACCESSIBILITY
+  VENDOR_AND_PRODUCTION
+  SAFETY_AND_ESCALATION
+}
+
+// Event defaults are intentionally separate from session overrides: a session
+// with no override continues to inherit its event setting, while an explicit
+// disable preserves all related operational records.
+model EventSessionModuleDefault {
+  id        String                @id @default(uuid()) @db.Uuid
+  eventId   String                @db.Uuid
+  module    SessionOptionalModule
+  enabled   Boolean               @default(false)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  event     Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, module])
+  @@index([eventId])
+}
+
+model SessionModuleOverride {
+  id        String                @id @default(uuid()) @db.Uuid
+  eventId   String                @db.Uuid
+  sessionId String                @db.Uuid
+  module    SessionOptionalModule
+  enabled   Boolean
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  event     Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  session   MatrixRow             @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, module])
+  @@index([eventId, sessionId])
+  @@index([eventId, module])
+}
+
+model SessionOperationalRecord {
+  id            String                @id @default(uuid()) @db.Uuid
+  eventId       String                @db.Uuid
+  sessionId     String                @db.Uuid
+  module        SessionOptionalModule
+  kind          String                @db.Text
+  title         String                @db.Text
+  status        String                @default("PENDING") @db.Text
+  ownerPersonId String?               @db.Uuid
+  partnerName   String?               @db.Text
+  onsiteContact String?               @db.Text
+  scope         String?               @db.Text
+  arrivalAt     DateTime?
+  confirmedAt   DateTime?
+  notes         String?               @db.Text
+  documentUrl   String?               @db.Text
+  notNeededAt   DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  event         Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  session       MatrixRow             @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  ownerPerson   EventPerson?          @relation(fields: [ownerPersonId], references: [id], onDelete: SetNull)
+
+  @@index([eventId, sessionId, module])
+  @@index([sessionId, module, status])
+  @@index([ownerPersonId])
+}
+
+model SecurityComplianceRecord {
+  id          String    @id @default(uuid()) @db.Uuid
+  eventId     String    @db.Uuid
+  area        String    @db.Text
+  title       String    @db.Text
+  status      String    @default("NEEDS_REVIEW") @db.Text
+  owner       String?   @db.Text
+  dueDate     DateTime?
+  reviewedAt  DateTime?
+  details     String?   @db.Text
+  evidenceUrl String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, area, status])
+}
+
 model EventPerson {
-  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  eventId                 String                   @db.Uuid
-  name                    String                   @db.Text
-  role                    EventPersonRole
-  company                 String?                  @db.Text
-  email                   String?                  @db.Text
-  phone                   String?
-  notes                   String?
-  createdAt               DateTime                 @default(now()) @db.Timestamp(6)
-  updatedAt               DateTime                 @default(now()) @updatedAt @db.Timestamp(6)
-  event                   Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  sessionStaffAssignments SessionStaffAssignment[]
-  showFlowCues            SessionShowFlowItem[]
+  id                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId                   String                     @db.Uuid
+  name                      String                     @db.Text
+  role                      EventPersonRole
+  company                   String?                    @db.Text
+  email                     String?                    @db.Text
+  phone                     String?
+  notes                     String?
+  createdAt                 DateTime                   @default(now()) @db.Timestamp(6)
+  updatedAt                 DateTime                   @default(now()) @updatedAt @db.Timestamp(6)
+  event                     Event                      @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sessionStaffAssignments   SessionStaffAssignment[]
+  showFlowCues              SessionShowFlowItem[]
+  sessionOperationalRecords SessionOperationalRecord[]
 
   MatrixRowSpeaker         MatrixRowSpeaker[]
   MatrixRowStaffAssignment MatrixRowStaffAssignment[]
@@ -3066,6 +3229,8 @@ model EventAttendee {
   syncStatus          EventAttendeeSyncStatus          @default(LOCAL_ONLY)
   portalAccessStatus  EventAttendeePortalStatus        @default(NOT_INVITED)
   notes               String?                          @db.Text
+  housingHotelName    String?                          @db.Text
+  housingRoomNumber   String?                          @db.Text
   registeredAt        DateTime?
   waitlistedAt        DateTime?
   cancelledAt         DateTime?

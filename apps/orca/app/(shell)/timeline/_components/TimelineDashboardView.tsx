@@ -22,6 +22,7 @@ type TimelineDashboardViewProps = {
   refreshToken?: number;
   onViewItems?: (workstream: string | null) => void;
   onViewStage?: (stage: TimelinePlanningStage) => void;
+  onOpenItem?: (itemId: string) => void;
   onAddWorkstream?: () => void;
   onAddItem?: () => void;
   onAddMilestone?: () => void;
@@ -106,9 +107,11 @@ const ITEM_STATUS_META: Record<TimelineStatus, { label: string; chip: string; do
 };
 
 const BLOCKER_REASON_LABEL: Record<TimelineBlocker["reason"], string> = {
+  DEPENDENCY_BLOCKED: "Blocked by dependency",
   OVERDUE: "Overdue",
   AT_RISK: "At risk",
-  DEPENDENCY_BLOCKED: "Blocked by dependency",
+  APPROACHING_DEADLINE: "Due soon",
+  EVENT_APPROACHING: "Event approaching",
   CRITICAL_PATH: "Critical path",
 };
 
@@ -124,6 +127,7 @@ export default function TimelineDashboardView({
   refreshToken = 0,
   onViewItems,
   onViewStage,
+  onOpenItem,
   onAddItem,
   onAddMilestone,
 }: TimelineDashboardViewProps) {
@@ -276,14 +280,14 @@ export default function TimelineDashboardView({
         </section>
 
         {activeWorkstream ? (
-          <WorkstreamDetailPanel workstream={activeWorkstream} onViewItems={onViewItems} />
+          <WorkstreamDetailPanel workstream={activeWorkstream} onViewItems={onViewItems} onOpenItem={onOpenItem} />
         ) : null}
       </div>
 
       {/* Right rail */}
       <aside className="space-y-5">
         <UpcomingDatesCard dates={data.upcomingDates} />
-        <BlockersCard blockers={data.blockers} />
+        <BlockersCard blockers={data.blockers} onOpenItem={onOpenItem} />
         <HealthCard health={data.health} />
       </aside>
     </div>
@@ -393,9 +397,11 @@ function WorkstreamGrid({
 function WorkstreamDetailPanel({
   workstream,
   onViewItems,
+  onOpenItem,
 }: {
   workstream: TimelineWorkstreamRollup;
   onViewItems?: (workstream: string | null) => void;
+  onOpenItem?: (itemId: string) => void;
 }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -486,7 +492,10 @@ function WorkstreamDetailPanel({
           <ul className="space-y-1.5">
             {workstream.blockers.map((b) => (
               <li key={b.id} className="flex items-center justify-between gap-2 text-xs">
-                <span className="truncate text-slate-700" title={b.title}>{b.title}</span>
+                <button type="button" onClick={() => onOpenItem?.(b.id)} className="min-w-0 text-left text-slate-700 hover:text-blue-700 hover:underline" title={`${b.title}. ${b.explanation}`}>
+                  <span className="block truncate font-medium">{b.title}</span>
+                  <span className="block truncate text-[11px] text-slate-500">{b.explanation}</span>
+                </button>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.severity === "HIGH" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>
                   {BLOCKER_REASON_LABEL[b.reason]}
                 </span>
@@ -528,25 +537,26 @@ function UpcomingDatesCard({ dates }: { dates: EventTimelineDashboard["upcomingD
   );
 }
 
-function BlockersCard({ blockers }: { blockers: TimelineBlocker[] }) {
+function BlockersCard({ blockers, onOpenItem }: { blockers: TimelineBlocker[]; onOpenItem?: (itemId: string) => void }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <h3 className="mb-3 flex items-center justify-between text-sm font-semibold text-slate-900">
-        Top Blockers
+        Planning alerts
         {blockers.length > 0 ? (
           <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">{blockers.length}</span>
         ) : null}
       </h3>
       {blockers.length === 0 ? (
-        <p className="text-xs text-emerald-600">No active blockers. 🎉</p>
+        <p className="text-xs text-slate-500">No active blockers or time-based risks.</p>
       ) : (
         <ul className="space-y-2.5">
           {blockers.slice(0, 6).map((b) => (
             <li key={b.id} className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="truncate text-xs font-medium text-slate-800" title={b.title}>{b.title}</p>
-                <p className="text-[11px] text-slate-400">{b.workstreamLabel} · {BLOCKER_REASON_LABEL[b.reason]}</p>
-              </div>
+              <button type="button" onClick={() => onOpenItem?.(b.id)} className="min-w-0 text-left hover:text-blue-700" aria-label={`Open ${b.title}`}>
+                <span className="block truncate text-xs font-medium text-slate-800">{b.title}</span>
+                <span className="block text-[11px] text-slate-500">{b.workstreamLabel} · {b.kind === "BLOCKER" ? "Blocker" : "At risk"} · {BLOCKER_REASON_LABEL[b.reason]}</span>
+                <span className="mt-0.5 block text-[11px] leading-4 text-slate-600">{b.explanation}</span>
+              </button>
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.severity === "HIGH" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>
                 {b.severity === "HIGH" ? "High" : "Med"}
               </span>

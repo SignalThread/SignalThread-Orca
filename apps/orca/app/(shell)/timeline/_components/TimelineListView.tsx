@@ -67,6 +67,7 @@ type TimelineListViewProps = {
   onReorder: (item: TimelineItemRecord, direction: "up" | "down") => Promise<void>;
   onBulkUpdate: (itemIds: string[], patch: TimelineItemPatch) => Promise<{ updatedCount: number; skippedCount: number }>;
   onBulkDelete: (itemIds: string[]) => Promise<{ deletedCount: number; skippedCount: number }>;
+  onRefreshItem: (itemId: string) => Promise<TimelineItemRecord | null>;
   ownerOptions: TimelineOwnerOption[];
   filtersOpen: boolean;
   workstreamFilter?: string | "ALL" | "UNASSIGNED";
@@ -743,6 +744,7 @@ export default function TimelineListView({
   onReorder,
   onBulkUpdate,
   onBulkDelete,
+  onRefreshItem,
   ownerOptions: assignableOwnerOptions,
   filtersOpen,
   workstreamFilter = "ALL",
@@ -1206,12 +1208,7 @@ export default function TimelineListView({
 
   async function refreshDispositionItem(itemId: string) {
     try {
-      const response = await fetch(`/api/events/${eventId}/timeline-items`, { credentials: "include" });
-      const items: unknown = await response.json();
-      if (!response.ok || !Array.isArray(items)) return;
-      const refreshedItem = items.find((item): item is TimelineItemRecord =>
-        Boolean(item && typeof item === "object" && "id" in item && item.id === itemId),
-      );
+      const refreshedItem = await onRefreshItem(itemId);
       if (refreshedItem) setDispositionItem(refreshedItem);
     } catch {
       // The original save error remains actionable even if a refresh is unavailable.

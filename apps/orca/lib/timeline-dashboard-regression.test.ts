@@ -160,6 +160,39 @@ test("blockers include overdue, at-risk, and dependency-blocked items", () => {
   assert.equal(dash.totals.blockerCount, 2);
   const b1 = dash.blockers.find((b) => b.id === "B1");
   assert.equal(b1?.severity, "HIGH"); // critical path / critical priority
+  assert.equal(b1?.kind, "BLOCKER");
+  assert.equal(b1?.relatedItemId, "A2");
+  assert.match(b1?.explanation ?? "", /prerequisite “Venue layout”/);
+});
+
+test("approaching deadlines and an approaching event produce explainable, deduplicated at-risk alerts", () => {
+  const dash = buildTimelineDashboard({
+    event: { id: "evt-2", name: "Near event", startDate: d("2026-06-25"), endDate: d("2026-06-26") },
+    items: [
+      item({ id: "soon", title: "Due soon", endDate: d("2026-06-20") }),
+      item({ id: "undated", title: "Undated required work" }),
+      item({ id: "done", title: "Already done", status: "COMPLETE" }),
+    ],
+    dependencies: [],
+    now: NOW,
+  });
+  assert.deepEqual(dash.blockers.map((alert) => alert.id).sort(), ["soon", "undated"]);
+  assert.equal(dash.blockers.find((alert) => alert.id === "soon")?.reason, "APPROACHING_DEADLINE");
+  assert.equal(dash.blockers.find((alert) => alert.id === "undated")?.reason, "EVENT_APPROACHING");
+  assert.ok(dash.blockers.every((alert) => alert.kind === "AT_RISK" && alert.explanation.length > 0));
+});
+
+test("a resolved prerequisite removes the blocker on its successor", () => {
+  const dash = buildTimelineDashboard({
+    event: EVENT,
+    items: [
+      item({ id: "pre", title: "Approval", status: "COMPLETE" }),
+      item({ id: "next", title: "Publish", endDate: d("2026-09-01") }),
+    ],
+    dependencies: [{ predecessorItemId: "pre", successorItemId: "next" }],
+    now: NOW,
+  });
+  assert.equal(dash.blockers.some((alert) => alert.id === "next"), false);
 });
 
 test("upcoming dates exclude completed and past-due items and are sorted ascending", () => {

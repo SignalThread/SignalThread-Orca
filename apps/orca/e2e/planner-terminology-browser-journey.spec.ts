@@ -57,6 +57,22 @@ test("event terminology updates settings, navigation, workspace, public and expo
     await page.getByRole("button", { name: /Display terminology/ }).click();
     await expect(page.getByRole("heading", { name: "Event terminology" })).toBeVisible();
     await expect(page.getByLabel("Run of Show display label")).toHaveValue("Matrix");
+
+    for (const width of [1280, 768, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
+      await page.goto("/help");
+      await expect(page.getByRole("heading", { name: /Answers for planning/ })).toBeVisible();
+      await expect(page.getByText("Video walkthroughs are not available yet.")).toBeVisible();
+      await expect(page.getByRole("link", { name: /Open written walkthroughs/ })).toHaveAttribute("href", "/help/category/getting-started");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    }
+
+    await page.goto(`/events/${fixture.eventId}/registration/agenda`);
+    await expect(page.getByRole("heading", { name: "Official agenda" })).toBeVisible();
+    const registrationHelp = page.locator('a[href*="/help/article/manage-registration-agenda"]');
+    await expect(registrationHelp).toHaveAttribute("href", new RegExp("/help/article/manage-registration-agenda"));
+    await registrationHelp.click();
+    await expect(page.getByRole("heading", { name: "Manage Registration Agenda" })).toBeVisible();
     if (process.env.PW_PROMPT14_SCREENSHOTS === "1") await page.screenshot({ path: "/tmp/orca-prompt14-terminology-mobile.png", fullPage: true });
   } finally {
     await fixture.harness.cleanup();

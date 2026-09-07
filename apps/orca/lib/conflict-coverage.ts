@@ -2,7 +2,7 @@
  * Conflict check coverage.
  *
  * The conflict surface used to report "No conflicts detected from current Run of Show data",
- * which reads as a comprehensive all-clear. It is not one: only three rules exist, they run
+ * which reads as a comprehensive all-clear. It is not one: only a bounded set of rules exists, they run
  * over the sessions currently loaded (one date at a time on the board), and several inputs are
  * silently skipped. This module describes exactly what ran, over what, and what could not be
  * verified, so an empty result is honest instead of reassuring.
@@ -49,6 +49,7 @@ type CoverageSession = {
   roomCapacity: number | null;
   speakers: string[];
   staffAssigned?: string[];
+  staffAssignments?: Array<{ personId: string }>;
   avRequirements?: string[];
   foodAndBeverage?: string[];
 };
@@ -77,12 +78,6 @@ function exclusion(reason: string, count: number): Array<{ reason: string; count
  * omitted, because a check a user assumes ran is worse than one they know did not.
  */
 const UNSUPPORTED_CHECKS: Array<{ id: string; rule: string; description: string; reason: string }> = [
-  {
-    id: "staff-double-booked",
-    rule: "Staff double-booking",
-    description: "The same crew member assigned to overlapping sessions.",
-    reason: "Staff assignments are not evaluated for time overlap yet.",
-  },
   {
     id: "av-resource-collision",
     rule: "AV and resource collisions",
@@ -122,6 +117,7 @@ export function buildConflictCoverageReport(input: {
   const roomedSessions = timedSessions.filter(hasUsableRoom);
   const unroomedCount = timedSessions.length - roomedSessions.length;
   const speakerSessions = timedSessions.filter((session) => session.speakers.length > 0);
+  const staffedSessions = timedSessions.filter((session) => (session.staffAssignments?.length ?? 0) > 0);
   const capacitySessions = sessions.filter(
     (session) => session.expectedAttendance !== null && session.roomCapacity !== null,
   );
@@ -151,6 +147,10 @@ export function buildConflictCoverageReport(input: {
     "Expected attendance or room capacity is not recorded",
     capacityUnknownCount,
   );
+  const staffExclusions = [
+    ...exclusion("Session has no usable start or end time", untimedCount),
+    ...exclusion("Session has no structured staff assignments", timedSessions.length - staffedSessions.length),
+  ];
 
   const checks: ConflictCheckReport[] = [
     {
@@ -174,6 +174,19 @@ export function buildConflictCoverageReport(input: {
       evaluatedCount: speakerSessions.length,
       findingCount: findingsOfType("SPEAKER_DOUBLE_BOOKED"),
       exclusions: speakerExclusions,
+    },
+    {
+      id: "staff-double-booked",
+      rule: "Staff double-booking",
+      description: "The same staff or vendor record assigned to overlapping sessions.",
+      status: statusFor(
+        findingsOfType("STAFF_DOUBLE_BOOKED"),
+        staffedSessions.length,
+        staffExclusions.length > 0,
+      ),
+      evaluatedCount: staffedSessions.length,
+      findingCount: findingsOfType("STAFF_DOUBLE_BOOKED"),
+      exclusions: staffExclusions,
     },
     {
       id: "room-capacity",

@@ -114,7 +114,7 @@ test("development keeps every Room Set and Seating renderer interactive", async 
     await expect(page).toHaveURL(new RegExp(`/events/${fixture.eventId}/matrix/sessions/${fixture.sessionId}/room-set\\?mode=layout`));
 
     await page.goto(`/events/${fixture.eventId}/matrix/sessions/${fixture.sessionId}`);
-    const workspaceTab = page.locator('nav[aria-label="Session modules"] a', { hasText: "Room Set & Seating" });
+    const workspaceTab = page.locator('nav[aria-label="Session modules"] a', { hasText: "Room & Guest Setup" });
     const workspaceCard = page.locator('[data-session-module-card="room-set"]');
     await expect(workspaceTab).toHaveAttribute("href", new RegExp("room-set\\?mode=layout"));
     await expect(workspaceCard).toHaveAttribute("href", new RegExp("room-set\\?mode=layout"));
@@ -124,7 +124,7 @@ test("development keeps every Room Set and Seating renderer interactive", async 
     await workspaceCard.click();
     await expect(page).toHaveURL(new RegExp(`/events/${fixture.eventId}/matrix/sessions/${fixture.sessionId}/room-set\\?mode=layout`));
     await page.goto(`/events/${fixture.eventId}/matrix/sessions/${fixture.sessionId}`);
-    await page.locator('nav[aria-label="Session modules"] a', { hasText: "Room Set & Seating" }).click();
+    await page.locator('nav[aria-label="Session modules"] a', { hasText: "Room & Guest Setup" }).click();
     await expect(page).toHaveURL(new RegExp(`/events/${fixture.eventId}/matrix/sessions/${fixture.sessionId}/room-set\\?mode=layout`));
   } finally {
     await fixture.harness.cleanup();

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import Link from "next/link";
 import {
   MODULE_USAGE_LABELS,
   ROLE_LABELS,
@@ -29,6 +30,21 @@ type PersonDetail = {
   moduleLinks: { id: string; module: string; moduleRecordId: string }[];
 };
 
+type ActionAvailability = { available: boolean; regBacked: boolean; reason: string | null };
+type DirectoryActionContext = {
+  attendee: null | {
+    id: string; registrationStatus: string; registrationType: string | null; badgeType: string | null; ticketType: string | null; registeredAt: string | null;
+    housingHotelName: string | null; housingRoomNumber: string | null;
+    registrationRecords: Array<{ id: string; provider: string; externalRegistrationId: string | null; registrationStatus: string; lastSyncedAt: string | null }>;
+    actions: { cancel: ActionAvailability; transfer: ActionAvailability; resendConfirmation: ActionAvailability; assignRoom: ActionAvailability };
+  };
+  speaker: null | {
+    id: string; name: string; email: string | null; bio: string | null; headshotUrl: string | null;
+    sessions: Array<{ id: string; title: string; date: string; startTime: string | null; endTime: string | null; roomName: string | null }>;
+    portalAccess: ActionAvailability;
+  };
+};
+
 const MODULE_SOURCE_TYPES = new Set(["SPEAKER_MODULE", "SEATING_MODULE", "STAFFING_MODULE"]);
 
 function sourceLabel(source: { label: string; type: string } | null): string | null {
@@ -53,6 +69,12 @@ export function PersonDetailDrawer({
   const [person, setPerson] = useState<PersonDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [actions, setActions] = useState<DirectoryActionContext | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [workingAction, setWorkingAction] = useState<string | null>(null);
+  const [hotelName, setHotelName] = useState("");
+  const [roomNumber, setRoomNumber] = useState("");
   const activeRequest = useRef<AbortController | null>(null);
   const requestSequence = useRef(0);
 
@@ -62,18 +84,23 @@ export function PersonDetailDrawer({
     const controller = new AbortController();
     activeRequest.current = controller;
     setPerson(null);
+    setActions(null);
     setError(null);
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/events/${eventId}/directory/people/${personId}`, {
-        credentials: "include",
-        signal: controller.signal,
-      });
-      const payload = await res.json().catch(() => null);
+      const [res, actionsResponse] = await Promise.all([
+        fetch(`/api/events/${eventId}/directory/people/${personId}`, { credentials: "include", signal: controller.signal }),
+        fetch(`/api/events/${eventId}/directory/people/${personId}/actions`, { credentials: "include", signal: controller.signal }),
+      ]);
+      const [payload, actionsPayload] = await Promise.all([res.json().catch(() => null), actionsResponse.json().catch(() => null)]);
       if (!res.ok) throw new Error(payload?.error ?? "Failed to load person");
+      if (!actionsResponse.ok) throw new Error(actionsPayload?.error ?? "Failed to load directory actions");
       if (!payload?.person || payload.person.id !== personId) throw new Error("Person details returned an invalid response");
       if (requestId !== requestSequence.current || controller.signal.aborted) return;
       setPerson(payload.person as PersonDetail);
+      setActions(actionsPayload as DirectoryActionContext);
+      setHotelName(actionsPayload?.attendee?.housingHotelName ?? "");
+      setRoomNumber(actionsPayload?.attendee?.housingRoomNumber ?? "");
     } catch (e) {
       if (controller.signal.aborted || requestId !== requestSequence.current) return;
       setError(e instanceof Error ? e.message : "Failed to load person");
@@ -89,6 +116,20 @@ export function PersonDetailDrawer({
     void load();
     return () => activeRequest.current?.abort();
   }, [load]);
+
+  async function runAction(action: string, body: Record<string, unknown> = {}) {
+    if (workingAction) return;
+    if (action === "cancel-registration" && !window.confirm("Cancel this attendee registration? This keeps the Directory person but cancels participation.")) return;
+    setWorkingAction(action); setActionError(null); setActionNotice(null);
+    try {
+      const response = await fetch(`/api/events/${eventId}/directory/people/${personId}/actions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...body }) });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.error ?? "Directory action failed");
+      setActionNotice(action === "cancel-registration" ? "Registration cancelled." : "Room assignment saved.");
+      await load();
+    } catch (caught) { setActionError(caught instanceof Error ? caught.message : "Directory action failed"); }
+    finally { setWorkingAction(null); }
+  }
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-slate-950/30">
@@ -175,7 +216,26 @@ export function PersonDetailDrawer({
                 )}
               </Section>
 
-              <p className="text-[11px] text-slate-300">Sessions, Seating, and Portal history will appear here in a future release.</p>
+              {actionNotice ? <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700" role="status">{actionNotice}</p> : null}
+              {actionError ? <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-700" role="alert">{actionError}</p> : null}
+
+              {actions?.attendee ? <Section title="Registration details · Reg-backed">
+                <dl className="space-y-1 text-[12px]"><Row label="Status" value={actions.attendee.registrationStatus} />{actions.attendee.registrationType ? <Row label="Type" value={actions.attendee.registrationType} /> : null}{actions.attendee.badgeType ? <Row label="Badge" value={actions.attendee.badgeType} /> : null}{actions.attendee.ticketType ? <Row label="Ticket" value={actions.attendee.ticketType} /> : null}</dl>
+                {actions.attendee.registrationRecords.map((record) => <p key={record.id} className="mt-2 rounded-lg bg-slate-50 p-2 text-[11px] text-slate-600">{record.provider} · {record.registrationStatus}{record.externalRegistrationId ? ` · ${record.externalRegistrationId}` : ""}</p>)}
+                <div className="mt-3 grid gap-2 sm:grid-cols-2"><input aria-label="Housing hotel" placeholder="Hotel" value={hotelName} onChange={(event) => setHotelName(event.target.value)} className="h-8 rounded border border-slate-200 px-2 text-[12px]" /><input aria-label="Housing room number" placeholder="Room number" value={roomNumber} onChange={(event) => setRoomNumber(event.target.value)} className="h-8 rounded border border-slate-200 px-2 text-[12px]" /></div>
+                <div className="mt-2 flex flex-wrap gap-2"><button type="button" disabled={Boolean(workingAction)} onClick={() => void runAction("assign-room", { hotelName, roomNumber })} className="rounded-md border px-2 py-1 text-[11px] font-semibold">Assign/update room</button><button type="button" disabled={Boolean(workingAction) || !actions.attendee.actions.cancel.available} title={actions.attendee.actions.cancel.reason ?? undefined} onClick={() => void runAction("cancel-registration")} className="rounded-md border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-700 disabled:opacity-50">Cancel registration</button></div>
+                <div className="mt-2 flex flex-wrap gap-2"><button type="button" disabled title={actions.attendee.actions.transfer.reason ?? undefined} className="rounded-md border px-2 py-1 text-[11px] font-semibold opacity-50">Transfer registration · Unavailable</button><button type="button" disabled title={actions.attendee.actions.resendConfirmation.reason ?? undefined} className="rounded-md border px-2 py-1 text-[11px] font-semibold opacity-50">Resend confirmation · Unavailable</button></div>
+                <p className="mt-2 text-[11px] text-slate-500">{actions.attendee.actions.transfer.reason} {actions.attendee.actions.resendConfirmation.reason}</p>
+              </Section> : null}
+
+              {actions?.speaker ? <Section title="Speaker profile · Reg-backed">
+                {actions.speaker.headshotUrl ? <a href={actions.speaker.headshotUrl} target="_blank" rel="noreferrer" className="text-[12px] font-semibold text-blue-700 underline">View headshot</a> : <p className="text-[12px] text-slate-400">No headshot available.</p>}
+                <p className="mt-2 whitespace-pre-wrap text-[12px] leading-5 text-slate-600">{actions.speaker.bio || "No speaker bio available."}</p>
+                <h5 className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Assigned sessions</h5>
+                {actions.speaker.sessions.length ? <ul className="mt-1 space-y-1">{actions.speaker.sessions.map((session) => <li key={session.id}><Link href={`/events/${eventId}/matrix/sessions/${session.id}`} className="text-[12px] font-semibold text-blue-700 hover:underline">{session.title}</Link><span className="ml-1 text-[11px] text-slate-500">{session.date} · {session.roomName || "No room"}</span></li>)}</ul> : <p className="mt-1 text-[12px] text-slate-400">No assigned sessions.</p>}
+                <button type="button" disabled title={actions.speaker.portalAccess.reason ?? undefined} className="mt-3 rounded-md border px-2 py-1 text-[11px] font-semibold opacity-50">Resend speaker portal access · Unavailable</button>
+                <p className="mt-1 text-[11px] text-slate-500">{actions.speaker.portalAccess.reason}</p>
+              </Section> : null}
             </>
           ) : null}
         </div>

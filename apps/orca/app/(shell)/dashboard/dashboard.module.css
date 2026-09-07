@@ -13,7 +13,6 @@
 .dashboardShell {
   display: grid;
   width: 100%;
-  max-width: none;
   min-width: 0;
   box-sizing: border-box;
   margin: 0;

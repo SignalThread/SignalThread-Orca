@@ -135,7 +135,7 @@ test("dashboard renders stage cards, workstream grid, detail panel, and right ra
   assert.ok(shellSource.includes("<StageCards stages={data.stages} onViewStage={onViewStage} />"));
   assert.ok(shellSource.includes("workstreams={data.workstreams}"));
   assert.ok(shellSource.includes("<UpcomingDatesCard dates={data.upcomingDates} />"));
-  assert.ok(shellSource.includes("<BlockersCard blockers={data.blockers} />"));
+  assert.ok(shellSource.includes("<BlockersCard blockers={data.blockers} onOpenItem={onOpenItem} />"));
   assert.ok(shellSource.includes("<HealthCard health={data.health} />"));
 });
 

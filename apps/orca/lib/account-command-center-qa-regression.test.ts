@@ -44,7 +44,7 @@ test("Account Command Center owns the full shell width without a concierge colum
   assert.match(shellScaffoldSource, /usesFullContentWidth[\s\S]*isAccountCommandCenterRoute/);
   assert.match(shellScaffoldSource, /usesFullContentWidth \? "w-full" : "w-full max-w-\[1100px\]"/);
   assert.match(dashboardStylesSource, /\.dashboardPage\s*\{[\s\S]*?width: 100%;[\s\S]*?max-width: none;/);
-  assert.match(dashboardStylesSource, /\.dashboardShell\s*\{[\s\S]*?width: 100%;[\s\S]*?max-width: none;/);
+  assert.match(dashboardStylesSource, /\.dashboardShell\s*\{[\s\S]*?width: 100%;[\s\S]*?min-width: 0;/);
   assert.doesNotMatch(dashboardStylesSource, /grid-template-columns:\s*[^;]*concierge/i);
 });
 

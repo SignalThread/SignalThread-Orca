@@ -78,7 +78,6 @@ test("Roadmap list view uses direct header drag order with pinned selection and 
 
 test("Budget line-item list uses direct header drag order with pinned selection and category", () => {
   assert.match(budgetSource, /BUDGET_LINE_ITEM_COLUMNS: ColumnOrderItem<BudgetColumnId>\[\]/);
-  assert.match(budgetSource, /BUDGET_PINNED_COLUMNS: ColumnOrderItem\[\]/);
   assert.match(budgetSource, /BUDGET_COLUMN_WIDTHS: Record<BudgetColumnId, number>/);
   assert.match(budgetSource, /viewId: "budget:list"/);
   assert.match(budgetSource, /useColumnHeaderReorder/);
@@ -86,6 +85,7 @@ test("Budget line-item list uses direct header drag order with pinned selection 
   assert.match(budgetSource, /getHeaderReorderClassName\(/);
   assert.match(budgetSource, /ColumnHeaderDragHandle/);
   assert.match(budgetSource, /data-column-pinned-header="select"/);
+  assert.match(budgetSource, /data-column-pinned-header="lineItem"/);
   assert.match(budgetSource, /data-column-pinned-header=\{key === "category" \? "category" : undefined\}/);
   assert.match(budgetSource, /shouldSuppressHeaderClick/);
   assert.doesNotMatch(budgetSource, /<ColumnOrderControl/);

@@ -46,6 +46,25 @@ const DISPLAY_FORMATTER = new Intl.DateTimeFormat("en-US", {
 });
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"] as const;
 
+export function resolveDatePopoverTop(input: {
+  triggerTop: number;
+  triggerBottom: number;
+  popoverHeight: number;
+  viewportHeight: number;
+  viewportPadding?: number;
+  gap?: number;
+}): number {
+  const viewportPadding = input.viewportPadding ?? 8;
+  const gap = input.gap ?? 8;
+  const below = input.triggerBottom + gap;
+
+  if (below + input.popoverHeight <= input.viewportHeight - viewportPadding) {
+    return below;
+  }
+
+  return Math.max(viewportPadding, input.triggerTop - input.popoverHeight - gap);
+}
+
 function parseIsoDate(value: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const [year, month, day] = value.split("-").map(Number);
@@ -129,6 +148,7 @@ export const DateField = forwardRef<HTMLButtonElement, DateFieldProps>(function 
 
     const rect = root.getBoundingClientRect();
     const popoverWidth = popoverRef.current?.offsetWidth ?? 280;
+    const popoverHeight = popoverRef.current?.offsetHeight ?? 336;
     const viewportPadding = 8;
     const left = alignPopoverEnd ? rect.right - popoverWidth : rect.left;
     const clampedLeft = Math.max(
@@ -138,7 +158,13 @@ export const DateField = forwardRef<HTMLButtonElement, DateFieldProps>(function 
 
     setPopoverStyle({
       position: "fixed",
-      top: rect.bottom + 8,
+      top: resolveDatePopoverTop({
+        triggerTop: rect.top,
+        triggerBottom: rect.bottom,
+        popoverHeight,
+        viewportHeight: window.innerHeight,
+        viewportPadding,
+      }),
       left: clampedLeft,
       zIndex: 90,
     });

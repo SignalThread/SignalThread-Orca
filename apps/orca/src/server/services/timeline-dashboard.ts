@@ -97,7 +97,13 @@ export type TimelineKeyDate = {
   status: TimelineStatus;
 };
 
-export type BlockerReason = "OVERDUE" | "AT_RISK" | "DEPENDENCY_BLOCKED" | "CRITICAL_PATH";
+export type BlockerReason =
+  | "DEPENDENCY_BLOCKED"
+  | "OVERDUE"
+  | "AT_RISK"
+  | "APPROACHING_DEADLINE"
+  | "EVENT_APPROACHING"
+  | "CRITICAL_PATH";
 
 export type TimelineBlocker = {
   id: string;
@@ -105,8 +111,12 @@ export type TimelineBlocker = {
   workstream: WorkstreamKey;
   workstreamLabel: string;
   reason: BlockerReason;
+  kind: "BLOCKER" | "AT_RISK";
   severity: "HIGH" | "MEDIUM";
   dueDate: string | null;
+  explanation: string;
+  relatedItemId: string | null;
+  relatedItemTitle: string | null;
 };
 
 export type TimelineWorkstreamRollup = {
@@ -212,6 +222,13 @@ function isAtRisk(item: DashboardItemInput): boolean {
   return item.status === TimelineStatus.AT_RISK;
 }
 
+const APPROACHING_DEADLINE_DAYS = 7;
+const APPROACHING_EVENT_DAYS = 14;
+
+function daysFromToday(value: Date, today: Date): number {
+  return Math.round((toDateOnly(value).getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+}
+
 export type DashboardBuildInput = {
   event: { id: string; name: string; startDate: Date | null; endDate: Date | null };
   items: DashboardItemInput[];
@@ -262,6 +279,16 @@ export function buildTimelineDashboard(input: DashboardBuildInput): EventTimelin
 
   const overdueItems = items.filter((item) => isOverdue(item, today));
   const atRiskItems = items.filter(isAtRisk);
+  const approachingDeadlineItems = items.filter((item) => {
+    if (item.status === TimelineStatus.COMPLETE || !item.endDate) return false;
+    const days = daysFromToday(item.endDate, today);
+    return days >= 0 && days <= APPROACHING_DEADLINE_DAYS;
+  });
+  const eventDaysAway = input.event.startDate ? daysFromToday(input.event.startDate, today) : null;
+  const eventIsApproaching = eventDaysAway !== null && eventDaysAway >= 0 && eventDaysAway <= APPROACHING_EVENT_DAYS;
+  const eventApproachingItems = eventIsApproaching
+    ? items.filter((item) => item.status !== TimelineStatus.COMPLETE && !item.endDate)
+    : [];
   const incompleteCriticalPath = items.filter(
     (item) => item.isCriticalPath && item.status !== TimelineStatus.COMPLETE,
   );
@@ -269,27 +296,56 @@ export function buildTimelineDashboard(input: DashboardBuildInput): EventTimelin
 
   // ---- Blockers (top risks) ----
   const blockerReasonRank: Record<BlockerReason, number> = {
-    OVERDUE: 0,
-    AT_RISK: 1,
-    DEPENDENCY_BLOCKED: 2,
-    CRITICAL_PATH: 3,
+    DEPENDENCY_BLOCKED: 0,
+    OVERDUE: 1,
+    AT_RISK: 2,
+    APPROACHING_DEADLINE: 3,
+    EVENT_APPROACHING: 4,
+    CRITICAL_PATH: 5,
   };
+
+  const itemById = new Map(items.map((item) => [item.id, item]));
+  const blockingPredecessorBySuccessor = new Map<string, DashboardItemInput>();
+  for (const dependency of input.dependencies) {
+    const predecessor = itemById.get(dependency.predecessorItemId);
+    if (!predecessor || predecessor.status === TimelineStatus.COMPLETE) continue;
+    if (!blockingPredecessorBySuccessor.has(dependency.successorItemId)) {
+      blockingPredecessorBySuccessor.set(dependency.successorItemId, predecessor);
+    }
+  }
 
   const blockerByItem = new Map<string, TimelineBlocker>();
   function registerBlocker(item: DashboardItemInput, reason: BlockerReason) {
     const key = displayWorkstreamKeyForItem(item);
     const existing = blockerByItem.get(item.id);
+    const predecessor = reason === "DEPENDENCY_BLOCKED" ? blockingPredecessorBySuccessor.get(item.id) ?? null : null;
+    const dueDate = toIsoDate(item.endDate);
+    const explanation = reason === "DEPENDENCY_BLOCKED"
+      ? `Blocked until prerequisite “${predecessor?.title ?? "Unknown prerequisite"}” is complete.`
+      : reason === "OVERDUE"
+        ? `Incomplete and overdue${dueDate ? ` since ${dueDate}` : ""}.`
+        : reason === "AT_RISK"
+          ? "Explicitly marked at risk and still incomplete."
+          : reason === "APPROACHING_DEADLINE"
+            ? `Incomplete with a due date ${daysFromToday(item.endDate!, today)} day${daysFromToday(item.endDate!, today) === 1 ? "" : "s"} away.`
+            : reason === "EVENT_APPROACHING"
+              ? `Incomplete with no due date while the event starts in ${eventDaysAway} day${eventDaysAway === 1 ? "" : "s"}.`
+              : "Critical-path work remains incomplete.";
     const candidate: TimelineBlocker = {
       id: item.id,
       title: item.title,
       workstream: key,
       workstreamLabel: workstreamLabelForKey(key),
       reason,
+      kind: reason === "DEPENDENCY_BLOCKED" ? "BLOCKER" : "AT_RISK",
       severity:
-        reason === "OVERDUE" || item.isCriticalPath || item.priority === TimelinePriority.CRITICAL
+        reason === "DEPENDENCY_BLOCKED" || reason === "OVERDUE" || item.isCriticalPath || item.priority === TimelinePriority.CRITICAL
           ? "HIGH"
           : "MEDIUM",
-      dueDate: toIsoDate(item.endDate),
+      dueDate,
+      explanation,
+      relatedItemId: predecessor?.id ?? null,
+      relatedItemTitle: predecessor?.title ?? null,
     };
     if (!existing || blockerReasonRank[reason] < blockerReasonRank[existing.reason]) {
       blockerByItem.set(item.id, { ...candidate, severity: existing ? maxSeverity(existing.severity, candidate.severity) : candidate.severity });
@@ -302,6 +358,8 @@ export function buildTimelineDashboard(input: DashboardBuildInput): EventTimelin
   for (const item of overdueItems) registerBlocker(item, "OVERDUE");
   for (const item of atRiskItems) registerBlocker(item, "AT_RISK");
   for (const item of dependencyBlockedItems) registerBlocker(item, "DEPENDENCY_BLOCKED");
+  for (const item of approachingDeadlineItems) registerBlocker(item, "APPROACHING_DEADLINE");
+  for (const item of eventApproachingItems) registerBlocker(item, "EVENT_APPROACHING");
   for (const item of incompleteCriticalPath) {
     if (blockedItemIds.has(item.id) || isOverdue(item, today) || isAtRisk(item)) {
       registerBlocker(item, "CRITICAL_PATH");

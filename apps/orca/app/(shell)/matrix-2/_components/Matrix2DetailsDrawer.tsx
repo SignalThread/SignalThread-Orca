@@ -120,6 +120,7 @@ type Matrix2StaffSelection = Matrix2PersonSelection & {
 
 type Matrix2SessionEditPayload = {
   title: string;
+  includeInOfficialAgenda: boolean;
   sessionType: string;
   status: string;
   roomId: string | null;
@@ -520,6 +521,7 @@ export default function Matrix2DetailsDrawer({
   const requirementSections = localRequirementSections;
 
   const [title, setTitle] = useState(session.title);
+  const [includeInOfficialAgenda, setIncludeInOfficialAgenda] = useState(Boolean(session.includeInOfficialAgenda));
   const [sessionType, setSessionType] = useState(session.sessionType || DEFAULT_SESSION_TYPE);
   const sessionTypeOptions = useMemo(() => {
     return sessionTypeOptionsForSavedValue(sessionType);
@@ -1131,6 +1133,7 @@ export default function Matrix2DetailsDrawer({
 
     await onSaveEdit(session.id, {
       title: title.trim() || "Untitled Session",
+      includeInOfficialAgenda,
       sessionType: sessionType || DEFAULT_SESSION_TYPE,
       status: selectedStatusLabel.trim(),
       roomId: roomId.trim() || null,
@@ -1161,7 +1164,35 @@ export default function Matrix2DetailsDrawer({
     if (!activeQuickPanel) return null;
 
     if (activeQuickPanel === "conflicts") {
-      return <section className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3 shadow-sm" data-session-conflict-summary role="region" aria-label="Session conflicts"><div className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-700" /><div><h4 className="text-[13px] font-semibold text-amber-950">Active conflicts</h4><p className="text-[11px] text-amber-800">Resolve these items before finalizing the session.</p></div></div><div className="mt-3 space-y-2">{activeConflicts.map((conflict) => { const relatedSessionId = conflict.sessionIds.find((id) => id !== session.id); const isSpeaker = conflict.type === "SPEAKER_DOUBLE_BOOKED"; const isRoom = conflict.type === "ROOM_OVERLAP" || conflict.type === "ROOM_CAPACITY_EXCEEDED"; const actionLabel = isSpeaker ? "Resolve in Speakers" : isRoom ? "Open Room Set" : "Review Staffing"; const affected = conflict.speakerName ?? conflict.roomName ?? relatedSessionId ?? "This session"; const action = () => { if (isSpeaker) return switchQuickPanel("speakers"); if (isRoom) { window.location.assign(roomSetHref(session.eventId, session.id, "layout")); return; } switchQuickPanel("staffing"); }; return <article key={conflict.id} className="rounded-xl border border-amber-100 bg-white/90 p-2.5"><p className="text-[12px] font-semibold text-slate-900">{isSpeaker ? "Speaker conflict" : conflict.type === "ROOM_OVERLAP" ? "Room conflict" : conflict.type === "ROOM_CAPACITY_EXCEEDED" ? "Capacity conflict" : "Staffing conflict"}</p><p className="mt-0.5 text-[11px] leading-4 text-slate-600">{conflict.message}</p><p className="mt-1 text-[11px] font-medium text-slate-700">Affected: {affected}</p><div className="mt-2 flex gap-2"><button type="button" onClick={action} className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-100">{actionLabel}</button>{relatedSessionId ? <button type="button" onClick={() => onViewConflictingSession(relatedSessionId)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">View related session</button> : null}</div></article>; })}</div></section>;
+      return (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3 shadow-sm" data-session-conflict-summary role="region" aria-label="Session conflicts">
+          <div className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-700" /><div><h4 className="text-[13px] font-semibold text-amber-950">Active conflicts</h4><p className="text-[11px] text-amber-800">Resolve these items before finalizing the session.</p></div></div>
+          <div className="mt-3 space-y-2">{activeConflicts.map((conflict) => {
+            const relatedSessionId = conflict.relatedSessionId ?? conflict.sessionIds.find((id) => id !== session.id);
+            const isSpeaker = conflict.type === "SPEAKER_DOUBLE_BOOKED";
+            const isRoom = conflict.type === "ROOM_OVERLAP" || conflict.type === "ROOM_CAPACITY_EXCEEDED";
+            const actionLabel = isSpeaker ? "Resolve in Speakers" : isRoom ? "Open Room Set" : "Review Staffing";
+            const affected = conflict.speakerName ?? conflict.staffName ?? conflict.roomName ?? conflict.affectedSessionTitle;
+            const action = () => {
+              if (isSpeaker) return switchQuickPanel("speakers");
+              if (isRoom) {
+                window.location.assign(roomSetHref(session.eventId, session.id, "layout"));
+                return;
+              }
+              switchQuickPanel("staffing");
+            };
+            return (
+              <article key={conflict.id} className="rounded-xl border border-amber-100 bg-white/90 p-2.5">
+                <div className="flex items-start justify-between gap-2"><p className="text-[12px] font-semibold text-slate-900">{isSpeaker ? "Speaker conflict" : conflict.type === "ROOM_OVERLAP" ? "Room conflict" : conflict.type === "ROOM_CAPACITY_EXCEEDED" ? "Capacity conflict" : "Staffing conflict"}</p><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${conflict.severity === "error" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-800"}`}>{conflict.severity === "error" ? "Blocking" : "Warning"}</span></div>
+                <p className="mt-0.5 text-[11px] leading-4 text-slate-600">{conflict.message}</p>
+                <p className="mt-1 text-[11px] text-slate-600">Reason: {conflict.reason}</p>
+                <p className="mt-1 text-[11px] font-medium text-slate-700">Affected: {affected}</p>
+                <div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={action} className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-100">{actionLabel}</button>{relatedSessionId ? <button type="button" onClick={() => onViewConflictingSession(relatedSessionId)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">View related session</button> : null}</div>
+              </article>
+            );
+          })}</div>
+        </section>
+      );
     }
 
     if (activeQuickPanel === "speakers") {
@@ -1517,6 +1548,14 @@ export default function Matrix2DetailsDrawer({
               {quickPanelContent ? `${terminology.runOfShow} session` : "Session details"}
             </p>
             <h3 className="mt-0.5 truncate text-[21px] font-semibold leading-[25px] text-slate-950">{title || "Untitled session"}</h3>
+            <span className={[
+              "mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+              includeInOfficialAgenda
+                ? "border-blue-200 bg-blue-50 text-blue-700"
+                : "border-slate-200 bg-slate-50 text-slate-600",
+            ].join(" ")}>
+              {includeInOfficialAgenda ? "Official agenda" : "Internal/operational only"}
+            </span>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-medium text-slate-600">
               <span>{formatTimeLabel(startTime)} - {formatTimeLabel(endTime)}</span>
               <span className="text-slate-300">·</span>
@@ -1597,6 +1636,19 @@ export default function Matrix2DetailsDrawer({
               </select>
             </label>
           </div>
+
+          <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+            <input
+              type="checkbox"
+              checked={includeInOfficialAgenda}
+              onChange={(event) => setIncludeInOfficialAgenda(event.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#28439A] focus:ring-[#28439A]"
+            />
+            <span>
+              <span className="block text-[12px] font-semibold text-slate-700">Include in official agenda</span>
+              <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">Off keeps this session available for internal Run of Show operations without exposing it publicly.</span>
+            </span>
+          </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="grid gap-1">

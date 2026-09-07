@@ -73,6 +73,7 @@ export type Matrix2SessionRecord = {
   roomId: string | null;
   roomName: string;
   title: string;
+  includeInOfficialAgenda?: boolean;
   sessionType: string;
   status: string;
   expectedAttendance: number | null;
@@ -411,6 +412,7 @@ type MatrixRowProjection = {
   roomId: string | null;
   roomName: string | null;
   sessionName: string | null;
+  includeInOfficialAgenda: boolean;
   setupType: string | null;
   attendance: number | null;
   attendanceSource: ExpectedAttendanceSource | null;
@@ -439,6 +441,7 @@ function buildMatrixRowSelect(includeSortOrder: boolean): Prisma.MatrixRowSelect
     roomId: true,
     roomName: true,
     sessionName: true,
+    includeInOfficialAgenda: true,
     setupType: true,
     attendance: true,
     attendanceSource: true,
@@ -940,6 +943,7 @@ export async function getMatrix2Snapshot(
         roomId: resolvedRoomId,
         roomName: resolvedRoomName,
         title,
+        includeInOfficialAgenda: row.includeInOfficialAgenda,
         sessionType: inferSessionType(title, row.mealPeriod, parsedNotes.sessionType),
         status: (parsedNotes.status ?? "").trim(),
         expectedAttendance: row.attendance,

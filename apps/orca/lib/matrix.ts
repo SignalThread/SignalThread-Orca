@@ -5,6 +5,7 @@ import { assertEventAccessForUser, EventAccessError, type EventAccessUser } from
 import { recordEventActivity } from "@/src/server/services/event-activity";
 import { ensureEventSessionRequirementTemplateTx } from "@/lib/session-requirements";
 import { matrixImportRowFingerprint, type MatrixImportOperationalRequirement } from "@/lib/matrix-import";
+import { isExternallyOwnedSupplyName } from "@/lib/supplies";
 
 /** Authenticated actor context for Run of Show session audit entries. */
 export type MatrixAuditActor = { id: string } | null | undefined;
@@ -63,6 +64,7 @@ export type MatrixRowRecord = {
   roomId: string | null;
   room: string;
   sessionName: string;
+  includeInOfficialAgenda: boolean;
   setup: string;
   attendance: number | null;
   meal: string;
@@ -95,6 +97,7 @@ type MatrixCreateInput = {
   roomId?: unknown;
   room?: unknown;
   sessionName?: unknown;
+  includeInOfficialAgenda?: unknown;
   setup?: unknown;
   attendance?: unknown;
   meal?: unknown;
@@ -195,6 +198,13 @@ function parseSortOrder(value: unknown): number {
   return parsed;
 }
 
+function parseBoolean(value: unknown, fieldName: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new MatrixError(`${fieldName} must be a boolean`, 400);
+  }
+  return value;
+}
+
 function parseMeal(value: unknown): MealPeriod | null {
   const normalized = toOptionalText(value);
   if (!normalized) return null;
@@ -230,6 +240,7 @@ function rowToRecord(row: {
   roomId: string | null;
   roomName: string | null;
   sessionName: string | null;
+  includeInOfficialAgenda: boolean;
   setupType: string | null;
   attendance: number | null;
   mealPeriod: MealPeriod | null;
@@ -248,6 +259,7 @@ function rowToRecord(row: {
     roomId: row.roomId,
     room: row.roomName ?? "",
     sessionName: row.sessionName ?? "",
+    includeInOfficialAgenda: row.includeInOfficialAgenda,
     setup: row.setupType ?? "",
     attendance: row.attendance,
     meal: row.mealPeriod ? mealToLabel[row.mealPeriod] : "",
@@ -301,6 +313,7 @@ async function findMatrixRowsCompat(where: Prisma.MatrixRowWhereInput): Promise<
         roomId: true,
         roomName: true,
         sessionName: true,
+        includeInOfficialAgenda: true,
         setupType: true,
         attendance: true,
         mealPeriod: true,
@@ -330,6 +343,7 @@ async function findMatrixRowsCompat(where: Prisma.MatrixRowWhereInput): Promise<
         roomId: true,
         roomName: true,
         sessionName: true,
+        includeInOfficialAgenda: true,
         setupType: true,
         attendance: true,
         mealPeriod: true,
@@ -392,6 +406,7 @@ function normalizeCreateInput(eventStartDate: Date, input: MatrixCreateInput): {
   roomId: string | null;
   roomName: string | null;
   sessionName: string;
+  includeInOfficialAgenda: boolean;
   setupType: string;
   attendance: number | null;
   mealPeriod: MealPeriod | null;
@@ -415,6 +430,9 @@ function normalizeCreateInput(eventStartDate: Date, input: MatrixCreateInput): {
     roomId: parseRoomIdInput(input.roomId, "roomId"),
     roomName: toOptionalText(input.room),
     sessionName: toText(input.sessionName),
+    includeInOfficialAgenda: typeof input.includeInOfficialAgenda === "undefined"
+      ? false
+      : parseBoolean(input.includeInOfficialAgenda, "includeInOfficialAgenda"),
     setupType: toText(input.setup),
     attendance: parseOptionalAttendance(input.attendance),
     mealPeriod: parseMeal(input.meal),
@@ -444,6 +462,7 @@ export async function createMatrixRow(eventId: string, input: MatrixCreateInput,
         endTime: normalized.endTime,
         roomName: resolvedRoomName,
         sessionName: normalized.sessionName,
+        includeInOfficialAgenda: normalized.includeInOfficialAgenda,
         setupType: normalized.setupType,
         attendance: normalized.attendance,
         mealPeriod: normalized.mealPeriod,
@@ -460,6 +479,7 @@ export async function createMatrixRow(eventId: string, input: MatrixCreateInput,
         roomId: true,
         roomName: true,
         sessionName: true,
+        includeInOfficialAgenda: true,
         setupType: true,
         attendance: true,
         mealPeriod: true,
@@ -494,6 +514,7 @@ export async function createMatrixRow(eventId: string, input: MatrixCreateInput,
         endTime: normalized.endTime,
         roomName: resolvedRoomName,
         sessionName: normalized.sessionName,
+        includeInOfficialAgenda: normalized.includeInOfficialAgenda,
         setupType: normalized.setupType,
         attendance: normalized.attendance,
         mealPeriod: normalized.mealPeriod,
@@ -509,6 +530,7 @@ export async function createMatrixRow(eventId: string, input: MatrixCreateInput,
         roomId: true,
         roomName: true,
         sessionName: true,
+        includeInOfficialAgenda: true,
         setupType: true,
         attendance: true,
         mealPeriod: true,
@@ -573,6 +595,9 @@ export async function updateMatrixRow(eventId: string, rowId: string, input: Mat
     if (typeof nextRoomName !== "undefined") data.roomName = nextRoomName;
   }
   if (typeof input.sessionName !== "undefined") data.sessionName = toText(input.sessionName);
+  if (typeof input.includeInOfficialAgenda !== "undefined") {
+    data.includeInOfficialAgenda = parseBoolean(input.includeInOfficialAgenda, "includeInOfficialAgenda");
+  }
   if (typeof input.setup !== "undefined") data.setupType = toText(input.setup);
   if (typeof input.attendance !== "undefined") data.attendance = parseOptionalAttendance(input.attendance);
   if (typeof input.meal !== "undefined") data.mealPeriod = parseMeal(input.meal);
@@ -642,6 +667,7 @@ export async function updateMatrixRow(eventId: string, rowId: string, input: Mat
         roomId: true,
         roomName: true,
         sessionName: true,
+        includeInOfficialAgenda: true,
         setupType: true,
         attendance: true,
         mealPeriod: true,
@@ -672,6 +698,7 @@ export async function updateMatrixRow(eventId: string, rowId: string, input: Mat
         roomId: true,
         roomName: true,
         sessionName: true,
+        includeInOfficialAgenda: true,
         setupType: true,
         attendance: true,
         mealPeriod: true,
@@ -739,6 +766,7 @@ export async function duplicateMatrixRow(eventId: string, rowId: string, actor?:
           roomId: true,
           roomName: true,
           sessionName: true,
+          includeInOfficialAgenda: true,
           setupType: true,
           attendance: true,
           mealPeriod: true,
@@ -801,6 +829,7 @@ export async function duplicateMatrixRow(eventId: string, rowId: string, actor?:
         roomId: true,
         roomName: true,
         sessionName: true,
+        includeInOfficialAgenda: true,
         setupType: true,
         attendance: true,
         mealPeriod: true,
@@ -1079,7 +1108,39 @@ export async function importMatrixRows(
         importedCount += result.count;
       }
 
-      if (data.length > 0 && uniqueRows.some((row) => (row.supplies?.length ?? 0) > 0 || (row.signage?.length ?? 0) > 0)) {
+      if (data.length > 0 && uniqueRows.some((row) => (row.supplies?.length ?? 0) > 0)) {
+        for (const [index, row] of uniqueRows.entries()) {
+          for (const requirement of row.supplies ?? []) {
+            // These are confirmations owned by their operational modules, not physical Supplies allocations.
+            if (isExternallyOwnedSupplyName(requirement.label)) continue;
+            const name = requirement.label.trim();
+            const supplyItem = await tx.supplyItem.upsert({
+              where: { eventId_name: { eventId, name } },
+              update: {},
+              create: { eventId, name, category: "Other", unit: "each" },
+              select: { id: true },
+            });
+            const allocation = await tx.sessionSupplyAllocation.create({
+              data: {
+                eventId,
+                sessionId: data[index]!.id!,
+                supplyItemId: supplyItem.id,
+                category: "Other",
+                unit: "each",
+                quantity: requirement.quantity,
+                quantityRule: "MANUAL",
+                idempotencyKey: `matrix-import:${normalizedIdempotencyKey}:${index}:${createHash("sha1").update(name.toLowerCase()).digest("hex").slice(0, 12)}`,
+              },
+              select: { id: true },
+            });
+            await tx.supplyAllocationAudit.create({
+              data: { eventId, allocationId: allocation.id, actorUserId: user.id, action: "CREATED_FROM_IMPORT", changes: { name, quantity: requirement.quantity } },
+            });
+          }
+        }
+      }
+
+      if (data.length > 0 && uniqueRows.some((row) => (row.signage?.length ?? 0) > 0)) {
         const template = await ensureEventSessionRequirementTemplateTx(tx, eventId);
         const sectionByType = new Map(template.sections.map((section) => [section.type, section]));
         const itemCache = new Map<string, { id: string; hasQuantity: boolean }>();
@@ -1091,9 +1152,9 @@ export async function importMatrixRows(
         }
         const selections: Prisma.SessionRequirementSelectionCreateManyInput[] = [];
         for (const [index, row] of uniqueRows.entries()) {
-          for (const [type, requirements] of [["SUPPLIES", row.supplies ?? []], ["SIGNAGE", row.signage ?? []]] as const) {
+          for (const [type, requirements] of [["SIGNAGE", row.signage ?? []]] as const) {
             const section = sectionByType.get(type);
-            if (!section) throw new MatrixError(`${type === "SUPPLIES" ? "Supplies" : "Signage"} catalog is unavailable`, 409);
+            if (!section) throw new MatrixError("Signage catalog is unavailable", 409);
             for (const requirement of requirements) {
               const cacheKey = `${type}:${requirement.label.trim().toLowerCase()}`;
               let item = itemCache.get(cacheKey);

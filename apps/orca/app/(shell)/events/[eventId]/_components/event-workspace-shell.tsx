@@ -20,6 +20,7 @@ import {
   Sparkles,
   Search,
   Settings,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -496,6 +497,18 @@ export function EventWorkspaceShell({ currentEvent, children }: EventWorkspaceSh
         },
         // Financial Reports is intentionally hidden from navigation for now.
         // The route remains available for direct links while the product surface is paused.
+      ],
+    },
+    {
+      label: "Onsite",
+      items: [
+        {
+          label: "Security & Compliance",
+          ariaLabel: "Security and Compliance operational readiness",
+          href: `/events/${eventId}/security-compliance`,
+          icon: ShieldCheck,
+          active: (currentPathname) => isPathActive(currentPathname, `/events/${eventId}/security-compliance`),
+        },
       ],
     },
     {

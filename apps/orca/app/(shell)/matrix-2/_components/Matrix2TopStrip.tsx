@@ -16,10 +16,12 @@ import { type Matrix2BoardOrientation } from "@/lib/matrix2-board-layout";
 import { type Matrix2ZoomMode } from "./types";
 
 export type MatrixListPresenceFilter = "" | "HAS" | "MISSING";
+export type MatrixOfficialAgendaFilter = "" | "OFFICIAL" | "INTERNAL";
 
 export type MatrixListFilterState = {
   type: string;
   roomId: string;
+  officialAgenda: MatrixOfficialAgendaFilter;
   speakers: MatrixListPresenceFilter;
   av: MatrixListPresenceFilter;
   fnb: MatrixListPresenceFilter;
@@ -56,6 +58,7 @@ const BOARD_ORIENTATION_OPTIONS: Array<{ value: Matrix2BoardOrientation; label: 
 export const EMPTY_MATRIX_LIST_FILTERS: MatrixListFilterState = {
   type: "",
   roomId: "",
+  officialAgenda: "",
   speakers: "",
   av: "",
   fnb: "",
@@ -207,6 +210,18 @@ export default function Matrix2TopStrip({
                 {room.name}
               </option>
             ))}
+          </select>
+          <label className="sr-only" htmlFor="matrix-list-filter-official-agenda">Agenda designation</label>
+          <select
+            id="matrix-list-filter-official-agenda"
+            aria-label="Official agenda designation"
+            value={listFilters.officialAgenda}
+            onChange={(event) => updateListFilter("officialAgenda", event.target.value as MatrixOfficialAgendaFilter)}
+            className={TABLE_FILTER_CONTROL_CLASS}
+          >
+            <option value="">All agenda designations</option>
+            <option value="OFFICIAL">Official agenda</option>
+            <option value="INTERNAL">Internal/operational only</option>
           </select>
           <label className="sr-only" htmlFor="matrix-list-filter-speakers">Speakers</label>
           <select

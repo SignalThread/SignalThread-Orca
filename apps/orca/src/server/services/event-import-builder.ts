@@ -549,6 +549,9 @@ async function executeEventImport(
       });
 
       return completed;
+    }, {
+      maxWait: 10_000,
+      timeout: 30_000,
     });
 
     return result;
