@@ -1259,9 +1259,92 @@ because deleting them would leave Platform Core with no administrator and no bac
 
 Production bootstrap must not depend on any of these rows.
 
+# 20c. SSO Hardening — Verified State (branch `platform-sso-hardening`)
+
+Uncommitted. Builds on Platform App Phase 1; see `docs/DEPLOYMENT_BOUNDARIES.md`
+§4d–§4f for the architecture, environment contract, and outstanding production config.
+
+## What changed
+
+**Signin credential leak (fixed).** The Platform form had only an `onSubmit` handler
+with no `method` and no `action`. Before hydration the browser's default submission
+took over — a **GET with every named input in the query string**, putting the password
+in the address bar, history, `Referer`, and access logs. Submission is now a **server
+action**: POST by construction, works with JavaScript disabled, and the credential
+never enters client control flow. Verified: a GET to `/signin` carrying credentials
+creates no session and sets zero cookies.
+
+**Cookie contract (hardened).** All five Supabase client call sites now pass explicit
+options: `Path=/`, `SameSite=Lax`, **no `Domain`**, `Secure=true` when the app's own
+URL is HTTPS. Host isolation proven with the real auth cookie across distinct
+hostnames. `HttpOnly=false` remains — required by the Supabase browser client, and
+tracked as deferred hardening.
+
+**Cross-subdomain handoff (implemented).** Platform authorizes *before* minting, then
+issues a single-use Supabase-native `hashed_token`; Orca exchanges it with the anon
+key for its own host-scoped session. Full chain verified across
+`platform.localtest.me` / `orca.localtest.me`.
+
+## Logout and session lifecycle — current behaviour, measured
+
+Global logout **already works in both directions**, not by a designed fan-out but
+because both apps use global scope: Platform's `signOut()` takes supabase-js's default
+(`global`), and Orca's logout button passes `{ scope: "global" }` explicitly. Measured:
+`signOut({scope:"local"})` leaves the other session valid; `{scope:"global"}` ends it.
+
+Caveat: a revoked session's **access token stays cryptographically valid until expiry**.
+Revocation is observed because `getUser()` is a network call — which Orca does make on
+canonical request resolution. Any path relying on local JWT validation alone would not
+see it. Entitlement revocation behaves the same way: the registry changes and claims
+re-sync immediately, but a live session keeps the old claim until its token refreshes
+(worst case one token lifetime, 3600s observed).
+
+## Test fixtures vs real records — READ BEFORE CLEANUP
+
+`acme-events` and `acme-2026` began as fixtures and are **no longer purely test data**:
+`kamyab.ali@gmail.com` is an `OWNER` member, and those canonical ids are the primary
+keys of real rows in `signalthread-orca` (Organization, Event, User, Membership,
+EventMember). `cleanup-test-fixtures.mjs` now refuses to delete any organization with
+a non-fixture member, so it retains `acme-events` and removes only `globex-summits`.
+It still dry-runs by default, verifies the target project ref, and refuses `--apply`
+while the only Platform admin is a fixture.
+
+Run only **after** production smoke testing:
+
+```bash
+cd apps/platform && node scripts/cleanup-test-fixtures.mjs          # review
+cd apps/platform && node scripts/cleanup-test-fixtures.mjs --apply  # then remove
+```
+
+## Deferred (explicitly not done here)
+
+- `HttpOnly` session cookies — needs the three browser-client call sites moved server-side.
+- Global logout as a designed fan-out — currently an emergent property of global scope.
+- Auth resilience — local JWT verification, JWKS caching, refresh/grace behaviour.
+  Orca still calls `auth.getUser()` per request, so **central Auth remains a shared
+  dependency and full offline-auth resilience must not be claimed**.
+- Cookie lifetime — still the 400-day `@supabase/ssr` default, deliberately unchanged.
+
 # 21. NEXT EXACT TASK
 
-## 21.0 First: provision a real Platform admin, then land both branches (blocking)
+## 21.0 First: production configuration, then smoke test, then cleanup
+
+The code is ready; the remaining work is configuration, in this order:
+
+1. **Supabase** (`wtbnpeluwhjjqccdofxd`): Site URL `https://app.signalthread.ai`,
+   Redirect URLs `https://app.signalthread.ai/**`. Nothing is required for the
+   product handoff — see `docs/DEPLOYMENT_BOUNDARIES.md` §4f.
+2. **Vercel**: two projects, Root Directories `apps/platform` / `apps/orca`, with
+   *Include files outside Root Directory* enabled on both. Env per §4e.
+3. **DNS**: `app.signalthread.ai`, `orca.signalthread.ai`.
+4. **Deploy** Platform and Orca.
+5. **Smoke test** the live handoff end to end.
+6. **Only then** run `cleanup-test-fixtures.mjs --apply`.
+
+A real Platform admin already exists (`kamyab.ali@gmail.com`), so the earlier
+blocking step is resolved.
+
+## 21.0a Previously: provision a real Platform admin (DONE)
 
 Platform Core currently has **no non-fixture administrator**. Before any production use:
 

@@ -253,7 +253,11 @@ test("the callback refuses Orca-owned account lifecycle under Platform Core", ()
     "LEGACY_ONLY_OTP_TYPES.has(type)",
     "const result = await supabase.auth.verifyOtp",
   );
-  assert.equal(branch.includes('NextResponse.redirect(new URL("/login"'), true);
+  // The branch must refuse and route to /login. The redirect is issued via
+  // `relativeRedirect`, which emits a relative Location so the request host is
+  // preserved -- an absolute URL rebuilt from the request normalises the host and
+  // would move the user off the origin whose session cookies were just set.
+  assert.equal(branch.includes('relativeRedirect("/login")'), true);
 });
 
 test("logout ends the Platform session and returns to Platform Core", () => {

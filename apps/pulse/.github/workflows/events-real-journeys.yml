@@ -1,0 +1,45 @@
+name: Voice Events real journeys
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  migrations-and-critical-journeys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: voice_events_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d voice_events_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/voice_events_test?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/voice_events_test?schema=public
+      REAL_DATABASE_TESTS: '1'
+      OPENAI_API_KEY: ''
+      EVENTS_TEST_DISABLE_EXTERNAL_PROVIDERS: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Install real browser runtime
+        run: npx playwright install --with-deps chromium
+      - name: Full pre-production gate
+        run: npm run test:preprod
