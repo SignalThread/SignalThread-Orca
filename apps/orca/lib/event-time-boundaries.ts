@@ -80,7 +80,7 @@ function isoWeekday(value: CalendarDate): number {
  * Midnight is unambiguous in supported IANA zones used by Orca; the short
  * fixed-point loop also accounts for DST offset changes between adjacent days.
  */
-function localDateTimeToInstant(value: ZonedDateTimeParts, timezone: string): Date {
+export function localDateTimeToInstant(value: ZonedDateTimeParts, timezone: string): Date {
   const desired = Date.UTC(value.year, value.month - 1, value.day, value.hour, value.minute, value.second);
   let candidate = desired;
   for (let index = 0; index < 4; index += 1) {

@@ -7,7 +7,7 @@ test("Planner first-event journey: Start Blank validates, retries, persists, and
   const runLabel = `event-create-${Date.now().toString(36)}`;
   const browserUserEmail = process.env.PW_E2E_DEV_USER_EMAIL ?? `event-create-${process.pid}@planner.test`;
   const fixture = await buildPlannerFixture({ runLabel }, async (harness) => {
-    const organization = await harness.createOrganization({ name: `First event org ${runLabel}` });
+    const organization = await harness.createOrganization({ name: `Fixture Org First event ${runLabel}` });
     // The local server resolves its development identity from this email. Keep
     // that identity durable across failed browser setup runs, while every
     // organization and event under test remains fixture-owned and cleaned up.
@@ -41,9 +41,9 @@ test("Planner first-event journey: Start Blank validates, retries, persists, and
     await page.getByRole("dialog", { name: "Event end", exact: true }).getByRole("button", { name: "Today", exact: true }).click();
     await page.getByRole("button", { name: "Continue", exact: true }).click();
 
-    await page.getByRole("button", { name: "Start Blank", exact: true }).click();
+    await expect(page.getByRole("radio", { name: /^Start Blank/ })).toBeChecked();
     await page.getByRole("button", { name: "Review & create", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Review & create", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Review workspace import", exact: true })).toBeVisible();
 
     let failNextCreate = true;
     await page.route("**/api/events/import/create", async (route) => {
@@ -64,7 +64,7 @@ test("Planner first-event journey: Start Blank validates, retries, persists, and
     await expect(page.getByRole("heading", { name: eventName, exact: true })).toBeVisible();
     const firstEventGuidance = page.getByTestId("event-first-time-guidance");
     await expect(firstEventGuidance).toContainText("Event created — start building your plan.");
-    await expect(firstEventGuidance).toContainText("Critical-path guidance will be available after Roadmap items are added or imported.");
+    await expect(firstEventGuidance).toContainText("Review Roadmap and critical-path signals");
     await firstEventGuidance.getByRole("button", { name: "Dismiss", exact: true }).click();
     await expect(firstEventGuidance).toHaveCount(0);
     await page.reload();
@@ -94,7 +94,7 @@ test("Planner first-event journey: Start Blank validates, retries, persists, and
       "10:00 AM Breakout: Partner Strategy - Room 204",
     ].join("\n"));
     await page.getByRole("button", { name: "Preview event shell", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Review & create", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Review workspace import", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Create event workspace", exact: true }).click();
     await expect(page).toHaveURL(/\/events\/[0-9a-f-]+\?created=1$/);
     const importedEventId = new URL(page.url()).pathname.split("/").at(-1)!;

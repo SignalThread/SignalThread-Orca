@@ -1341,9 +1341,10 @@ export function NewEventBuilder() {
         if (results.every((result) => result.ok)) {
           router.replace(`/events/${eventId}?created=1`);
         } else {
-          // The workspace was committed successfully. A document retry must not strand the
-          // user on a post-create landing page or imply the event failed to create.
-          router.replace(`/events/${eventId}?created=1&docsUpload=retry`);
+          // The workspace is committed; keep failed files available for a focused retry
+          // without re-uploading documents that already reached the Docs Hub.
+          setCreatedEventId(eventId);
+          setAdditionalDocResults(results);
         }
       } catch (uploadError) {
         console.error("Additional Docs upload failed after event creation:", uploadError);

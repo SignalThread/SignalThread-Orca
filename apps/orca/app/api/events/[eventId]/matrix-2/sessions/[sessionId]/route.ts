@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 
 const ALLOWED_UPDATE_FIELDS = new Set<keyof Matrix2SessionUpdateInput>([
   "title",
+  "includeInOfficialAgenda",
   "sessionType",
   "status",
   "roomId",

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import test, { type TestContext } from "node:test";
 import {
   getSessionShowFlowWorkspace,
@@ -40,6 +41,10 @@ test("show flow is ordered, concurrency-safe, recalculates offsets, and publishe
       sessionName: "Opening session",
       startTime: time("09:00"),
       endTime: time("10:00"),
+    });
+    await harness.db.matrixRow.update({
+      where: { id: session.id },
+      data: { includeInOfficialAgenda: true },
     });
     const speaker = await harness.createSpeaker({ eventId: roles.event.id, name: "Public Host" });
 
@@ -116,6 +121,26 @@ test("show flow is ordered, concurrency-safe, recalculates offsets, and publishe
     assert.equal(publicAgenda.length, 1);
     assert.equal(JSON.stringify(publicAgenda), JSON.stringify(publicAgenda).replace(/Private cue detail|Stage manager|Confidence monitor/g, ""));
 
+    await harness.db.matrixRow.update({
+      where: { id: session.id },
+      data: { includeInOfficialAgenda: false },
+    });
+    assert.equal((await getSessionShowFlowWorkspace(roles.event.id, session.id)).session.includeInOfficialAgenda, false);
+    assert.deepEqual(await listPublishedEventAgenda(roles.event.id), []);
+    await assert.rejects(
+      () => publishSessionAgenda(roles.event.id, session.id, {
+        expectedRevision: 1,
+        actorUserId: roles.owner.user.id,
+      }),
+      (error: unknown) => error instanceof SessionShowFlowError
+        && error.status === 409
+        && error.code === "SESSION_NOT_IN_OFFICIAL_AGENDA",
+    );
+    await harness.db.matrixRow.update({
+      where: { id: session.id },
+      data: { includeInOfficialAgenda: true },
+    });
+
     const staff = await harness.createEventPerson({ eventId: roles.event.id });
     await harness.createSessionSpeakerAssignment({ sessionId: session.id, speakerId: speaker.id });
     await harness.createSessionStaffAssignment({ sessionId: session.id, personId: staff.id });
@@ -166,4 +191,33 @@ test("show flow is ordered, concurrency-safe, recalculates offsets, and publishe
   } finally {
     await harness.cleanup();
   }
+});
+
+test("official agenda designation is migrated, authorized, editable, filterable, and enforced at public boundaries", () => {
+  const schema = readFileSync("prisma/schema.prisma", "utf8");
+  const migration = readFileSync(
+    "prisma/baseline/20260904210000_add_official_agenda_designation/migration.sql",
+    "utf8",
+  );
+  const updateRoute = readFileSync("app/api/events/[eventId]/matrix-2/sessions/[sessionId]/route.ts", "utf8");
+  const createRoute = readFileSync("app/api/events/[eventId]/matrix-rows/route.ts", "utf8");
+  const page = readFileSync("app/(shell)/matrix-2/page.tsx", "utf8");
+  const drawer = readFileSync("app/(shell)/matrix-2/_components/Matrix2DetailsDrawer.tsx", "utf8");
+  const workspace = readFileSync(
+    "app/(shell)/events/[eventId]/matrix/sessions/[sessionId]/_components/session-detail-workspace.tsx",
+    "utf8",
+  );
+  const publicService = readFileSync("lib/session-show-flow.ts", "utf8");
+
+  assert.match(schema, /includeInOfficialAgenda\s+Boolean\s+@default\(false\)/);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS "includeInOfficialAgenda" BOOLEAN NOT NULL DEFAULT false/);
+  assert.ok(updateRoute.includes('assertEventAccessForUser(eventId, currentUserResult.user, "write")'));
+  assert.ok(updateRoute.indexOf("assertEventAccessForUser") < updateRoute.indexOf("updateMatrix2Session(eventId, sessionId, body)"));
+  assert.ok(createRoute.includes('assertEventAccessForUser(eventId, currentUserResult.user, "write")'));
+  assert.ok(page.includes("Include in official agenda"));
+  assert.ok(page.includes("Internal/operational only"));
+  assert.ok(drawer.includes("Include in official agenda"));
+  assert.ok(workspace.includes("Include in official agenda"));
+  assert.ok(publicService.includes('includeInOfficialAgenda: true } }'));
+  assert.ok(publicService.includes('"SESSION_NOT_IN_OFFICIAL_AGENDA"'));
 });

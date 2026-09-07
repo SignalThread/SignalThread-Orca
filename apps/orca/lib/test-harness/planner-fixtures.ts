@@ -362,6 +362,7 @@ export class PlannerFixtureHarness {
     endTime?: Date | null;
     attendance?: number | null;
     setupType?: string | null;
+    includeInOfficialAgenda?: boolean;
   }): Promise<MatrixRow> {
     const row = await this.db.matrixRow.create({
       data: {
@@ -373,6 +374,7 @@ export class PlannerFixtureHarness {
         sessionName: input.sessionName ?? `Fixture Session ${this.runLabel}`,
         setupType: input.setupType ?? "Theater",
         attendance: input.attendance ?? 100,
+        includeInOfficialAgenda: input.includeInOfficialAgenda ?? false,
         sortOrder: 1,
       },
     });

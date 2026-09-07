@@ -49,7 +49,7 @@ export function shouldGateSessionRegistration(env: RuntimeEnv = process.env): bo
   return !isSessionRegistrationAvailable();
 }
 
-export const ROOM_SET_SEATING_COMBINED_LABEL = "Room Set & Seating";
+export const ROOM_SET_SEATING_COMBINED_LABEL = "Room & Guest Setup";
 export const ROOM_SET_SEATING_COMING_SOON_BADGE = "Coming soon";
 export const ROOM_SET_SEATING_UNAVAILABLE_COPY = "Room Set and Seating are coming soon.";
 

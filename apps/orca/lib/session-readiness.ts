@@ -13,6 +13,9 @@ export type SessionReadinessModuleId =
   | "staffing"
   | "supplies"
   | "signage"
+  | "accessibility"
+  | "vendor-production"
+  | "safety-escalation"
   | "room-set"
   | "seating"
   | "conflicts"
@@ -303,6 +306,31 @@ export type OperationalRequirementReadinessInput = {
   hardProblems?: readonly unknown[];
   hasStarted?: boolean;
 };
+
+export type OptionalSessionModuleReadinessInput = {
+  enabled?: boolean;
+  hasStarted?: boolean;
+  allNotNeeded?: boolean;
+  hasIncompleteActiveRequirement?: boolean;
+};
+
+export function deriveOptionalSessionModuleReadiness(
+  moduleId: "accessibility" | "vendor-production" | "safety-escalation",
+  input: OptionalSessionModuleReadinessInput,
+): SessionModuleReadiness {
+  const label = moduleId === "accessibility" ? "Accessibility" : moduleId === "vendor-production" ? "Vendor & Production" : "Safety & Escalation";
+  const status = deriveConservativeReadinessStatus({
+    applies: input.enabled === true && input.allNotNeeded !== true,
+    hasRequiredData: input.hasIncompleteActiveRequirement !== true,
+    hasStarted: input.hasStarted ?? false,
+  });
+  return result(moduleId, status, compactReasons([
+    status === "not_needed" && `${label} is not enabled for this session.`,
+    input.hasIncompleteActiveRequirement && `An active ${label.toLowerCase()} requirement needs an owner or confirmation.`,
+    status === "not_started" && `${label} is enabled but no work has started.`,
+    status === "ready" && `${label} requirements are ready.`,
+  ]));
+}
 
 export function deriveOperationalRequirementReadiness(
   moduleId: "supplies" | "signage",
@@ -618,6 +646,9 @@ export type SessionReadinessModulesInput = {
   av: AvReadinessInput;
   fnb: FnbReadinessInput;
   staffing: StaffingReadinessInput;
+  accessibility?: OptionalSessionModuleReadinessInput;
+  vendorProduction?: OptionalSessionModuleReadinessInput;
+  safetyEscalation?: OptionalSessionModuleReadinessInput;
   supplies?: OperationalRequirementReadinessInput;
   signage?: OperationalRequirementReadinessInput;
   roomSet: RoomSetReadinessInput;
@@ -649,6 +680,9 @@ function attentionActionForModule(
     };
   }
   if (moduleId === "staffing") return { title: "Required staffing is incomplete", actionLabel: "Assign", targetModuleId: "staffing" };
+  if (moduleId === "accessibility") return { title: reason, actionLabel: "Review accessibility", targetModuleId: "accessibility" };
+  if (moduleId === "vendor-production") return { title: reason, actionLabel: "Review vendors", targetModuleId: "vendor-production" };
+  if (moduleId === "safety-escalation") return { title: reason, actionLabel: "Review safety", targetModuleId: "safety-escalation" };
   if (moduleId === "supplies") return { title: "Required supplies are incomplete", actionLabel: "Review supplies", targetModuleId: "supplies" };
   if (moduleId === "signage") return { title: "Required signage is incomplete", actionLabel: "Review signage", targetModuleId: "signage" };
   if (moduleId === "room-set") return { title: reason, actionLabel: "Open Room Set", targetModuleId: "room-set" };
@@ -660,6 +694,7 @@ function attentionActionForModule(
 function conflictTitle(conflict: NonNullable<ConflictReadinessInput["conflicts"]>[number]): string {
   if (conflict.type === "ROOM_CAPACITY_EXCEEDED") return "Attendance exceeds room capacity";
   if (conflict.type === "SPEAKER_DOUBLE_BOOKED") return "Speaker scheduling conflict";
+  if (conflict.type === "STAFF_DOUBLE_BOOKED") return "Staff scheduling conflict";
   if (conflict.type === "ROOM_OVERLAP") return "Room scheduling conflict";
   return "Active session conflict";
 }
@@ -675,6 +710,9 @@ export function deriveSessionReadiness(
     deriveAvReadiness(input.av),
     deriveFnbReadiness(input.fnb),
     deriveStaffingReadiness(input.staffing),
+    deriveOptionalSessionModuleReadiness("accessibility", input.accessibility ?? { enabled: false }),
+    deriveOptionalSessionModuleReadiness("vendor-production", input.vendorProduction ?? { enabled: false }),
+    deriveOptionalSessionModuleReadiness("safety-escalation", input.safetyEscalation ?? { enabled: false }),
     deriveOperationalRequirementReadiness("supplies", input.supplies ?? { required: false }),
     deriveOperationalRequirementReadiness("signage", input.signage ?? { required: false }),
     deriveRoomSetReadiness({

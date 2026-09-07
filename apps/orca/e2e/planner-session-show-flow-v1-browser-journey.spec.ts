@@ -32,7 +32,7 @@ test("PF-020 delivers persisted session Show Flow v1 with isolation and four exp
     });
 
     await page.goto(`/events/${fixture.event.id}/matrix/sessions/${fixture.source.id}#show-flow`);
-    await expect(page.getByRole("heading", { name: fixture.source.sessionName! })).toBeVisible();
+    await expect(page.getByRole("heading", { name: fixture.source.sessionName!, level: 1 })).toBeVisible();
     await expect(page.getByRole("button", { name: "Apply template" })).toBeHidden();
     await expect(page.getByRole("button", { name: "Edit show flow" })).toBeVisible();
     await page.getByRole("button", { name: "Build show flow" }).click();
@@ -69,10 +69,13 @@ test("PF-020 delivers persisted session Show Flow v1 with isolation and four exp
     await page.getByRole("button", { name: "Edit cue 1" }).click();
     await page.getByRole("dialog", { name: "Opening video roll" }).getByLabel("Cue / segment").fill("Opening brand video");
     await page.getByRole("button", { name: "Save cue" }).click();
+    await expect(page.getByRole("dialog", { name: "Opening brand video" })).toBeHidden();
     await expect(page.getByRole("region", { name: "View Show Flow" }).getByText("Opening brand video")).toBeVisible();
     await page.getByRole("button", { name: "Duplicate cue 1" }).click();
     await page.getByRole("button", { name: "Move cue 2 down" }).click();
-    await page.getByRole("button", { name: "Save changes" }).click();
+    const saveChanges = page.getByRole("button", { name: "Save changes" });
+    await expect(saveChanges).toBeEnabled();
+    await saveChanges.click();
     await expect.poll(() => harness!.db.sessionShowFlowItem.count({ where: { sessionId: fixture.target.id } })).toBe(3);
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Delete cue 3" }).click();

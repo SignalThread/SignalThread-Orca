@@ -45,11 +45,21 @@ test("unsupported rules are reported rather than omitted", () => {
   const unsupported = report([session()]).checks.filter((check) => check.status === "unsupported");
   assert.deepEqual(
     unsupported.map((check) => check.id),
-    ["staff-double-booked", "av-resource-collision", "room-turn", "fnb-service-timing", "dependencies-approvals"],
+    ["av-resource-collision", "room-turn", "fnb-service-timing", "dependencies-approvals"],
   );
   for (const check of unsupported) {
     assert.ok(check.exclusions[0]?.reason, `${check.id} must explain why it did not run`);
   }
+});
+
+test("structured staff assignments are evaluated instead of reported as unsupported", () => {
+  const staffReport = report([
+    session({ staffAssignments: [{ personId: "person-1" }] }),
+    session({ id: "s2", roomId: "room-2", roomName: "Ballroom", staffAssignments: [{ personId: "person-1" }] }),
+  ], [{ type: "STAFF_DOUBLE_BOOKED" }]);
+  const check = staffReport.checks.find((entry) => entry.id === "staff-double-booked");
+  assert.equal(check?.status, "found");
+  assert.equal(check?.findingCount, 1);
 });
 
 test("a rule that evaluated nothing is limited, never passed", () => {

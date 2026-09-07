@@ -17,6 +17,7 @@ const TABS: Array<{ key: string; label: string; suffix: string; ariaLabel?: stri
   // event-level F&B Planner at /matrix/fnb.
   { key: "directory", label: "Directory", suffix: "/directory", ariaLabel: "Event Directory: canonical people and contacts" },
   { key: "attendees", label: "Attendees", suffix: "/attendees", ariaLabel: "Attendees: event participation, registration, and source state" },
+  { key: "registration-agenda", label: "Reg Agenda", suffix: "/registration/agenda", ariaLabel: "Registration-owned official agenda staging and publishing" },
   { key: "speakers", label: "Speakers", suffix: "/speakers", ariaLabel: "Speakers directory and readiness" },
   { key: "staffing", label: "Staffing", suffix: "/staffing", ariaLabel: "Staffing assignments coming soon" },
   { key: "docs", label: "Docs", suffix: "/docs", ariaLabel: "Docs document hub and approvals" },

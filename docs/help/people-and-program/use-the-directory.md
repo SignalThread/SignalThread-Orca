@@ -10,7 +10,7 @@ audience:
   - "planner"
 difficulty: "beginner"
 estimatedReadTime: 6
-lastReviewed: "2026-07-13"
+lastReviewed: "2026-09-04"
 tags:
   - "directory"
   - "people"
@@ -32,6 +32,8 @@ Maintain the canonical event people list and the roles each person holds.
 One canonical person can hold several event roles, such as Speaker and Attendee.
 
 Source labels explain how a role or identity entered the event.
+
+The person drawer shows role-specific context from canonical attendee and speaker records. Attendee details can include registration status and housing assignment; speaker details can include headshot, biography, and assigned sessions.
 
 ## When You’ll Use It
 
@@ -55,6 +57,19 @@ Source labels explain how a role or identity entered the event.
 3. Choose Add person to create a record.
 4. Open a person drawer to review identity, roles, sources, and linked context.
 
+## Work with Registration-backed Details
+
+1. Open an attendee in the person drawer.
+2. Review the canonical registration status and housing assignment.
+3. Add or update hotel and room details when housing changes.
+4. Use **Cancel registration** only after confirming the destructive action.
+
+Registration transfer and confirmation resend controls remain disabled when no external provider adapter is configured. The drawer explains that limitation instead of reporting a successful external action.
+
+## Review Speaker Context
+
+Open a speaker to review headshot and biography readiness. Assigned sessions link back to the canonical session workspace. Portal resend is unavailable when no delivery provider is configured and does not claim that a message was sent.
+
 ## Use Directory Selections
 
 1. Select people or use the current filtered scope.
@@ -65,6 +80,7 @@ Source labels explain how a role or identity entered the event.
 
 - One canonical person can hold several event roles, such as Speaker and Attendee.
 - Source labels explain how a role or identity entered the event.
+- Directory actions update canonical attendee or speaker records; unavailable external-provider actions remain visibly disabled.
 
 ## In-product Helper Text
 
@@ -78,6 +94,7 @@ Source labels explain how a role or identity entered the event.
 
 - Create one person and add roles rather than duplicating identities.
 - Clean missing or invalid email before creating an audience or selecting **Email selected**.
+- Confirm the person and registration status before cancellation; the action changes the canonical attendee record.
 
 ## Troubleshooting
 

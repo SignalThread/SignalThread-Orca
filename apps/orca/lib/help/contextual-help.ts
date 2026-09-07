@@ -12,6 +12,7 @@ export const CONTEXTUAL_HELP_MAPPINGS: readonly ContextualHelpMapping[] = [
   { pattern: "/events/:eventId/timeline", articleSlug: "use-the-roadmap", returnLabel: "Roadmap" },
   { pattern: "/events/:eventId/speakers", articleSlug: "manage-speakers", returnLabel: "Speakers" },
   { pattern: "/events/:eventId/attendees", articleSlug: "manage-attendees", returnLabel: "Attendees" },
+  { pattern: "/events/:eventId/registration/agenda", articleSlug: "manage-registration-agenda", returnLabel: "Registration Agenda" },
   { pattern: "/events/:eventId/directory", articleSlug: "use-the-directory", returnLabel: "Directory" },
   { pattern: "/events/:eventId/docs", articleSlug: "use-the-docs-hub", returnLabel: "Docs Hub" },
   { pattern: "/events/:eventId/marketing", articleSlug: "use-marketing", returnLabel: "Marketing" },

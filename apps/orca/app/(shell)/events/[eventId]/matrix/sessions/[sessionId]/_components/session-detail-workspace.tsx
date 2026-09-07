@@ -95,6 +95,8 @@ import {
   type SessionFnbSafetyAlertSummary,
 } from "./session-fnb-safety-summary";
 import { SessionShowFlowWorkspace } from "./session-show-flow-workspace";
+import { SessionSuppliesWorkspace } from "./session-supplies-workspace";
+import { SessionOperationalRecordsWorkspace } from "./session-operational-records-workspace";
 import { fetchSessionDetailSnapshot } from "@/lib/session-detail-load";
 import { parseSessionRequirementQuantity } from "@/lib/session-requirement-quantity";
 import { eventRunOfShowHref, roomSetHref, runOfShowSessionHref } from "@/lib/planning/routes";
@@ -177,7 +179,7 @@ type AttendeeRosterOption = {
   company: string | null;
 };
 
-type WorkspaceTabId = "overview" | "show-flow" | "speakers" | "av" | "fnb" | "staffing" | "supplies" | "signage" | "conflicts" | "notes-activity";
+type WorkspaceTabId = "overview" | "show-flow" | "speakers" | "av" | "fnb" | "staffing" | "supplies" | "signage" | "accessibility" | "vendor-production" | "safety-escalation" | "conflicts" | "notes-activity";
 type SessionRailLinkId = "room-set" | "seating";
 type SessionRailUnavailableId = "room-set-seating";
 
@@ -230,6 +232,9 @@ const WORKSPACE_FOCUS_ITEMS: Array<{ id: WorkspaceTabId; label: string; descript
   { id: "staffing", label: "Staffing", description: "Crew needs", icon: Users },
   { id: "supplies", label: "Supplies", description: "Materials and quantities", icon: Package },
   { id: "signage", label: "Signage", description: "Wayfinding and room signs", icon: Signpost },
+  { id: "accessibility", label: "Accessibility", description: "Inclusive participation", icon: Users },
+  { id: "vendor-production", label: "Vendor & Production", description: "Service partners", icon: Package },
+  { id: "safety-escalation", label: "Safety & Escalation", description: "Session operating view", icon: AlertTriangle },
   { id: "conflicts", label: "Conflicts", description: "Schedule and capacity", icon: AlertTriangle },
   { id: "notes-activity", label: "Notes / Activity", description: "Planner notes", icon: Activity },
 ];
@@ -2527,10 +2532,48 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
   const [snapshotLoadError, setSnapshotLoadError] = useState<string | null>(null);
   const snapshotRequestVersionRef = useRef(0);
   const [notice, setNotice] = useState<string | null>(null);
+  const [optionalModuleSettings, setOptionalModuleSettings] = useState<Array<{ module: "ACCESSIBILITY" | "VENDOR_AND_PRODUCTION" | "SAFETY_AND_ESCALATION"; enabled: boolean; source: "event_default" | "session_override" }>>([]);
+  const [moduleSettingsOpen, setModuleSettingsOpen] = useState(false);
+  const [moduleSettingsSaving, setModuleSettingsSaving] = useState<string | null>(null);
+  const [operationSummaries, setOperationSummaries] = useState<Record<"ACCESSIBILITY" | "VENDOR_AND_PRODUCTION" | "SAFETY_AND_ESCALATION", Array<{ status: string; ownerPerson: { id: string } | null }>>>({ ACCESSIBILITY: [], VENDOR_AND_PRODUCTION: [], SAFETY_AND_ESCALATION: [] });
+  const [supplySummary, setSupplySummary] = useState<{ readiness: "not_needed" | "needs_info" | "needs_work" | "blocked" | "ready"; allocations: Array<{ quantity: number | null; unit: string; oneOffName: string | null; supplyItem: { name: string } | null }> } | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    const accept = (payload: unknown) => {
+      if (!payload || typeof payload !== "object") return;
+      const candidate = payload as typeof supplySummary;
+      if (candidate && Array.isArray(candidate.allocations)) setSupplySummary(candidate);
+    };
+    void fetch(`/api/events/${eventId}/matrix-2/sessions/${sessionId}/supplies`, { signal: controller.signal }).then((response) => response.ok ? response.json() : null).then(accept).catch(() => undefined);
+    const onUpdate = (event: Event) => { const detail = (event as CustomEvent<{ sessionId: string; payload: unknown }>).detail; if (detail?.sessionId === sessionId) accept(detail.payload); };
+    window.addEventListener("orca:supplies-updated", onUpdate);
+    return () => { controller.abort(); window.removeEventListener("orca:supplies-updated", onUpdate); };
+  }, [eventId, sessionId]);
+
+  useEffect(() => {
+    const reload = () => {
+      (["ACCESSIBILITY", "VENDOR_AND_PRODUCTION", "SAFETY_AND_ESCALATION"] as const).forEach((module) => {
+        void fetch(`/api/events/${eventId}/matrix-2/sessions/${sessionId}/operations?module=${module}`)
+          .then((response) => response.ok ? response.json() : [])
+          .then((rows) => setOperationSummaries((current) => ({ ...current, [module]: Array.isArray(rows) ? rows : [] })));
+      });
+    };
+    reload(); const onUpdate = (event: Event) => { if ((event as CustomEvent<{ sessionId: string }>).detail?.sessionId === sessionId) reload(); }; window.addEventListener("orca:session-operations-updated", onUpdate); return () => window.removeEventListener("orca:session-operations-updated", onUpdate);
+  }, [eventId, sessionId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch(`/api/events/${eventId}/matrix-2/sessions/${sessionId}/modules`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => { if (!controller.signal.aborted && Array.isArray(payload?.modules)) setOptionalModuleSettings(payload.modules); })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [eventId, sessionId]);
 
 
   const [title, setTitle] = useState("");
   const [sessionType, setSessionType] = useState("");
+  const [includeInOfficialAgenda, setIncludeInOfficialAgenda] = useState(false);
   const [roomId, setRoomId] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -2660,6 +2703,7 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
         const nextSession = result.session;
         setTitle(nextSession.title);
         setSessionType(nextSession.sessionType || DEFAULT_SESSION_TYPE);
+        setIncludeInOfficialAgenda(Boolean(nextSession.includeInOfficialAgenda));
         setRoomId(nextSession.roomId ?? "");
         setStartTime(nextSession.startTime);
         setEndTime(nextSession.endTime);
@@ -3044,7 +3088,6 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
       ...entry.section,
       items: entry.section.items.filter((item) => isStaffingNeedRequirementItem(item)),
     }));
-  const suppliesSections = typedSections.filter((entry) => entry.sectionType === "SUPPLIES").map((entry) => entry.section);
   const signageSections = typedSections.filter((entry) => entry.sectionType === "SIGNAGE").map((entry) => entry.section);
   const roomSetupSection = typedSections.find((entry) => entry.sectionType === "SETUP")?.section ?? null;
   const statusSection = typedSections.find((entry) => entry.sectionType === "STATUS")?.section ?? null;
@@ -3252,10 +3295,6 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
     () => selectedRequirementReadinessItems(staffingSections, selectedRequirementValues),
     [staffingSections, selectedRequirementValues],
   );
-  const selectedSupplyRequirementItems = useMemo(
-    () => selectedRequirementReadinessItems(suppliesSections, selectedRequirementValues),
-    [suppliesSections, selectedRequirementValues],
-  );
   const selectedSignageRequirementItems = useMemo(
     () => selectedRequirementReadinessItems(signageSections, selectedRequirementValues),
     [signageSections, selectedRequirementValues],
@@ -3273,6 +3312,7 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
   const roomSetLink = roomSetHref(eventId, sessionId, "layout");
   const seatingLink = roomSetHref(eventId, sessionId, "seating");
   const fnbCoverageCount = fnbAssignments.length + selectedFnbRequirementCount;
+  const optionalModulesEnabled = useMemo(() => new Set(optionalModuleSettings.filter((setting) => setting.enabled).map((setting) => setting.module)), [optionalModuleSettings]);
   const readinessResult = useMemo(() => {
     const avRequirements = [
       ...selectedAvRequirementItems,
@@ -3319,10 +3359,12 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
         assignments: session?.staffAssignments ?? [],
         hasStarted: (session?.staffAssignments.length ?? 0) > 0 || selectedStaffingRequirementCount > 0,
       },
-      supplies: {
-        required: selectedSupplyRequirementItems.length > 0,
-        requirements: selectedSupplyRequirementItems,
-      },
+      accessibility: { enabled: optionalModulesEnabled.has("ACCESSIBILITY"), hasStarted: operationSummaries.ACCESSIBILITY.length > 0, hasIncompleteActiveRequirement: operationSummaries.ACCESSIBILITY.some((row) => row.status !== "NOT_NEEDED" && (!row.ownerPerson || row.status !== "CONFIRMED")) },
+      vendorProduction: { enabled: optionalModulesEnabled.has("VENDOR_AND_PRODUCTION"), hasStarted: operationSummaries.VENDOR_AND_PRODUCTION.length > 0, hasIncompleteActiveRequirement: operationSummaries.VENDOR_AND_PRODUCTION.some((row) => row.status !== "NOT_NEEDED" && (!row.ownerPerson || row.status !== "CONFIRMED")) },
+      safetyEscalation: { enabled: optionalModulesEnabled.has("SAFETY_AND_ESCALATION"), hasStarted: operationSummaries.SAFETY_AND_ESCALATION.length > 0, hasIncompleteActiveRequirement: operationSummaries.SAFETY_AND_ESCALATION.some((row) => row.status !== "NOT_NEEDED" && (!row.ownerPerson || row.status !== "CONFIRMED")) },
+      // The dedicated Supplies workspace owns persisted supply allocations and readiness.
+      // Legacy generic requirement selections are intentionally not a fallback source here.
+      supplies: { required: false },
       signage: {
         required: selectedSignageRequirementItems.length > 0,
         requirements: selectedSignageRequirementItems,
@@ -3366,8 +3408,9 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
     selectedFnbRequirementItems,
     selectedSpeakers,
     selectedStaffingRequirementCount,
-    selectedSupplyRequirementItems,
     selectedSignageRequirementItems,
+    optionalModulesEnabled,
+    operationSummaries,
     sessionType,
     startTime,
     endTime,
@@ -3381,11 +3424,18 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
   ]);
   const moduleReadiness = readinessResult.modules;
   const focusItems = useMemo<SessionRailFocusItem[]>(() => {
-    const statusItems = Object.values(moduleReadiness);
+    const supplyStatus: SessionReadinessStatus | null = supplySummary ? (supplySummary.readiness === "needs_work" ? "not_started" : supplySummary.readiness) : null;
+    const statusItems = Object.values(moduleReadiness).map((item) => item.moduleId === "supplies" && supplyStatus ? { ...item, status: supplyStatus } : item);
     const overviewStatus = statusItems
       .filter((item) => item.status !== "not_needed")
       .sort((left, right) => SESSION_READINESS_METADATA[right.status].priority - SESSION_READINESS_METADATA[left.status].priority)[0]?.status ?? "not_needed";
-    return WORKSPACE_FOCUS_ITEMS.map((sourceItem) => {
+    return WORKSPACE_FOCUS_ITEMS.filter((sourceItem) => (
+      sourceItem.id !== "accessibility" || optionalModulesEnabled.has("ACCESSIBILITY")
+    ) && (
+      sourceItem.id !== "vendor-production" || optionalModulesEnabled.has("VENDOR_AND_PRODUCTION")
+    ) && (
+      sourceItem.id !== "safety-escalation" || optionalModulesEnabled.has("SAFETY_AND_ESCALATION")
+    )).map((sourceItem) => {
       const item = sourceItem.id === "show-flow"
         ? { ...sourceItem, label: terminology.showFlow, description: `Minute-by-minute cues and public ${terminology.agenda.toLowerCase()}` }
         : sourceItem;
@@ -3410,6 +3460,9 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
           status,
         };
       }
+      if (item.id === "supplies" && supplyStatus) {
+        return { ...item, badge: SESSION_READINESS_METADATA[supplyStatus].label, status: supplyStatus };
+      }
       const readiness = moduleReadiness[item.id];
       return {
         ...item,
@@ -3417,7 +3470,7 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
         status: readiness.status,
       };
     });
-  }, [moduleReadiness, showFlowSummary, terminology.agenda, terminology.showFlow]);
+  }, [moduleReadiness, optionalModulesEnabled, showFlowSummary, supplySummary, terminology.agenda, terminology.showFlow]);
   const linkItems = useMemo<SessionRailLinkItem[]>(() => {
     if (!roomSetAndSeatingAvailable) {
       return [
@@ -3572,17 +3625,15 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
       {
         id: "supplies",
         label: "Supplies",
-        description: selectedSupplyRequirementItems.length > 0
-          ? `${selectedSupplyRequirementItems.length} item${selectedSupplyRequirementItems.length === 1 ? "" : "s"} selected`
-          : "No supplies selected",
-        status: moduleReadiness.supplies.status,
+        description: supplySummary
+          ? supplySummary.readiness === "not_needed" ? "Explicitly not needed" : `${supplySummary.allocations.length} active item${supplySummary.allocations.length === 1 ? "" : "s"}`
+          : "Checking supplies…",
+        status: supplySummary ? (supplySummary.readiness === "needs_work" ? "not_started" : supplySummary.readiness) : moduleReadiness.supplies.status,
         icon: Package,
-        facts: selectedSupplyRequirementItems.length > 0
-          ? selectedSupplyRequirementItems.slice(0, 3).map((item) => item.quantity ? `${item.label} × ${item.quantity}` : item.label ?? "Supply")
+        facts: supplySummary?.allocations.length
+          ? supplySummary.allocations.slice(0, 3).map((item) => `${item.supplyItem?.name ?? item.oneOffName ?? "Supply"}${item.quantity == null ? "" : ` × ${item.quantity}`}`)
           : ["Add materials, stationery, or workshop kits"],
-        warning: moduleReadiness.supplies.status !== "ready" && moduleReadiness.supplies.status !== "not_needed"
-          ? moduleReadiness.supplies.reasons[0]
-          : undefined,
+        warning: supplySummary && supplySummary.readiness !== "ready" && supplySummary.readiness !== "not_needed" ? `Supplies ${supplySummary.readiness.replace("_", " ")}` : moduleReadiness.supplies.status !== "ready" && moduleReadiness.supplies.status !== "not_needed" ? moduleReadiness.supplies.reasons[0] : undefined,
         actionLabel: "Review supplies",
         target: "supplies",
       },
@@ -3639,7 +3690,11 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
         href: roomSetAndSeatingAvailable ? roomSetLink : undefined,
         disabled: !roomSetAndSeatingAvailable,
       },
-    ];
+    ].concat(
+      optionalModulesEnabled.has("ACCESSIBILITY") ? [{ id: "accessibility" as const, label: "Accessibility", description: "Session accommodations", status: moduleReadiness.accessibility.status, icon: Users, facts: ["Add operational accommodations and confirmations"], warning: moduleReadiness.accessibility.status === "not_started" ? moduleReadiness.accessibility.reasons[0] : undefined, actionLabel: "Open accessibility", target: "accessibility" as const }] : [],
+      optionalModulesEnabled.has("VENDOR_AND_PRODUCTION") ? [{ id: "vendor-production" as const, label: "Vendor & Production", description: "Session service partners", status: moduleReadiness["vendor-production"].status, icon: Package, facts: ["Add non-AV partners and onsite details"], warning: moduleReadiness["vendor-production"].status === "not_started" ? moduleReadiness["vendor-production"].reasons[0] : undefined, actionLabel: "Open vendors", target: "vendor-production" as const }] : [],
+      optionalModulesEnabled.has("SAFETY_AND_ESCALATION") ? [{ id: "safety-escalation" as const, label: "Safety & Escalation", description: "Event-plan-linked operations", status: moduleReadiness["safety-escalation"].status, icon: AlertTriangle, facts: ["Reference the event Security & Compliance plan"], warning: moduleReadiness["safety-escalation"].status === "not_started" ? moduleReadiness["safety-escalation"].reasons[0] : undefined, actionLabel: "Open safety", target: "safety-escalation" as const }] : [],
+    ) as OverviewModuleCard[];
   }, [
     visibleConflicts,
     expectedAttendance,
@@ -3651,7 +3706,7 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
     selectedAvRequirementItems,
     selectedFnbRequirementItems,
     selectedStaffingRequirementItems,
-    selectedSupplyRequirementItems,
+    supplySummary,
     selectedSignageRequirementItems,
     selectedSpeakers,
     showFlowSummary,
@@ -3663,6 +3718,7 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
     session?.roomName,
     session?.roomSetup,
     session?.staffAssignments,
+    optionalModulesEnabled,
   ]);
   /**
    * The exact canonical items behind each readiness count, so every number in the status bar
@@ -3741,6 +3797,26 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
     setActiveTab(tab);
     if (typeof window !== "undefined") {
       window.history.replaceState(null, "", `#${tab}`);
+    }
+  }
+
+  async function setOptionalModuleEnabled(module: "ACCESSIBILITY" | "VENDOR_AND_PRODUCTION" | "SAFETY_AND_ESCALATION", enabled: boolean) {
+    setModuleSettingsSaving(module);
+    try {
+      const response = await fetch(`/api/events/${eventId}/matrix-2/sessions/${sessionId}/modules`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ module, enabled }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || "Unable to update module settings");
+      setOptionalModuleSettings(payload.modules);
+      setNotice(`${module.replaceAll("_", " ")} ${enabled ? "enabled" : "disabled"}. Existing records are retained.`);
+      if (!enabled) setActiveTab("overview");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to update module settings");
+    } finally {
+      setModuleSettingsSaving(null);
     }
   }
 
@@ -4349,6 +4425,7 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
         body: JSON.stringify({
           title: title.trim() || "Untitled Session",
           sessionType: sessionType || DEFAULT_SESSION_TYPE,
+          includeInOfficialAgenda,
           // Empty legacy status values are not valid configurable status updates.
           // Omitting the field preserves the current value through the API's
           // partial-merge contract while still allowing an explicit selection.
@@ -4581,6 +4658,20 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
       {notice ? <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-700">{notice}</p> : null}
       {errorMessage ? <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] text-rose-700">{errorMessage}</p> : null}
 
+      <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm" aria-label="Optional session modules">
+        <div className="flex items-center justify-between gap-3">
+          <div><p className="text-[13px] font-semibold text-slate-900">Optional session modules</p><p className="text-[12px] text-slate-500">Enable only the operational work this session needs.</p></div>
+          <button type="button" onClick={() => setModuleSettingsOpen((open) => !open)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50" aria-expanded={moduleSettingsOpen}>Customize modules</button>
+        </div>
+        {moduleSettingsOpen ? <div className="mt-3 grid gap-2 sm:grid-cols-3">{[
+          ["ACCESSIBILITY", "Accessibility"], ["VENDOR_AND_PRODUCTION", "Vendor & Production"], ["SAFETY_AND_ESCALATION", "Safety & Escalation"],
+        ].map(([module, label]) => {
+          const setting = optionalModuleSettings.find((entry) => entry.module === module);
+          const enabled = setting?.enabled === true;
+          return <label key={module} className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-slate-200 p-2.5 text-[12px] font-semibold text-slate-700"><span>{label}<span className="ml-1 text-[10px] font-medium text-slate-400">{setting?.source === "event_default" ? "Event default" : "Session override"}</span></span><input type="checkbox" checked={enabled} disabled={moduleSettingsSaving === module} onChange={(event) => void setOptionalModuleEnabled(module as "ACCESSIBILITY" | "VENDOR_AND_PRODUCTION" | "SAFETY_AND_ESCALATION", event.target.checked)} /></label>;
+        })}</div> : null}
+      </section>
+
       {activeTab === "overview" ? (
         <div className="space-y-3">
           <SessionModuleTabs
@@ -4595,6 +4686,22 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
           <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" aria-label="Session info">
             <h2 className="text-[17px] font-semibold text-slate-950">Session info</h2>
             <p className="mt-0.5 text-[13px] text-slate-500">Edit the core {terminology.runOfShow} record for this session.</p>
+            <label className="mt-3 flex max-w-xl items-start gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+              <input
+                type="checkbox"
+                checked={includeInOfficialAgenda}
+                onChange={(event) => setIncludeInOfficialAgenda(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#28439A] focus:ring-[#28439A]"
+              />
+              <span>
+                <span className="block text-[12px] font-semibold text-slate-700">Include in official agenda</span>
+                <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">
+                  {includeInOfficialAgenda
+                    ? "Official agenda — eligible for attendee publication."
+                    : "Internal/operational only — remains available throughout Run of Show but is excluded from public agenda output."}
+                </span>
+              </span>
+            </label>
             <label className="mt-3 grid max-w-xl gap-1.5">
               <span className="text-[12px] font-semibold text-slate-600">Session Type</span>
               <select
@@ -4769,6 +4876,10 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
           onSummaryChange={setShowFlowSummary}
         />
       ) : null}
+
+      {activeTab === "accessibility" ? <SessionOperationalRecordsWorkspace eventId={eventId} sessionId={sessionId} module="ACCESSIBILITY" /> : null}
+      {activeTab === "vendor-production" ? <SessionOperationalRecordsWorkspace eventId={eventId} sessionId={sessionId} module="VENDOR_AND_PRODUCTION" /> : null}
+      {activeTab === "safety-escalation" ? <SessionOperationalRecordsWorkspace eventId={eventId} sessionId={sessionId} module="SAFETY_AND_ESCALATION" /> : null}
 
       {activeTab === "fnb" ? (
         <div className="space-y-5">
@@ -5703,9 +5814,7 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
         </div>
       ) : null}
 
-      {activeTab === "supplies"
-        ? renderOperationalRequirementSections(suppliesSections, "Supplies", "No supply options configured.")
-        : null}
+      {activeTab === "supplies" ? <SessionSuppliesWorkspace eventId={eventId} sessionId={sessionId} /> : null}
 
       {activeTab === "signage"
         ? renderOperationalRequirementSections(signageSections, "Signage", "No signage options configured.")
@@ -5730,15 +5839,16 @@ export function SessionDetailWorkspace({ eventId, sessionId }: SessionDetailWork
         <SectionCard title="Conflicts">
           {visibleConflicts.length > 0 ? (
             <div className="space-y-2">
-              {visibleConflicts.map((conflict: Matrix2Conflict) => (
-                <div key={conflict.id} className={[
+              {visibleConflicts.map((conflict: Matrix2Conflict) => {
+                const relatedSessionId = conflict.relatedSessionId ?? conflict.sessionIds.find((id) => id !== session.id);
+                return <div key={conflict.id} className={[
                   "flex gap-2 rounded-lg border px-3 py-2 text-[13px]",
                   conflict.severity === "error" ? "border-rose-200 bg-rose-50 text-rose-700" : "border-amber-200 bg-amber-50 text-amber-700",
                 ].join(" ")}>
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{conflict.message}</span>
-                </div>
-              ))}
+                  <div className="min-w-0"><p className="font-semibold">{conflict.severity === "error" ? "Blocking conflict" : "Warning"}: {conflict.affectedSessionTitle}</p><p>{conflict.message}</p><p className="mt-1 text-[12px]">Reason: {conflict.reason}</p>{relatedSessionId ? <Link href={`${runOfShowSessionHref(eventId, relatedSessionId)}?tab=conflicts`} className="mt-2 inline-flex rounded-md border border-current/20 bg-white px-2 py-1 text-[11px] font-semibold">View related session</Link> : null}</div>
+                </div>;
+              })}
             </div>
           ) : conflictCoverage ? (
             <p

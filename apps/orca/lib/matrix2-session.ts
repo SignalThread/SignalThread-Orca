@@ -61,6 +61,7 @@ type FoodServiceDraft = {
 
 export type Matrix2SessionUpdateInput = {
   title?: unknown;
+  includeInOfficialAgenda?: unknown;
   sessionType?: unknown;
   status?: unknown;
   roomId?: unknown;
@@ -90,6 +91,13 @@ function toRequiredText(value: unknown, fieldName: string): string {
     throw new Matrix2Error(`${fieldName} is required`, 400);
   }
   return normalized;
+}
+
+function parseBoolean(value: unknown, fieldName: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new Matrix2Error(`${fieldName} must be a boolean`, 400);
+  }
+  return value;
 }
 
 function parseTimeInput(value: unknown, fieldName: string): Date {
@@ -563,6 +571,7 @@ export async function updateMatrix2Session(
       roomId: true,
       roomName: true,
       sessionName: true,
+      includeInOfficialAgenda: true,
       startTime: true,
       endTime: true,
       setupType: true,
@@ -594,6 +603,9 @@ export async function updateMatrix2Session(
   if (!title) {
     throw new Matrix2Error("title is required", 400);
   }
+  const includeInOfficialAgenda = typeof input.includeInOfficialAgenda !== "undefined"
+    ? parseBoolean(input.includeInOfficialAgenda, "includeInOfficialAgenda")
+    : session.includeInOfficialAgenda;
 
   const sessionType = typeof input.sessionType !== "undefined"
     ? (toOptionalText(input.sessionType) ?? "Session")
@@ -763,6 +775,7 @@ export async function updateMatrix2Session(
           roomId: resolvedRoomId,
           roomName: resolvedRoomName,
           sessionName: title,
+          includeInOfficialAgenda,
           startTime,
           endTime,
           setupType,

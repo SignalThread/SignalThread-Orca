@@ -112,7 +112,7 @@ test("Room Set and Seating are Coming soon everywhere unless explicitly previewe
   assert.equal(SESSION_REGISTRATION_ENABLED, false);
   assert.equal(isSessionRegistrationAvailable(), false);
   assert.equal(shouldGateSessionRegistration({ NODE_ENV: "development" }), true);
-  assert.equal(ROOM_SET_SEATING_COMBINED_LABEL, "Room Set & Seating");
+  assert.equal(ROOM_SET_SEATING_COMBINED_LABEL, "Room & Guest Setup");
   assert.equal(ROOM_SET_SEATING_COMING_SOON_BADGE, "Coming soon");
   assert.equal(ROOM_SET_SEATING_UNAVAILABLE_COPY, "Room Set and Seating are coming soon.");
   assert.equal(SESSION_REGISTRATION_COMING_SOON_BADGE, "Coming soon");

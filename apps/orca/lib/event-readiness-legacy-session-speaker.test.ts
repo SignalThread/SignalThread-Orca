@@ -78,7 +78,6 @@ test("no application code queries the legacy relation", () => {
 test("the generated Prisma client exposes no legacy SessionSpeaker delegate", () => {
   const candidates = [
     "node_modules/.prisma/client/index.d.ts",
-    "../node_modules/.prisma/client/index.d.ts",
     // Under npm workspaces the generated client hoists to the repository root, which is two
     // levels up from apps/orca. Without this the check silently finds nothing and the guard
     // that catches a stale client stops guarding anything.

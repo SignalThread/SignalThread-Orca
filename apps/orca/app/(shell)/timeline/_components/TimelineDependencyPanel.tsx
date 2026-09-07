@@ -16,7 +16,7 @@ function errorMessage(payload: unknown, fallback: string): string {
   return payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string" ? payload.error : fallback;
 }
 
-export function TimelineDependencyPanel({ eventId, items, canEdit }: { eventId: string; items: TimelineItemRecord[]; canEdit: boolean }) {
+export function TimelineDependencyPanel({ eventId, items, canEdit, onDependenciesChanged }: { eventId: string; items: TimelineItemRecord[]; canEdit: boolean; onDependenciesChanged?: () => void }) {
   const [dependencies, setDependencies] = useState<Dependency[]>([]);
   const [predecessorId, setPredecessorId] = useState("");
   const [successorId, setSuccessorId] = useState("");
@@ -55,6 +55,7 @@ export function TimelineDependencyPanel({ eventId, items, canEdit }: { eventId: 
       if (!response.ok) throw new Error(errorMessage(payload, "Unable to add dependency"));
       setPredecessorId(""); setSuccessorId("");
       await load();
+      onDependenciesChanged?.();
       setMessage("Dependency added.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to add dependency"); }
     finally { setSaving(false); }
@@ -68,6 +69,7 @@ export function TimelineDependencyPanel({ eventId, items, canEdit }: { eventId: 
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok) throw new Error(errorMessage(payload, "Unable to remove dependency"));
       setDependencies((current) => current.filter((entry) => entry.id !== id));
+      onDependenciesChanged?.();
       setMessage("Dependency removed.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to remove dependency"); }
     finally { setSaving(false); }

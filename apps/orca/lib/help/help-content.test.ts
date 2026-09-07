@@ -18,7 +18,7 @@ test("generated content matches the validated manifest and excludes internal art
   const publicManifest = manifest.filter((entry) => entry.status !== "internal");
   const articles = getAllPublicArticles();
 
-  assert.equal(manifest.length, 66);
+  assert.equal(manifest.length, 67);
   assert.equal(articles.length, publicManifest.length);
   assert.deepEqual(articles.map((article) => article.slug).sort(), publicManifest.map((article) => article.slug).sort());
   assert.equal(getArticleBySlug("use-platform-administration"), null);

@@ -123,8 +123,8 @@ const BUDGET_LINE_ITEM_COLUMNS: ColumnOrderItem<BudgetColumnId>[] = [
 const BUDGET_COLUMN_WIDTHS: Record<BudgetColumnId, number> = {
   session: 150,
   group: 150,
-  forecast: 120,
-  actual: 120,
+  forecast: 132,
+  actual: 132,
   variance: 105,
   vendor: 125,
   docs: 50,

@@ -4,6 +4,7 @@ export type Matrix2ConflictMap = Map<string, Matrix2Conflict[]>;
 
 const ROOM_OVERLAP: Matrix2Conflict["type"] = "ROOM_OVERLAP";
 const SPEAKER_DOUBLE_BOOKED: Matrix2Conflict["type"] = "SPEAKER_DOUBLE_BOOKED";
+const STAFF_DOUBLE_BOOKED: Matrix2Conflict["type"] = "STAFF_DOUBLE_BOOKED";
 const ROOM_CAPACITY_EXCEEDED: Matrix2Conflict["type"] = "ROOM_CAPACITY_EXCEEDED";
 
 export function toMinutes(timeValue: string): number | null {
@@ -107,6 +108,11 @@ export function detectMatrix2Conflicts(sessions: Matrix2Session[]): {
       endMinutes: Math.max(endMinutes, startMinutes + 1),
       roomKey: isUnassignedRoom ? "" : normalizedRoomName,
       speakerKeys: session.speakers.map((speaker) => speaker.trim().toLowerCase()).filter(Boolean),
+      staffByPersonId: new Map(
+        session.staffAssignments
+          .filter((assignment) => assignment.personId.trim())
+          .map((assignment) => [assignment.personId, assignment.name.trim() || "Assigned staff member"]),
+      ),
     };
   });
 
@@ -124,6 +130,8 @@ export function detectMatrix2Conflicts(sessions: Matrix2Session[]): {
         severity: "warning",
         sessionIds: [current.session.id],
         message: `Expected attendance (${current.session.expectedAttendance}) exceeds room capacity (${current.session.roomCapacity}).`,
+        affectedSessionTitle: current.session.title,
+        reason: `Expected attendance is ${current.session.expectedAttendance}, above the ${current.session.roomCapacity}-person room capacity.`,
         roomName: current.session.roomName,
       };
 
@@ -145,7 +153,10 @@ export function detectMatrix2Conflicts(sessions: Matrix2Session[]): {
           type: ROOM_OVERLAP,
           severity: "error",
           sessionIds: [current.session.id, candidate.session.id],
-          message: `Room overlap in ${current.session.roomName} (${current.session.startTime}-${current.session.endTime} and ${candidate.session.startTime}-${candidate.session.endTime}).`,
+          message: `${current.session.title} overlaps ${candidate.session.title} in ${current.session.roomName} (${current.session.startTime}-${current.session.endTime} and ${candidate.session.startTime}-${candidate.session.endTime}).`,
+          affectedSessionTitle: current.session.title,
+          reason: `The same room is assigned to overlapping sessions.`,
+          relatedSessionId: candidate.session.id,
           roomName: current.session.roomName,
         };
 
@@ -154,30 +165,50 @@ export function detectMatrix2Conflicts(sessions: Matrix2Session[]): {
         pushConflict(bySession, candidate.session.id, roomConflict);
       }
 
-      if (current.roomKey && current.roomKey === candidate.roomKey) continue;
-      if (current.speakerKeys.length === 0 || candidate.speakerKeys.length === 0) continue;
+      if (current.speakerKeys.length > 0 && candidate.speakerKeys.length > 0) {
+        const candidateSpeakerSet = new Set(candidate.speakerKeys);
+        for (const currentSpeakerKey of current.speakerKeys) {
+          if (!candidateSpeakerSet.has(currentSpeakerKey)) continue;
 
-      const candidateSpeakerSet = new Set(candidate.speakerKeys);
-      for (const currentSpeakerKey of current.speakerKeys) {
-        if (!candidateSpeakerSet.has(currentSpeakerKey)) continue;
+          const speakerDisplay =
+            current.session.speakers.find((speaker) => speaker.trim().toLowerCase() === currentSpeakerKey) ??
+            candidate.session.speakers.find((speaker) => speaker.trim().toLowerCase() === currentSpeakerKey) ??
+            currentSpeakerKey;
 
-        const speakerDisplay =
-          current.session.speakers.find((speaker) => speaker.trim().toLowerCase() === currentSpeakerKey) ??
-          candidate.session.speakers.find((speaker) => speaker.trim().toLowerCase() === currentSpeakerKey) ??
-          currentSpeakerKey;
+          const speakerConflict: Matrix2Conflict = {
+            id: `speaker:${current.session.id}:${candidate.session.id}:${currentSpeakerKey}`,
+            type: SPEAKER_DOUBLE_BOOKED,
+            severity: "error",
+            sessionIds: [current.session.id, candidate.session.id],
+            message: `${speakerDisplay} is assigned to overlapping sessions: ${current.session.title} and ${candidate.session.title}.`,
+            affectedSessionTitle: current.session.title,
+            reason: "The same speaker is assigned to two sessions whose scheduled times overlap.",
+            relatedSessionId: candidate.session.id,
+            speakerName: speakerDisplay,
+          };
 
-        const speakerConflict: Matrix2Conflict = {
-          id: `speaker:${current.session.id}:${candidate.session.id}:${currentSpeakerKey}`,
-          type: SPEAKER_DOUBLE_BOOKED,
+          conflicts.push(speakerConflict);
+          pushConflict(bySession, current.session.id, speakerConflict);
+          pushConflict(bySession, candidate.session.id, speakerConflict);
+        }
+      }
+
+      for (const [personId, staffName] of current.staffByPersonId) {
+        if (!candidate.staffByPersonId.has(personId)) continue;
+        const staffConflict: Matrix2Conflict = {
+          id: `staff:${current.session.id}:${candidate.session.id}:${personId}`,
+          type: STAFF_DOUBLE_BOOKED,
           severity: "error",
           sessionIds: [current.session.id, candidate.session.id],
-          message: `${speakerDisplay} is double-booked across overlapping sessions.`,
-          speakerName: speakerDisplay,
+          message: `${staffName} is assigned to overlapping sessions: ${current.session.title} and ${candidate.session.title}.`,
+          affectedSessionTitle: current.session.title,
+          reason: "The same staff or vendor record is assigned to two sessions whose scheduled times overlap.",
+          relatedSessionId: candidate.session.id,
+          staffName,
         };
-
-        conflicts.push(speakerConflict);
-        pushConflict(bySession, current.session.id, speakerConflict);
-        pushConflict(bySession, candidate.session.id, speakerConflict);
+        conflicts.push(staffConflict);
+        pushConflict(bySession, current.session.id, staffConflict);
+        pushConflict(bySession, candidate.session.id, staffConflict);
       }
     }
   }

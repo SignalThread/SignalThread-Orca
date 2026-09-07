@@ -23,7 +23,7 @@ test("operational handoffs are event-scoped, publication-safe, audited and deter
   try {
     const roles = await harness.createRoleAccessFixture();
     const room = await harness.createRoom({ eventId: roles.event.id, name: "Grand Ballroom" });
-    const session = await harness.createMatrixRow({ eventId: roles.event.id, roomId: room.id, sessionName: "Opening", startTime: time("09:00"), endTime: time("10:00") });
+    const session = await harness.createMatrixRow({ eventId: roles.event.id, roomId: room.id, sessionName: "Opening", startTime: time("09:00"), endTime: time("10:00"), includeInOfficialAgenda: true });
     await harness.db.matrixRow.update({ where: { id: session.id }, data: { notes: "PRIVATE INTERNAL ROUTE", publicDescription: "Published welcome" } });
     await replaceSessionShowFlow(roles.event.id, session.id, [{ timingMode: "OFFSET", offsetMin: 0, durationMin: 10, label: "Welcome", internalNotes: "PRIVATE CUE", publicDescription: "Opening remarks", visibility: "PUBLIC" }], { expectedRevision: 0, actorUserId: roles.owner.user.id });
     await publishSessionAgenda(roles.event.id, session.id, { expectedRevision: 1, actorUserId: roles.owner.user.id });

@@ -178,6 +178,7 @@ async function sessionForEvent(eventId: string, sessionId: string, db = getPrism
       roomId: true,
       roomName: true,
       sessionName: true,
+      includeInOfficialAgenda: true,
       attendance: true,
       attendanceSource: true,
       publicDescription: true,
@@ -409,6 +410,7 @@ export async function getSessionShowFlowWorkspace(eventId: string, sessionId: st
     session: {
       id: session.id,
       title: session.sessionName?.trim() || "Untitled Session",
+      includeInOfficialAgenda: session.includeInOfficialAgenda,
       date: session.dayDate.toISOString().slice(0, 10),
       startTime: clockString(session.startTime),
       endTime: clockString(session.endTime),
@@ -704,6 +706,13 @@ export async function publishSessionAgenda(
   input: { expectedRevision?: unknown; actorUserId: string },
 ) {
   const workspace = await getSessionShowFlowWorkspace(eventId, sessionId);
+  if (!workspace.session.includeInOfficialAgenda) {
+    throw new SessionShowFlowError(
+      "Designate this session for the official agenda before publishing it.",
+      409,
+      "SESSION_NOT_IN_OFFICIAL_AGENDA",
+    );
+  }
   const requestedRevision = expectedRevision(input.expectedRevision);
   if (typeof requestedRevision !== "undefined" && requestedRevision !== workspace.revision) {
     throw new SessionShowFlowError("Show flow changed before publication. Reload the preview.", 409, "STALE_SHOW_FLOW_REVISION");
@@ -721,9 +730,19 @@ export async function publishSessionAgenda(
     if (currentRevision !== workspace.revision) {
       throw new SessionShowFlowError("Show flow changed before publication. Reload the preview.", 409, "STALE_SHOW_FLOW_REVISION");
     }
-    const currentSession = await tx.matrixRow.findFirst({ where: { id: sessionId, eventId, archivedAt: null }, select: { updatedAt: true } });
+    const currentSession = await tx.matrixRow.findFirst({
+      where: { id: sessionId, eventId, archivedAt: null },
+      select: { updatedAt: true, includeInOfficialAgenda: true },
+    });
     if (!currentSession || currentSession.updatedAt.getTime() !== sessionUpdatedAt.getTime()) {
       throw new SessionShowFlowError("Session details changed before publication. Reload the preview.", 409, "STALE_SESSION_REVISION");
+    }
+    if (!currentSession.includeInOfficialAgenda) {
+      throw new SessionShowFlowError(
+        "This session is internal/operational only and cannot be published.",
+        409,
+        "SESSION_NOT_IN_OFFICIAL_AGENDA",
+      );
     }
     const latest = await tx.sessionAgendaPublication.findFirst({ where: { eventId, sessionId }, orderBy: { version: "desc" }, select: { version: true } });
     const version = (latest?.version ?? 0) + 1;
@@ -762,7 +781,7 @@ export async function publishSessionAgenda(
 
 export async function listPublishedEventAgenda(eventId: string) {
   const publications = await getPrisma().sessionAgendaPublication.findMany({
-    where: { eventId, session: { archivedAt: null } },
+    where: { eventId, session: { archivedAt: null, includeInOfficialAgenda: true } },
     orderBy: [{ sessionId: "asc" }, { version: "desc" }],
     select: { sessionId: true, version: true, publishedAt: true, snapshot: true },
   });

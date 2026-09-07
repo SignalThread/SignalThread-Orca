@@ -66,9 +66,16 @@ test("matrix imports are atomic, idempotent, duplicate-aware, event-scoped, and 
       selection.item.label,
       selection.quantity,
     ]), [
-      ["Supplies", "Custom workbook", 24],
       ["Signage", "Directional signage", 2],
-      ["Supplies", "Pens", 24],
+    ]);
+    const supplyAllocations = await harness.db.sessionSupplyAllocation.findMany({
+      where: { sessionId: importedSession.id, state: "ACTIVE" },
+      include: { SupplyItem: true },
+      orderBy: { SupplyItem: { name: "asc" } },
+    });
+    assert.deepEqual(supplyAllocations.map((allocation) => [allocation.SupplyItem?.name, allocation.quantity]), [
+      ["Custom workbook", 24],
+      ["Pens", 24],
     ]);
 
     const otherEvent = await harness.createEvent({
@@ -85,7 +92,8 @@ test("matrix imports are atomic, idempotent, duplicate-aware, event-scoped, and 
     assert.ok(archived.archivedAt);
     assert.equal((await listMatrixRows(roles.event.id)).rows.some((row) => row.id === importedSession.id), false);
     assert.equal((await getMatrix2Snapshot(roles.event.id)).sessions.some((session) => session.id === importedSession.id), false);
-    assert.equal(await harness.db.sessionRequirementSelection.count({ where: { sessionId: importedSession.id } }), 3);
+    assert.equal(await harness.db.sessionRequirementSelection.count({ where: { sessionId: importedSession.id } }), 1);
+    assert.equal(await harness.db.sessionSupplyAllocation.count({ where: { sessionId: importedSession.id } }), 2);
   } finally {
     await harness.cleanup();
   }

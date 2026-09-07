@@ -142,7 +142,7 @@ test("overview body starts with module tabs and keeps Run of Show escape hatch",
   assert.equal(overviewRenderSource.includes("View all"), false);
   assert.equal(overviewRenderSource.includes("resolve in module"), false);
   assert.equal(sessionWorkspaceSource.includes("Session basics"), false);
-  assert.equal(sessionWorkspaceSource.includes("Expected attendance"), false);
+  assert.equal(sessionWorkspaceSource.includes("Expected attendance"), true);
   assert.equal(sessionWorkspaceSource.includes("eventRunOfShowHref(eventId)"), true);
   assert.equal(sessionWorkspaceSource.includes("terminology.runOfShow"), true);
 });

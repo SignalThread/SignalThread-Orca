@@ -19,12 +19,11 @@ test("staffing need filter keeps role/count items and rejects F&B package labels
   assert.equal(isStaffingNeedRequirementItem({ key: "coffee-service", label: "Coffee Service" }), false);
 });
 
-test("supplies and signage are permanent typed catalogs with budget categories", () => {
+test("signage remains a generic catalog while Supplies uses its dedicated workspace", () => {
   const types = SESSION_REQUIREMENT_PLATFORM_DEFAULT_CATALOGS.map((section) => section.type);
-  assert.ok(types.includes("SUPPLIES"));
+  assert.equal(types.includes("SUPPLIES"), false);
   assert.ok(types.includes("SIGNAGE"));
   assert.equal(inferSessionRequirementCatalogType({ key: "supplies", label: "Session materials" }), "SUPPLIES");
   assert.equal(inferSessionRequirementCatalogType({ key: "wayfinding", label: "Directional signs" }), "SIGNAGE");
-  assert.equal(budgetCategoryForSessionRequirementCatalogType("SUPPLIES"), "Supplies");
   assert.equal(budgetCategoryForSessionRequirementCatalogType("SIGNAGE"), "Signage");
 });

@@ -87,13 +87,31 @@ export function resolvePrismaPoolMax(env: NodeJS.ProcessEnv = process.env): numb
   return env.NODE_ENV === "development" || env.NODE_ENV === "test" ? 4 : 1;
 }
 
+export function isPrismaTestRuntime(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.NODE_ENV === "test" || Boolean(env.NODE_TEST_CONTEXT);
+}
+
 function createPrismaAdapter(connectionString: string): PrismaPg {
+  const testRuntime = isPrismaTestRuntime();
   return new PrismaPg({
     connectionString,
     // Vercel can keep several warm function instances alive. Keep each instance's
     // production pool intentionally small. Local/test workspaces need bounded
     // concurrency so independent session-module reads do not serialize behind one socket.
     max: resolvePrismaPoolMax(),
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
+    ...(testRuntime
+      ? {
+          // A half-closed remote test connection must reject instead of leaving
+          // the Node test worker alive forever with an unresolved query.
+          query_timeout: 120_000,
+          statement_timeout: 120_000,
+          allowExitOnIdle: true,
+        }
+      : {}),
   });
 }
 

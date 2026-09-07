@@ -26,8 +26,8 @@ test("all Session Details surfaces render a select backed by the shared option r
 
   const fullDetailsField = sourceBetween(
     workspaceSource,
-    '<section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" aria-label="Session info">',
-    "</section>\n\n          <section>",
+    '<span className="text-[12px] font-semibold text-slate-600">Session Type</span>',
+    '<div className="mt-3 grid max-w-xl gap-1.5 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-end">',
   );
   assert.match(fullDetailsField, /<select/);
   assert.doesNotMatch(fullDetailsField, /<input/);
