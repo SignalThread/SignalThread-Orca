@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const MIGRATION = "supabase/migrations/0065_exhibitor_viewer_mobile_bootstrap_rls.sql";
+const MIGRATION = "test-fixtures/legacy-lr-migrations/0065_exhibitor_viewer_mobile_bootstrap_rls.sql";
 
 function readMigration(): string {
   return readFileSync(path.join(ROOT, MIGRATION), "utf8");

@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 test("migration extends the canonical company integration row and isolates encrypted secrets", () => {
-  const migration = readFileSync("supabase/migrations/0100_pipedrive_oauth_connection.sql", "utf8");
-  const baseIntegration = readFileSync("supabase/migrations/0014_integrations.sql", "utf8");
+  const migration = readFileSync("test-fixtures/legacy-lr-migrations/0100_pipedrive_oauth_connection.sql", "utf8");
+  const baseIntegration = readFileSync("test-fixtures/legacy-lr-migrations/0014_integrations.sql", "utf8");
   assert.match(baseIntegration, /integrations_account_provider_unique/);
   assert.match(migration, /integration_connection_secrets/);
   assert.match(migration, /access_token_encrypted text NOT NULL/);

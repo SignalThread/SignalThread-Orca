@@ -414,7 +414,7 @@ export async function processConversationUpload({
             p_conversation_id: conversationId,
             p_transcript: transcriptText,
             p_transcription_status: "completed",
-            p_note_summary: noteSummaryText
+            p_note_summary: noteSummaryText ?? undefined
           });
 
           if (syncVoiceNotesError) {

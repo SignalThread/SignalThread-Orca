@@ -109,8 +109,8 @@ test("no connection and unhealthy connection fail closed distinctly", () => {
 });
 
 test("preference scope is part of the repository business key", async () => {
-  const source = await import("node:fs/promises").then(({ readFile }) => readFile("supabase/migrations/0104_provider_neutral_email_send.sql", "utf8"));
-  const sharedDefault = await import("node:fs/promises").then(({ readFile }) => readFile("supabase/migrations/0106_shared_email_calendar_provider_default.sql", "utf8"));
+  const source = await import("node:fs/promises").then(({ readFile }) => readFile("test-fixtures/legacy-lr-migrations/0104_provider_neutral_email_send.sql", "utf8"));
+  const sharedDefault = await import("node:fs/promises").then(({ readFile }) => readFile("test-fixtures/legacy-lr-migrations/0106_shared_email_calendar_provider_default.sql", "utf8"));
   assert.match(source, /PRIMARY KEY \(user_id, company_id, capability\)/);
   assert.match(source, /capability IN \('email_send'\)/);
   assert.match(source, /provider IN \('google_workspace', 'microsoft_365'\)/);

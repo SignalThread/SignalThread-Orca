@@ -113,7 +113,7 @@ describe("selected-lead AI brief workspaces", () => {
   it("shared API route uses the canonical selected-lead workspace service", () => {
     const route = read("app/api/exhibitor/briefings/from-leads/route.ts");
     const service = read("lib/server/briefings/create-brief-workspace-from-leads.ts");
-    const migration = read("supabase/migrations/0077_import_batches_selected_lead_source.sql");
+    const migration = read("test-fixtures/legacy-lr-migrations/0077_import_batches_selected_lead_source.sql");
     assert.match(route, /createBriefWorkspaceFromLeadSelection/);
     assert.match(route, /import \{ batchBriefingsPath \} from "@\/lib\/import-wizard\/paths"/);
     assert.match(route, /workspaceUrl:\s*batchBriefingsPath\(result\.batchId\)/);

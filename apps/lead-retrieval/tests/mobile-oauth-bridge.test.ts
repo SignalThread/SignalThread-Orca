@@ -114,7 +114,7 @@ test("launch tickets and correlations are opaque and stored only by digest", () 
   assert.notEqual(one.ticket, two.ticket);
   assert.notEqual(digestMobileOAuthTicket(one.ticket), one.ticket);
 
-  const migration = read("supabase/migrations/0095_mobile_oauth_launch_tickets.sql");
+  const migration = read("test-fixtures/legacy-lr-migrations/0095_mobile_oauth_launch_tickets.sql");
   assert.match(migration, /ticket_digest text PRIMARY KEY/);
   assert.doesNotMatch(migration, /access_token|refresh_token|code_verifier/);
 });

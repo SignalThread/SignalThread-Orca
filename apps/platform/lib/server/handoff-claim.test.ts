@@ -232,6 +232,7 @@ test("the verification session is revoked with the admin API", () => {
 test("only own-authority products may claim through Platform", () => {
   assert.match(CLAIM, /getProductAuthAuthority\(request\.productKey\)\s*!==\s*"own"/);
   assert.match(REGISTRY, /pulse:\s*"own"/);
+  assert.match(REGISTRY, /"lead-retrieval":\s*"own"/);
   assert.match(REGISTRY, /orca:\s*"platform-core"/);
 });
 

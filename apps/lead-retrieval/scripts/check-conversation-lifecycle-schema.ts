@@ -29,7 +29,7 @@ async function assertSelectable(
 }
 
 function checkLocalMigrations() {
-  const migrationDir = join(process.cwd(), "supabase", "migrations");
+  const migrationDir = join(process.cwd(), "test-fixtures", "legacy-lr-migrations");
   const files = existsSync(migrationDir) ? readdirSync(migrationDir) : [];
   const has0089 = files.some((file) => file.startsWith("0089_"));
   const has0090 = files.some((file) => file.startsWith("0090_"));

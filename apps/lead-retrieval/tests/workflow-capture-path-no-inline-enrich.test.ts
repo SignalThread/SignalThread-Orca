@@ -360,7 +360,7 @@ describe("Lead capture path: no inline enrichment / no provider calls", () => {
       "utf8"
     );
     const migrationSource = readFileSync(
-      join(repoRoot, "supabase/migrations/0088_workflow_trigger_decisions.sql"),
+      join(repoRoot, "test-fixtures/legacy-lr-migrations/0088_workflow_trigger_decisions.sql"),
       "utf8"
     );
 

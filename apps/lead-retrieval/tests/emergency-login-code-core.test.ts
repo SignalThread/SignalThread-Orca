@@ -238,9 +238,9 @@ test("emergency login implementation keeps route/action thin and client copy exp
   const platformClient = read("components/admin/company-scoped-users-row-actions.tsx");
   const client = read("app/(app)/exhibitor/users/users-client.tsx");
   const service = read("lib/server/emergency-login-code.ts");
-  const migration = read("supabase/migrations/0085_emergency_login_code_audit_events.sql");
-  const methodMigration = read("supabase/migrations/0086_emergency_login_code_audit_method.sql");
-  const methodRepairMigration = read("supabase/migrations/0099_emergency_login_code_audit_method_repair.sql");
+  const migration = read("test-fixtures/legacy-lr-migrations/0085_emergency_login_code_audit_events.sql");
+  const methodMigration = read("test-fixtures/legacy-lr-migrations/0086_emergency_login_code_audit_method.sql");
+  const methodRepairMigration = read("test-fixtures/legacy-lr-migrations/0099_emergency_login_code_audit_method_repair.sql");
 
   assert.match(actions, /generateEmergencyLoginCodeForUser\(\{ targetUserId, reason \}\)/);
   assert.match(platformActions, /generateCompanyScopedUserLoginCodeFromAdminAction/);

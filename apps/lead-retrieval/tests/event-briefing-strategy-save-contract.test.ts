@@ -9,7 +9,7 @@ const service = readFileSync(
 );
 const route = readFileSync(join(process.cwd(), "app/api/exhibitor/briefing-setup/route.ts"), "utf8");
 const client = readFileSync(join(process.cwd(), "components/exhibitor/briefing-setup-client.tsx"), "utf8");
-const migration = readFileSync(join(process.cwd(), "supabase/migrations/0097_patch_event_briefing_strategy.sql"), "utf8");
+const migration = readFileSync(join(process.cwd(), "test-fixtures/legacy-lr-migrations/0097_patch_event_briefing_strategy.sql"), "utf8");
 
 test("strategy saves use an atomic server-side JSON patch, not replacement", () => {
   assert.match(service, /rpc\("patch_event_briefing_strategy"/);

@@ -9,8 +9,8 @@ import { isValidLaunchState } from "./launch-state-relay";
  * directly testable. Everything that touches the service-role key lives in
  * `handoff.ts`, which is `server-only`.
  *
- * Registration, Housing and Lead Retrieval extend the tables below; no
- * authorization or handoff code changes for a new product.
+ * Registration and Housing extend the tables below the same way Lead Retrieval
+ * did; no authorization or handoff code changes for a new product.
  */
 
 /**
@@ -24,6 +24,7 @@ import { isValidLaunchState } from "./launch-state-relay";
 const PRODUCT_APP_URL_ENV: Record<string, readonly string[]> = {
   orca: ["ORCA_APP_URL", "NEXT_PUBLIC_ORCA_APP_URL"],
   pulse: ["PULSE_APP_URL", "NEXT_PUBLIC_PULSE_APP_URL"],
+  "lead-retrieval": ["LEAD_RETRIEVAL_APP_URL", "NEXT_PUBLIC_LEAD_RETRIEVAL_APP_URL"],
 };
 
 /**
@@ -47,6 +48,9 @@ export type ProductAuthAuthority = "platform-core" | "own";
 const PRODUCT_AUTH_AUTHORITY: Record<string, ProductAuthAuthority> = {
   orca: "platform-core",
   pulse: "own",
+  // Lead Retrieval runs its own Supabase Auth project (signalthread-lead-retrieval)
+  // and claims the handoff back through Platform, exactly like Pulse.
+  "lead-retrieval": "own",
 };
 
 export function getProductAppUrl(productKey: string): string | null {
@@ -70,7 +74,7 @@ export function getProductAuthAuthority(productKey: string): ProductAuthAuthorit
  * the whole canonical context from the token at claim time (Pulse).
  */
 export function buildProductReturnPath(productKey: string, eventId: string): string {
-  if (productKey === "orca" || productKey === "pulse") {
+  if (productKey === "orca" || productKey === "pulse" || productKey === "lead-retrieval") {
     return `/platform-entry?event_id=${encodeURIComponent(eventId)}`;
   }
   return "/";

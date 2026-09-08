@@ -35,7 +35,7 @@ const SIG_A = "aaaaaaaa-bbbb-4ccc-bbbb-cccccccccccc";
 const SIG_B = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb";
 const COMPANY_ID = "company-1";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const migrationsDir = join(repoRoot, "supabase", "migrations");
+const migrationsDir = join(repoRoot, "test-fixtures", "legacy-lr-migrations");
 const PROVIDER_CATEGORY_IDS = {
   apollo: ["company", "contact"],
   pdl: ["company", "contact"],

@@ -1,0 +1,6784 @@
+{
+ "source": "PostgREST OpenAPI catalog of Supabase project imkrdrscrikxqywdcmzy (LR_App), read-only, 2026-09-07",
+ "note": "Schema metadata only: relations, columns, types, nullability, defaults, primary/foreign keys, RPC signatures. Contains no data. Policies, triggers, indexes and function bodies are not observable through this interface.",
+ "relations": {
+  "briefing_event_knowledge_items": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "content_group": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "kind": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "url": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "storage_path": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "file_name": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "mime_type": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "byte_size": {
+    "type": "bigint",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "notes_title": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "notes_body": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_by": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   }
+  },
+  "calendar_meeting_provider_claims": {
+   "idempotency_key": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "acting_user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "campaign_messages": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "campaign_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "campaigns",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `campaigns.id`."
+   },
+   "recipient_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "campaign_recipients",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `campaign_recipients.id`."
+   },
+   "subject": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "body_html": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "body_text": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "draft",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider_message_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "sent_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "send_error": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "campaign_recipients": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "campaign_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "campaigns",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `campaigns.id`."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "campaigns": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "name": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "mode": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "draft",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_by": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "scheduled_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "selected_signals": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "subject_line": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "draft_subject": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "draft_body_text": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "draft_body_html": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "draft_updated_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "companies": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "name": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "organizer_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "zapier_webhook_url": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "default_enrichment_provider": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": "Canonical enrichment provider id (e.g. people_data_labs). Nullable when unset."
+   }
+  },
+  "document_sends": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "document_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "documents",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `documents.id`."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "recipient_email": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "sent_by": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "provider_message_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "clicked_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "expires_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "(now() + '30 days'::interval)",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "documents": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "account_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "title": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "type": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "tags": {
+    "type": "text[]",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "storage_path": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "file_url": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "mime_type": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "uploaded_by": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "rep_sendable": {
+    "type": "boolean",
+    "required": true,
+    "default": true,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "sent_count": {
+    "type": "integer",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "is_archived": {
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "asset_kind": {
+    "type": "text",
+    "required": true,
+    "default": "file",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "email_activities": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "google_connection_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "google_workspace_connections",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `google_workspace_connections.id`."
+   },
+   "acting_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "recipient_email": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "idempotency_key": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider_message_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider_thread_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "safe_error_category": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "attempt_started_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "sent_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "failed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "document_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "documents",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `documents.id`."
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": "google_workspace",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "microsoft_connection_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "microsoft_365_connections",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `microsoft_365_connections.id`."
+   },
+   "provider_http_status": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "retry_after_seconds": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "email_events": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "campaign_message_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "campaign_messages",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `campaign_messages.id`."
+   },
+   "event_type": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "metadata": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "email_templates": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "account_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "name": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "subject": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "body": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "is_default": {
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "emergency_login_code_audit_events": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "action_type": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "acting_admin_user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "target_user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "target_email": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "event_ids": {
+    "type": "uuid[]",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "reason": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "app_code_count": {
+    "type": "integer",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "method": {
+    "type": "text",
+    "required": true,
+    "default": "emergency_login_code",
+    "pk": false,
+    "fk": [],
+    "note": "Server entry point that generated emergency login access; contains no generated credential material."
+   }
+  },
+  "event_users": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "exhibitor_company_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "active",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "permissions": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "events": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "name": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "start_date": {
+    "type": "date",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "end_date": {
+    "type": "date",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "location": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "is_active": {
+    "type": "boolean",
+    "required": false,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "upcoming",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "city": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "state": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "briefing_strategy": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": "Exhibitor Briefing Foundations JSON: productFocus, targetBuyerPersona, eventGoal, toneOfVoice, guardrails (nested booleans for AI output constraints). Event-scoped."
+   },
+   "container_kind": {
+    "type": "text",
+    "required": true,
+    "default": "event",
+    "pk": false,
+    "fk": [],
+    "note": "event = dated finite event; continuous_capture = persistent company lead bucket (always-on capture)."
+   },
+   "timezone": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": "Canonical IANA timezone for event lifecycle, dashboard calendar metrics, and event-local timestamps. NULL means not yet explicitly configured."
+   }
+  },
+  "exhibitors": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "active",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "generated_drafts": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "run_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "workflow_runs",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `workflow_runs.id`."
+   },
+   "step_run_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "workflow_step_runs",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `workflow_step_runs.id`."
+   },
+   "kind": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "content_jsonb": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "approval_status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "reviewed_by": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "reviewed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "promoted_to_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "google_calendar_meeting_activities": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "connection_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "google_workspace_connections",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `google_workspace_connections.id`."
+   },
+   "acting_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "attendee_email": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "idempotency_key": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider_calendar_id": {
+    "type": "text",
+    "required": true,
+    "default": "primary",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "google_event_id": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "conference_request_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "google_meet_uri": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "starts_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "ends_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "timezone": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_operation": {
+    "type": "text",
+    "required": true,
+    "default": "create",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_operation_status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_operation_key": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "safe_error_category": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "cancelled_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "google_email_activities": {
+   "id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "document_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "documents",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `documents.id`."
+   },
+   "connection_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "google_workspace_connections",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `google_workspace_connections.id`."
+   },
+   "acting_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "recipient_email": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "idempotency_key": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "gmail_message_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "gmail_thread_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "safe_error_category": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "attempt_started_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "sent_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "failed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "google_oauth_state_nonces": {
+   "jti_digest": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "code_verifier_digest": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "return_to": {
+    "type": "text",
+    "required": true,
+    "default": "/exhibitor/integrations/google-workspace",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "expires_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "consumed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "google_workspace_connection_secrets": {
+   "connection_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [
+     [
+      "google_workspace_connections",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Primary Key.\nThis is a Foreign Key to `google_workspace_connections.id`."
+   },
+   "access_token_encrypted": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "refresh_token_encrypted": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "encryption_key_version": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "google_workspace_connections": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "google_subject": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "google_email": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "google_display_name": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "granted_scopes": {
+    "type": "text[]",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "token_type": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "token_expires_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "connected",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "connected_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_refresh_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_refresh_attempt_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_error_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_error_code": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "refresh_lease_token": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "refresh_lease_until": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "import_batch_field_mapping_state": {
+   "batch_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [
+     [
+      "import_batches",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Primary Key.\nThis is a Foreign Key to `import_batches.id`."
+   },
+   "csv_headers": {
+    "type": "text[]",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "preview_rows": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "selections": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "custom_field_definitions": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": "Map custom storage key -> { \"label\": string }. Paired with selections values like custom:cf_abc123."
+   }
+  },
+  "import_batch_row_briefings": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "batch_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "import_batches",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `import_batches.id`."
+   },
+   "batch_row_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "import_batch_rows",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `import_batch_rows.id`."
+   },
+   "approval_status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "content": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "reviewed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "reviewed_by": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Durable published lead linkage for this batch row (set during publish/materialization or deterministic sync).\n\nNote:\nThis is a Foreign Key to `leads.id`."
+   }
+  },
+  "import_batch_rows": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "batch_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "import_batches",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `import_batches.id`."
+   },
+   "row_index": {
+    "type": "integer",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "cells": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "wizard_enrichment_normalized": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": "Provider-normalized enrichment (enriched_* shape) from import wizard; merged onto public.leads at materializeImportedLeadsFromBatch. Cleared when row is replaced by a new field-mapping save."
+   }
+  },
+  "import_batches": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "published_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "discarded_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "source_last_filename": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "data_revision": {
+    "type": "integer",
+    "required": true,
+    "default": 1,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "briefing_context": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "source_kind": {
+    "type": "text",
+    "required": true,
+    "default": "import_file",
+    "pk": false,
+    "fk": [],
+    "note": "Workspace source: import_file for import wizard runs, selected_leads for AI brief runs created from existing leads."
+   },
+   "source_selected_lead_ids": {
+    "type": "uuid[]",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": "Ordered public.leads ids used when source_kind = selected_leads. Empty for import-file workspaces."
+   }
+  },
+  "import_wizard_enrichment_runs": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "created_by": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "lead_count": {
+    "type": "integer",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "summary": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "sample_rows": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "batch_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "import_batches",
+      "id"
+     ]
+    ],
+    "note": "Import batch this run belongs to; null for legacy rows before batch scoping.\n\nNote:\nThis is a Foreign Key to `import_batches.id`."
+   }
+  },
+  "integration_connection_secrets": {
+   "connection_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [
+     [
+      "integrations",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Primary Key.\nThis is a Foreign Key to `integrations.id`."
+   },
+   "access_token_encrypted": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "refresh_token_encrypted": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "encryption_key_version": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "credential_version": {
+    "type": "bigint",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "integration_oauth_states": {
+   "state_digest": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "return_to": {
+    "type": "text",
+    "required": true,
+    "default": "/exhibitor/integrations",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "expires_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "consumed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "integration_provider_preferences": {
+   "user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Primary Key.\nThis is a Foreign Key to `users.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Primary Key.\nThis is a Foreign Key to `companies.id`."
+   },
+   "capability": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "integration_sync_configs": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "account_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "sync_target_object": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "sync_behavior": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "campaign_name": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "is_configured": {
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "integrations": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "account_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "access_token": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "refresh_token": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "expires_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "scope": {
+    "type": "text[]",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider_account_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_refresh_attempt_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_sync_error": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider_user_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider_account_name": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider_api_domain": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "connected_by_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "status": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "token_type": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "connected_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_verified_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_error_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_error_code": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "refresh_lease_token": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "refresh_lease_until": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "invite_codes": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "exhibitor_company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "email": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "permissions": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "code_hash": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "expires_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "used_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "used_by_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "event_access_mode": {
+    "type": "text",
+    "required": true,
+    "default": "assigned_events_only",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "lead_briefings": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "content": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "approval_status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "reviewed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "reviewed_by": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "lead_conversation_readiness": {
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Primary Key.\nThis is a Foreign Key to `leads.id`."
+   },
+   "latest_conversation_version": {
+    "type": "integer",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "latest_audio_finalized_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "transcript_status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "transcript_version": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "transcript_ready_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "insights_status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "insights_version": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "insights_ready_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "lead_conversations": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "storage_path": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "content_type": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "transcript": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "transcription_status": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "transcription_error": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "transcribed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "summary": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "sentiment": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "objections": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "next_steps": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "synthesis_status": {
+    "type": "text",
+    "required": false,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "synthesis_error": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "synthesized_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "conversation_version": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "problem_severity": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "buying_intent": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "competitors_mentioned": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "pain_points": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "feature_requests": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "buying_signals": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "operational_pains": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "workflow_constraints": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "technical_constraints": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "desired_outcomes": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "adoption_risks": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "management_visibility_needs": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "business_process_concerns": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "product_objections": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "rep_behavior_patterns": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "priority_themes": {
+    "type": "text[]",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "lead_cumulative_insights": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "idle",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "insights_json": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "source_note_count": {
+    "type": "integer",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_regenerated_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "requested_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "lead_enrichments": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "raw_response": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "lead_voice_notes": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "conversation_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "source": {
+    "type": "text",
+    "required": true,
+    "default": "context",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "sequence_index": {
+    "type": "integer",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "transcription_status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "synthesis_status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "transcript": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "summary": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "duration_ms": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "audio_url": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "recorded_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "deleted_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_by_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "client_local_note_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "transcription_completed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "summary_generated_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "leads": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "owner_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "full_name": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "job_title": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "priority_score": {
+    "type": "integer",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "new",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "follow_up_date": {
+    "type": "date",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "is_hot": {
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "temperature": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "company_text": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "rating": {
+    "type": "smallint",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "enriched_job_title": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "enriched_seniority": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "enriched_company_size": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "enriched_industry": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "enriched_linkedin_url": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "enriched_score": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "email": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "enriched_company_domain": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "linkedin_url": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "company_domain": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "industry": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "company_size": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "seniority": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "intent_signals": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "metadata": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "follow_up_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "follow_up_note": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "follow_up_completed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "follow_up_calendar_event_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "follow_up_calendar_provider": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "follow_up_calendar_owner_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "follow_up_last_operation_key": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": "Most recent canonical follow-up command key used for mobile retry protection."
+   },
+   "follow_up_last_operation_fingerprint": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "follow_up_last_operation_result": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": "Safe provider-neutral result for replaying the most recent completed follow-up command."
+   },
+   "phone": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "license_plans": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "code": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "name": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "default_term_months": {
+    "type": "integer",
+    "required": true,
+    "default": 12,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "licenses": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "seats_total": {
+    "type": "integer",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "seats_used": {
+    "type": "integer",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "active",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "expires_at": {
+    "type": "date",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "exhibitor_company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "license_plan_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "license_plans",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `license_plans.id`."
+   },
+   "term_months": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "price_cents": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "currency": {
+    "type": "text",
+    "required": true,
+    "default": "USD",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "starts_at": {
+    "type": "date",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "license_key": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "scope": {
+    "type": "text",
+    "required": true,
+    "default": "event",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "billing": {
+    "type": "text",
+    "required": true,
+    "default": "one_time",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "billing_source": {
+    "type": "text",
+    "required": true,
+    "default": "internal",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "can_create_events": {
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "max_events": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "microsoft_365_connection_secrets": {
+   "connection_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [
+     [
+      "microsoft_365_connections",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Primary Key.\nThis is a Foreign Key to `microsoft_365_connections.id`."
+   },
+   "access_token_encrypted": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "refresh_token_encrypted": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "encryption_key_version": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "microsoft_365_connections": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "microsoft_subject": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "microsoft_email": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "microsoft_display_name": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "granted_scopes": {
+    "type": "text[]",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "token_type": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "token_expires_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "connected",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "connected_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_refresh_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_refresh_attempt_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_error_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_error_code": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "refresh_lease_token": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "refresh_lease_until": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "microsoft_calendar_meeting_activities": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "connection_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "microsoft_365_connections",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `microsoft_365_connections.id`."
+   },
+   "acting_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "attendee_email": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "idempotency_key": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider_event_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "join_url": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "starts_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "ends_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "timezone": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_operation": {
+    "type": "text",
+    "required": true,
+    "default": "create",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_operation_status": {
+    "type": "text",
+    "required": true,
+    "default": "pending",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_operation_key": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "safe_error_category": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "cancelled_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "microsoft_oauth_state_nonces": {
+   "jti_digest": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "code_verifier_digest": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "return_to": {
+    "type": "text",
+    "required": true,
+    "default": "/exhibitor/integrations/microsoft-365",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "expires_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "consumed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "mobile_oauth_launch_tickets": {
+   "ticket_digest": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "user_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "correlation": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "force_reconnect": {
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "expires_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "consumed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "pipedrive_integration_settings": {
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Primary Key.\nThis is a Foreign Key to `companies.id`."
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": "pipedrive",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "destination_type": {
+    "type": "text",
+    "required": true,
+    "default": "lead",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "create_person": {
+    "type": "boolean",
+    "required": true,
+    "default": true,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "create_organization": {
+    "type": "boolean",
+    "required": true,
+    "default": true,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "pipeline_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "stage_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "owner_mode": {
+    "type": "text",
+    "required": true,
+    "default": "connected_user",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "owner_user_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "create_follow_up_activity": {
+    "type": "boolean",
+    "required": true,
+    "default": true,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "match_person_by_email": {
+    "type": "boolean",
+    "required": true,
+    "default": true,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "match_organization_by_name_or_domain": {
+    "type": "boolean",
+    "required": true,
+    "default": true,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "send_conversation_synopsis": {
+    "type": "boolean",
+    "required": true,
+    "default": true,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "send_generated_email_draft": {
+    "type": "boolean",
+    "required": true,
+    "default": true,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "pipedrive_lead_syncs": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "queued",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "source": {
+    "type": "text",
+    "required": true,
+    "default": "manual",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "attempts": {
+    "type": "integer",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "last_error": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "next_attempt_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "requested_by_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "pipedrive_person_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "person_action": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "pipedrive_organization_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "organization_action": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "destination_kind": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "pipedrive_destination_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "destination_action": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "synopsis_note_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "synopsis_note_action": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "email_draft_note_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "email_draft_note_action": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "activity_id": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "activity_action": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "synced_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "registration_provider_configs": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "account_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "api_base_url": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "api_token": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "environment": {
+    "type": "text",
+    "required": false,
+    "default": "staging",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "is_enabled": {
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "signals": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "name": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "category": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "default_prompt": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "admin_override_prompt": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "visibility": {
+    "type": "text",
+    "required": true,
+    "default": "global",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "role_scope": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "template_scope": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "is_active": {
+    "type": "boolean",
+    "required": true,
+    "default": true,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "available_in_pattern_mode": {
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_by": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "tones": {
+    "type": "text[]",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "source_signal_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "signals",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `signals.id`."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "owner_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "signal_scope": {
+    "type": "text",
+    "required": true,
+    "default": "company",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "users": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "role": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "full_name": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "email": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "license_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "licenses",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `licenses.id`."
+   },
+   "event_access_mode": {
+    "type": "text",
+    "required": true,
+    "default": "all_company_events",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "workflow_runs": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "template_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "workflow_templates",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `workflow_templates.id`."
+   },
+   "template_version": {
+    "type": "integer",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "trigger_event": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "trigger_payload_jsonb": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "queued",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "current_step_index": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "started_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "completed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "trigger_fingerprint": {
+    "type": "text",
+    "required": false,
+    "default": "default",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "workflow_step_runs": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "run_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "workflow_runs",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `workflow_runs.id`."
+   },
+   "step_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "workflow_steps",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `workflow_steps.id`."
+   },
+   "step_index": {
+    "type": "integer",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "step_key": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "queued",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "attempt_count": {
+    "type": "integer",
+    "required": true,
+    "default": 0,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "attempt_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "scheduled_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "started_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "completed_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "input_jsonb": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "output_jsonb": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "error_text": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "error_code": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "waiting_reason": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "required_conversation_version": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "current_transcript_version": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "current_insights_version": {
+    "type": "integer",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "wait_started_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "wait_expires_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "workflow_steps": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "template_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "workflow_templates",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `workflow_templates.id`."
+   },
+   "step_index": {
+    "type": "integer",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "step_type": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "step_key": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "params_jsonb": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "requires_approval": {
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "workflow_templates": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "name": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "description": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "trigger_event": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "scope": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "is_enabled": {
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "version": {
+    "type": "integer",
+    "required": true,
+    "default": 1,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_by": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "trigger_conditions_jsonb": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "archived_at": {
+    "type": "timestamp with time zone",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "archived_by": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   }
+  },
+  "workflow_trigger_decisions": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "lead_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "leads",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `leads.id`."
+   },
+   "event_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "events",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `events.id`."
+   },
+   "template_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "workflow_templates",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `workflow_templates.id`."
+   },
+   "trigger_event": {
+    "type": "text",
+    "required": true,
+    "default": "lead_captured",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "source": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "reason": {
+    "type": "text",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "trigger_fingerprint": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "details_jsonb": {
+    "type": "jsonb",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  },
+  "zoominfo_company_connections": {
+   "id": {
+    "type": "uuid",
+    "required": true,
+    "default": "gen_random_uuid()",
+    "pk": true,
+    "fk": [],
+    "note": "Note:\nThis is a Primary Key."
+   },
+   "company_id": {
+    "type": "uuid",
+    "required": true,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "companies",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `companies.id`."
+   },
+   "provider": {
+    "type": "text",
+    "required": true,
+    "default": "zoominfo",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "connected_by_user_id": {
+    "type": "uuid",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [
+     [
+      "users",
+      "id"
+     ]
+    ],
+    "note": "Note:\nThis is a Foreign Key to `users.id`."
+   },
+   "created_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "updated_at": {
+    "type": "timestamp with time zone",
+    "required": true,
+    "default": "now()",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "status": {
+    "type": "text",
+    "required": true,
+    "default": "error",
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "metadata": {
+    "type": "jsonb",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "zoominfo_bearer_token": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   },
+   "zoominfo_connection_label": {
+    "type": "text",
+    "required": false,
+    "default": null,
+    "pk": false,
+    "fk": [],
+    "note": null
+   }
+  }
+ },
+ "rpcs": {
+  "event_app_permission_enabled": {
+   "args": {
+    "p": "jsonb"
+   },
+   "required": [
+    "p"
+   ]
+  },
+  "uid": {
+   "args": {},
+   "required": null
+  },
+  "match_leads_by_company_normalized_email": {
+   "args": {
+    "p_company_id": "uuid",
+    "p_email": "text"
+   },
+   "required": [
+    "p_company_id",
+    "p_email"
+   ]
+  },
+  "persist_integration_oauth_refresh": {
+   "args": {
+    "p_access_token_encrypted": "text",
+    "p_connection_id": "uuid",
+    "p_encryption_key_version": "text",
+    "p_expected_credential_version": "bigint",
+    "p_expires_at": "timestamp with time zone",
+    "p_lease_token": "uuid",
+    "p_provider": "text",
+    "p_provider_api_domain": "text",
+    "p_refresh_token_encrypted": "text",
+    "p_scope": "text[]"
+   },
+   "required": [
+    "p_connection_id",
+    "p_provider",
+    "p_lease_token",
+    "p_expected_credential_version",
+    "p_access_token_encrypted",
+    "p_refresh_token_encrypted",
+    "p_encryption_key_version",
+    "p_expires_at",
+    "p_scope",
+    "p_provider_api_domain"
+   ]
+  },
+  "delete_lead": {
+   "args": {
+    "lead_id": "uuid"
+   },
+   "required": [
+    "lead_id"
+   ]
+  },
+  "seed_default_email_templates": {
+   "args": {
+    "p_account_id": "uuid"
+   },
+   "required": [
+    "p_account_id"
+   ]
+  },
+  "dashboard_event_lead_metrics": {
+   "args": {
+    "p_company_id": "uuid",
+    "p_event_ids": "uuid[]",
+    "p_now": "timestamp with time zone"
+   },
+   "required": [
+    "p_company_id",
+    "p_event_ids"
+   ]
+  },
+  "is_valid_iana_timezone": {
+   "args": {
+    "value": "text"
+   },
+   "required": [
+    "value"
+   ]
+  },
+  "patch_event_briefing_strategy": {
+   "args": {
+    "p_event_id": "uuid",
+    "p_patch": "jsonb"
+   },
+   "required": [
+    "p_event_id",
+    "p_patch"
+   ]
+  },
+  "current_role": {
+   "args": {},
+   "required": null
+  },
+  "complete_voice_note_transcription": {
+   "args": {
+    "p_summary": "text",
+    "p_transcript": "text",
+    "p_voice_note_id": "uuid"
+   },
+   "required": [
+    "p_voice_note_id",
+    "p_transcript"
+   ]
+  },
+  "current_company_id": {
+   "args": {},
+   "required": null
+  },
+  "sync_voice_notes_from_conversation": {
+   "args": {
+    "p_conversation_id": "uuid",
+    "p_note_summary": "text",
+    "p_transcript": "text",
+    "p_transcription_status": "text"
+   },
+   "required": [
+    "p_conversation_id",
+    "p_transcript"
+   ]
+  },
+  "queue_lead_cumulative_insight_regeneration": {
+   "args": {
+    "p_lead_id": "uuid"
+   },
+   "required": [
+    "p_lead_id"
+   ]
+  },
+  "adopt_voice_note_from_upload": {
+   "args": {
+    "p_audio_url": "text",
+    "p_client_local_note_id": "text",
+    "p_conversation_id": "uuid",
+    "p_created_by_user_id": "uuid",
+    "p_duration_ms": "integer",
+    "p_lead_id": "uuid",
+    "p_source": "text"
+   },
+   "required": [
+    "p_lead_id",
+    "p_created_by_user_id",
+    "p_conversation_id",
+    "p_audio_url"
+   ]
+  },
+  "consume_license_seat": {
+   "args": {
+    "p_license_id": "uuid"
+   },
+   "required": [
+    "p_license_id"
+   ]
+  }
+ }
+}

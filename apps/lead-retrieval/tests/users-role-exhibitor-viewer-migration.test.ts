@@ -20,7 +20,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const MIGRATIONS_DIR = path.join(ROOT, "supabase", "migrations");
+const MIGRATIONS_DIR = path.join(ROOT, "test-fixtures", "legacy-lr-migrations");
 const TARGET_MIGRATION = "0064_users_role_exhibitor_viewer_and_read_rls.sql";
 const MOBILE_VIEWER_LEAD_RLS_MIGRATION = "0069_consolidate_mobile_app_viewer_capture_rls.sql";
 const MIGRATION_0065 = "0065_exhibitor_viewer_mobile_bootstrap_rls.sql";
@@ -54,8 +54,8 @@ function extractCreatePolicyBlocks(sql: string): { name: string; verb: string; b
 
 test("0064, 0065, 0066, and 0069 exist; pinned viewer RLS migrations sort in expected order before any newer files", () => {
   const all = listSqlMigrations();
-  assert.ok(all.includes(TARGET_MIGRATION), `${TARGET_MIGRATION} must exist in supabase/migrations`);
-  assert.ok(all.includes(MIGRATION_0065), `${MIGRATION_0065} must exist in supabase/migrations`);
+  assert.ok(all.includes(TARGET_MIGRATION), `${TARGET_MIGRATION} must exist in test-fixtures/legacy-lr-migrations`);
+  assert.ok(all.includes(MIGRATION_0065), `${MIGRATION_0065} must exist in test-fixtures/legacy-lr-migrations`);
   const mig0066 = "0066_fix_users_select_visibility_recursion.sql";
   assert.ok(all.includes(mig0066), `${mig0066} must exist`);
   assert.ok(
@@ -74,7 +74,7 @@ test("0064, 0065, 0066, and 0069 exist; pinned viewer RLS migrations sort in exp
 });
 
 test("0064 updates users_role_check to (platform_admin, event_organizer, exhibitor_admin, exhibitor_viewer)", () => {
-  const sql = read(`supabase/migrations/${TARGET_MIGRATION}`);
+  const sql = read(`test-fixtures/legacy-lr-migrations/${TARGET_MIGRATION}`);
 
   // Internal role was renamed before 0064 shipped; migration must not use the old literal.
   const supersededLimitedRole = "app" + "_" + "user";
@@ -110,7 +110,7 @@ test("0064 updates users_role_check to (platform_admin, event_organizer, exhibit
 });
 
 test("0064 widens exactly two SELECT policies and no others; both include exhibitor_viewer", () => {
-  const sql = read(`supabase/migrations/${TARGET_MIGRATION}`);
+  const sql = read(`test-fixtures/legacy-lr-migrations/${TARGET_MIGRATION}`);
   const policies = extractCreatePolicyBlocks(sql);
 
   const names = policies.map((p) => `${p.verb}:${p.name}`).sort();
@@ -136,7 +136,7 @@ test("0064 widens exactly two SELECT policies and no others; both include exhibi
 });
 
 test("0064 does NOT redefine any INSERT/UPDATE/DELETE policy", () => {
-  const sql = read(`supabase/migrations/${TARGET_MIGRATION}`);
+  const sql = read(`test-fixtures/legacy-lr-migrations/${TARGET_MIGRATION}`);
   const policies = extractCreatePolicyBlocks(sql);
   for (const p of policies) {
     assert.notEqual(

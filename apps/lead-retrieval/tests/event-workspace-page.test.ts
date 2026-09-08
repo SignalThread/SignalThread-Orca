@@ -21,7 +21,7 @@ const liveCoreSrc = read("lib/events/event-workspace-live-core.ts");
 const liveLoaderSrc = read("lib/server/event-workspace-live-data.ts");
 const completedLoaderSrc = read("lib/server/event-workspace-completed-data.ts");
 const metricLoaderSrc = read("lib/server/dashboard-event-lead-metrics.ts");
-const metricMigrationSrc = read("supabase/migrations/0098_dashboard_truth_event_timezone.sql");
+const metricMigrationSrc = read("test-fixtures/legacy-lr-migrations/0098_dashboard_truth_event_timezone.sql");
 const workspaceSources = [pageSrc, shellSrc, upcomingSrc, liveSrc, completedSrc, drawerSrc].join("\n");
 
 describe("event workspace — canonical lifecycle dispatch", () => {

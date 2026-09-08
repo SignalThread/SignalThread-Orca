@@ -178,7 +178,7 @@ test("signed finalize route also returns canonical voice note payload when conte
 test("additional voice-note adoption leaves transcript pending and queues cumulative insight refresh", () => {
   const root = process.cwd();
   const src = readFileSync(
-    path.join(root, "supabase/migrations/0073_lead_voice_notes_lifecycle.sql"),
+    path.join(root, "test-fixtures/legacy-lr-migrations/0073_lead_voice_notes_lifecycle.sql"),
     "utf8"
   );
 

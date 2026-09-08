@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const migration = readFileSync(
-  new URL("../supabase/migrations/0102_pipedrive_lead_sync.sql", import.meta.url),
+  new URL("../test-fixtures/legacy-lr-migrations/0102_pipedrive_lead_sync.sql", import.meta.url),
   "utf8"
 );
 

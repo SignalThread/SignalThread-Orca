@@ -234,11 +234,12 @@ while a one-time token sat in the query string. Narrower per-path entries now ex
 for `/api/launch/:path*` and `/auth/callback`, and regression tests pin both the
 entries and their ordering.
 
-### Adding a product (Registration, Housing, Lead Retrieval)
+### Adding a product (Registration, Housing)
 
 1. `PRODUCT_APP_URL_ENV` entry in `apps/platform/lib/server/product-registry.ts`
 2. `PRODUCT_AUTH_AUTHORITY` entry: `platform-core` if the product authenticates
-   against Platform Core Auth (Orca), `own` if it runs its own Supabase Auth (Pulse)
+   against Platform Core Auth (Orca), `own` if it runs its own Supabase Auth (Pulse,
+   Lead Retrieval)
 3. a return-path case in `buildProductReturnPath`
 4. in the product: for `platform-core`, a callback that exchanges `token_hash` with
    its **anon** key; for `own`, a `/platform-entry` that posts the token to
@@ -266,6 +267,23 @@ Platform echoes it back on the redirect, and Pulse refuses to redeem a handoff w
 relayed correlator does not match its own cookie. Full design, threat notes
 and proof of ordering: `docs/PLATFORM_PULSE_HANDOFF.md`.
 
+### Lead Retrieval (own auth authority) — implemented in code, live proof pending
+
+Lead Retrieval owns a separate Supabase Auth project (`signalthread-lead-retrieval`,
+`wsbdyemyzixkyvuiyesm`) and follows the Pulse pattern exactly: Platform's registry
+gains `LEAD_RETRIEVAL_APP_URL` (+ `NEXT_PUBLIC_` fallback), authority `own`, and a
+return path of `/platform-entry`; nothing product-specific was added to the generic
+launch, claim or authorization code (asserted by test). Lead Retrieval's
+`/platform-entry` binds the launch to the browser (`state = SHA-256(nonce)`), claims the
+token through `POST /api/launch/lead-retrieval/claim`, resolves the returned canonical
+ids **only** through `users.platform_user_id`, `events.platform_event_id` and
+`companies.platform_organization_id` (a Platform organization mapped to several LR
+companies is narrowed by the mapped event and user, or refused as ambiguous; a
+`continuous_capture` container is never an event), applies its own event-access rules,
+and opens a session in its own Auth project for the mapped user. Lead Retrieval's
+side needs `PLATFORM_APP_URL` (server-only). Design, ambiguity rule, failure codes and
+Step 4B checklist: `apps/lead-retrieval/docs/PLATFORM_LEAD_RETRIEVAL_HANDOFF.md`.
+
 ## 4e. Environment contract (definitive, no secret values)
 
 ### `apps/platform`
@@ -280,6 +298,8 @@ and proof of ordering: `docs/PLATFORM_PULSE_HANDOFF.md`.
 | `NEXT_PUBLIC_ORCA_APP_URL` | client | optional fallback for the above |
 | `PULSE_APP_URL` | **server-only** | production — `https://voice.signalthread.ai` |
 | `NEXT_PUBLIC_PULSE_APP_URL` | client | optional fallback for the above |
+| `LEAD_RETRIEVAL_APP_URL` | **server-only** | production — `https://lr.signalthread.ai` (handoff destination) |
+| `NEXT_PUBLIC_LEAD_RETRIEVAL_APP_URL` | client | optional fallback for the above |
 | `HANDOFF_MAX_AGE_SECONDS` | server-only | optional claim freshness bound (default 300) |
 | `PLATFORM_CORE_PROJECT_REF` | server-only | optional (scripts; defaults to the Platform ref) |
 | `RLS_*` | server-only | local verification only |

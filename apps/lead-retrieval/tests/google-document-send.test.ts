@@ -29,7 +29,7 @@ test("document UI uses locked Google sender/recipient and keeps the non-Google f
 
 test("document route never accepts a browser recipient and safe activity stores no content", () => {
   const route = read("app/api/exhibitor/documents/send/route.ts");
-  const migration = read("supabase/migrations/0104_provider_neutral_email_send.sql");
+  const migration = read("test-fixtures/legacy-lr-migrations/0104_provider_neutral_email_send.sql");
   const googleBranch = route.slice(route.indexOf('payload.deliveryMode === "google"'), route.indexOf('console.log("[documents/send] request"'));
   assert.doesNotMatch(googleBranch, /payload\.recipientEmail/);
   assert.match(migration, /document_id/);

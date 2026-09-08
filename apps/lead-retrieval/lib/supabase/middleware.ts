@@ -18,6 +18,7 @@ import { isLeadRetrievalInternalHealthPath } from "@/lib/internal-health/lead-re
 import { buildBrowserFacingUrl } from "@/lib/http/browser-facing-url";
 import { isOAuthBrowserHandoffRequest } from "@/lib/integrations/mobile-oauth/middleware-policy";
 import { buildRequestHeadersWithCurrentCookies } from "@/lib/supabase/route-auth";
+import { isPlatformEntryPath } from "@/lib/platform/paths";
 
 const INTERNAL_WORKFLOW_TICK_PATH = "/api/internal/workflow-tick";
 
@@ -139,9 +140,13 @@ export async function updateSession(request: NextRequest) {
 
   const isLoginRoute = pathname === "/login";
   const isAuthRoute = pathname.startsWith("/auth/");
+  // Platform → Lead Retrieval launch: the browser holds no LR session yet. The
+  // handlers authenticate the request themselves (one-time Platform handoff,
+  // browser-bound launch state) and open the LR session on their own response.
+  const isPlatformEntryRoute = isPlatformEntryPath(pathname);
   const isStaticRoute = pathname.startsWith("/_next/");
   const isPublicAssetPath = isAnonymousPublicBrowserAssetPath(pathname);
-  const isPublicRoute = isLoginRoute || isAuthRoute;
+  const isPublicRoute = isLoginRoute || isAuthRoute || isPlatformEntryRoute;
   const isAdminRoute = pathname.startsWith("/admin");
   const isOrganizerRoute = pathname.startsWith("/app/organizer") || pathname.startsWith("/organizer");
   const isExhibitorRoute = pathname.startsWith("/app/exhibitor") || pathname.startsWith("/exhibitor");

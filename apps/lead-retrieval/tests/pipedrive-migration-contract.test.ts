@@ -7,7 +7,7 @@ import {
 } from "../lib/integrations/pipedrive/setup-core";
 
 const migration = readFileSync(
-  new URL("../supabase/migrations/0101_pipedrive_integration_settings.sql", import.meta.url),
+  new URL("../test-fixtures/legacy-lr-migrations/0101_pipedrive_integration_settings.sql", import.meta.url),
   "utf8"
 );
 
@@ -82,7 +82,7 @@ test("SQL defaults match the application's default settings", () => {
 // additive 0102 migration rather than rewriting 0101, so column coverage is checked against
 // both migrations together.
 const migration0102 = readFileSync(
-  new URL("../supabase/migrations/0102_pipedrive_lead_sync.sql", import.meta.url),
+  new URL("../test-fixtures/legacy-lr-migrations/0102_pipedrive_lead_sync.sql", import.meta.url),
   "utf8"
 );
 

@@ -37,7 +37,7 @@ test("middleware admin route uses selectLatestCompanyScopedLicense for company l
 });
 
 test("migration 0067 dedupes licenses + event_users and adds event_users unique", () => {
-  const src = read("supabase/migrations/0067_dedupe_licenses_event_users_unique.sql");
+  const src = read("test-fixtures/legacy-lr-migrations/0067_dedupe_licenses_event_users_unique.sql");
   assert.match(src, /company-scoped license duplicates/);
   assert.match(src, /event_users_user_id_event_id_uidx/);
   assert.match(src, /licenses_scope_company_exhibitor_company_id_uidx/);
