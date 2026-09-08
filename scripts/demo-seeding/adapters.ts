@@ -10,7 +10,7 @@ export type PlatformContext = {
   entitledProducts: Product[];
 };
 export type AdapterResult = {
-  product: 'platform' | Product; counts: Record<string, number>; manifest: OwnershipManifest;
+  product: 'platform' | Product; details?: unknown; counts: Record<string, number>; manifest: OwnershipManifest;
   validations: { label: string; passed: boolean; detail?: string }[];
 };
 export type VerifiedTarget = { identity: string; verified: true };

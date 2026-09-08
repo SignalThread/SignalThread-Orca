@@ -90,7 +90,7 @@ export function createPlatformAdapter(): PlatformAdapter {
     async readExistingEvent(config: SeedConfig): Promise<CanonicalEventSnapshot> {
       if (!config.existingEventId || !config.organizationId) throw new Error('Attach identifiers are required');
       const db = client();
-      const event = await db.from('events').select('id, organization_id, name, starts_at, ends_at, venue, timezone, organizations!inner(name)').eq('id', config.existingEventId).eq('organization_id', config.organizationId).maybeSingle();
+      const event = await db.from('events').select(`id, organization_id, name, starts_at, ends_at, ${eventDescriptionColumns ? 'venue, timezone, ' : ''}organizations!inner(name)`).eq('id', config.existingEventId).eq('organization_id', config.organizationId).maybeSingle();
       if (event.error || !event.data) throw new Error('Existing Platform event scope could not be verified');
       const row: any = event.data;
       return { id: row.id, organizationId: row.organization_id, organizationName: row.organizations.name, name: row.name, startsAt: row.starts_at, endsAt: row.ends_at, timezone: row.timezone ?? 'America/New_York', venue: row.venue ?? 'Venue not set', authorized: true };
@@ -98,6 +98,31 @@ export function createPlatformAdapter(): PlatformAdapter {
     async provision(world: EventWorld, config: SeedConfig, initial: OwnershipManifest) {
       const db = client();
       let manifest = initial;
+      if (config.existingEventId) {
+        const snapshot = await this.readExistingEvent(config);
+        const members = await db.from('event_memberships').select('*').eq('event_id', snapshot.id).eq('role', 'ORGANIZER');
+        if (members.error || members.data?.length !== 1) throw new Error('Attach needs one unambiguous canonical organizer');
+        const organizerUserId = String(members.data[0]!.user_id);
+        const member = await db.from('organization_memberships').select('*').eq('organization_id', snapshot.organizationId).eq('user_id', organizerUserId).eq('status', 'ACTIVE').maybeSingle();
+        if (member.error || !member.data) throw new Error('Attach organizer lacks active canonical organization membership');
+        const org = await readOne(db, 'organizations', snapshot.organizationId);
+        const event = await readOne(db, 'events', snapshot.id);
+        if (!org || org.status !== 'ACTIVE' || !event || event.organization_id !== snapshot.organizationId) throw new Error('Attach canonical scope changed');
+        manifest = receipt(manifest, 'organizations', org, snapshot.organizationId, null, true);
+        manifest = receipt(manifest, 'events', event, snapshot.organizationId, snapshot.id, true);
+        manifest = receipt(manifest, 'organization_memberships', member.data, snapshot.organizationId, null, true);
+        manifest = receipt(manifest, 'event_memberships', members.data[0]!, snapshot.organizationId, snapshot.id, true);
+        for (const product of config.products) {
+          const productKey = product === 'lr' ? 'lead-retrieval' : product;
+          const existing = await db.from('organization_product_entitlements').select('*').eq('organization_id', snapshot.organizationId).eq('product_key', productKey).maybeSingle();
+          if (existing.error || (existing.data && existing.data.status !== 'ACTIVE')) throw new Error('Attach entitlement is unavailable or inactive; refusing to override it');
+          const row = existing.data ?? (await mutation<Row[]>('attach entitlement', target => target.from('organization_product_entitlements').insert({ organization_id: snapshot.organizationId, product_key: productKey, status: 'ACTIVE' }).select()))[0]!;
+          manifest = receipt(manifest, 'organization_product_entitlements', row, snapshot.organizationId, null, Boolean(existing.data));
+        }
+        await syncClaims(db, organizerUserId, config.anchor);
+        const context: PlatformContext = { organizationId: snapshot.organizationId, organizerUserId, events: [{ worldEventKey: world.events[0]!.key, canonicalEventId: snapshot.id }], entitledProducts: [...config.products] };
+        return { context, result: { product: 'platform', counts: { organizations: 1, organizers: 1, memberships: 1, events: 1, entitlements: config.products.length }, manifest, validations: [{ label: 'attach reuses canonical event, organization and organizer', passed: true }] } };
+      }
       const organizationId = world.organization.key;
       const existingOrg = await readOne(db, 'organizations', organizationId);
       if (existingOrg && !String(existingOrg.slug).startsWith('st-demo-')) throw new Error('Deterministic Platform organization id collides with an unowned row');

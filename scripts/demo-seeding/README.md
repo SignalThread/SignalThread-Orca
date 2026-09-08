@@ -38,3 +38,28 @@ Ownership journals are versioned, private, immutable files containing exact crea
 The approved Orca target was reconciled through the repository's active additive migration chain before Loop 2 persistence. The adapters recognize only the explicitly approved Platform Core and Orca project refs; legacy and sibling projects are rejected. The framework does not send invitations, email, call AI services, reset databases or load secrets implicitly. Reset remains fail-closed until every non-cascading Orca dependent can be transactionally proven owned; rerun converges on deterministic IDs without overwriting the original manifest.
 
 Add scenarios by supplying versioned `Scenario` definitions to the parser/world generator. Add generators using namespaced random forks and logical keys, not `Math.random` or the current clock. Product adapters must implement the declared preflight, canonical provisioning/mapping and receipt contracts. Missing adapters fail before writes rather than becoming no-op implementations.
+
+
+## Lead Retrieval adapter (Loop 3)
+
+The imported LR Platform integration is authoritative: `users.platform_user_id`, `companies.platform_organization_id`, and `events.platform_event_id`. LR stays on its own Auth authority. The adapter calls the existing LR mapping loaders and accessible-event resolver for persisted verification; it creates no alternative mapping or permission model.
+
+Supply `LR_SUPABASE_URL`, `LR_SERVICE_ROLE_KEY`, and `LR_ANON_KEY` explicitly, plus the existing Platform variables. Only the approved LR project `wsbdyemyzixkyvuiyesm` is accepted. No invitations, email delivery, CRM calls, workflow dispatch, or AI requests occur.
+
+```sh
+npm run seed:demo -- --product lr --lr-mode direct --events 3 --richness demo --seed 20260911 --manifest /private/tmp/lr-direct.json
+npm run seed:demo -- --product lr --lr-mode organizer --lr-companies 20 --richness demo --seed 20260912 --manifest /private/tmp/lr-organizer.json
+npm run seed:demo -- --product lr --lr-mode direct --events 3 --richness demo --seed 20260911 --operation rerun --manifest /private/tmp/lr-direct.json
+npm run seed:demo -- --product lr --richness smoke --existing-event <canonical-event-id> --organization-id <canonical-organization-id> --manifest /private/tmp/lr-attach.json
+```
+
+Direct mode shares one licensed account across all requested events. Organizer mode creates one owner company plus exactly N participating companies **per event**; the owner is reported separately. Ten deterministic behavior profiles vary volume, quality, executive engagement, staffing, follow-up, and session-driven traffic. PRE contains no future scans. Follow-up details use the real lead columns; interest and buying-timeframe facts also live in existing lead metadata. No unsupported qualifier or tag table is invented. Deep conversations, AI briefs, and workflow records belong to Loop 4.
+
+Existing LR rows require an unchanged exact ownership receipt before reuse. Reruns do not update LR rows. Immutable `.lr-<process>-<sequence>.json` checkpoints preserve ownership after later failures; resume a partial run with its latest checkpoint and the original configuration. Completion of a rerun writes a new `.verified-<process>.json` journal that preserves original receipts and adds only new rows. Paginated validation checks all leads beyond Supabase's response cap. Reset continues to refuse deletion until complete transactional dependent-row proof is implemented in the final hardening loop.
+
+
+## LR intelligence (Loop 4 — verification blocked)
+
+The adapter now populates fact-grounded conversations, pending lead briefs, and review/history workflows. Company/organizer summaries are derived reports, not a new product database table. `--json` includes company facts and summaries. Batch inserts preserve dependency order, require unchanged receipts for existing rows, and save immutable checkpoints after verified batches.
+
+Direct DEMO production readback passed. Organizer SHOWCASE is currently blocked by the existing `dashboard_event_lead_metrics` RPC filtering out participating exhibitors in organizer-owned events. See `docs/loop/LOOP_4_HANDOFF.md` for the exact reproduction and recovery checkpoint. Do not treat persisted SHOWCASE rows as a passed run or recreate them. The product aggregate must be corrected before continuing to Pulse/final verification.

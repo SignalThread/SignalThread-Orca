@@ -5,8 +5,11 @@ import { assertManifestScope, newManifest, readManifest, saveManifest } from './
 import { preflightAdapters } from './adapters.ts';
 import { createPlatformAdapter } from './platform.ts';
 import { createOrcaAdapter } from './orca.ts';
+import { createLeadRetrievalAdapter } from './lead-retrieval.ts';
+import type { AdapterRegistry } from './adapters.ts';
+import { access } from 'node:fs/promises';
 
-export const HELP = `SignalThread demo framework (Loop 1 foundation)
+export const HELP = `SignalThread demo framework
 Usage: npm run seed:demo -- [options]
   --product all|orca|pulse|lr            Default: all
   --scenario enterprise-conference
@@ -28,7 +31,7 @@ Examples:
   npm run seed:demo -- --product pulse --richness demo --dry-run
   npm run seed:demo -- --product lr --lr-mode direct --events 3 --dry-run
   npm run seed:demo -- --product all --lr-mode organizer --lr-companies 20 --richness showcase --dry-run
-Remote writes require the explicitly approved Platform/Orca environment variables.
+Remote writes require the explicitly approved Platform/Orca/LR environment variables.
 `;
 export function buildPlan(config: SeedConfig) {
   const world = createWorld(config);
@@ -65,28 +68,44 @@ export async function runCli(argv: readonly string[], output: (value: string) =>
     ].join('\n'));
     return;
   }
-  if (config.products.some((product) => product !== 'orca')) throw new Error('Loop 2 persistence currently supports --product orca only');
-  const registry = { platform: createPlatformAdapter(), products: { orca: createOrcaAdapter() } };
+  if (config.products.includes('pulse')) throw new Error('Persistence supports Orca and LR; Pulse adapter follows in Loop 5');
+  const registry: AdapterRegistry = { platform: createPlatformAdapter(), products: { orca: createOrcaAdapter(), lr: createLeadRetrievalAdapter(priorManifest) } };
+  let manifestPath = config.manifestPath ?? `/private/tmp/${config.runId}.manifest.json`;
+  if (!priorManifest) {
+    const exists = await access(manifestPath).then(() => true, () => false);
+    if (exists) throw new Error('Manifest already exists; use rerun with its original configuration');
+  }
   await preflightAdapters(config, registry);
   if (config.operation === 'reset') throw new Error('Reset remains fail-closed until complete owned-dependent readback is implemented');
-  if (config.operation === 'attach') world = bindExistingEvent(world, config, await registry.platform.readExistingEvent(config));
+  if (config.operation === 'attach') world = bindExistingEvent(world, config, await registry.platform!.readExistingEvent(config));
   // The original immutable manifest remains the deletion authority. A rerun uses a
   // fresh in-memory receipt set and treats matching rows as borrowed, so it cannot
   // silently rewrite or duplicate the ownership journal.
   let manifest = newManifest(config);
-  const platform = await registry.platform.provision(world, config, manifest);
+  const platform = await registry.platform!.provision(world, config, manifest);
   manifest = platform.result.manifest;
-  const orca = await registry.products.orca.seed(world, config, platform.context, manifest);
-  manifest = orca.manifest;
-  const manifestPath = config.manifestPath ?? `/private/tmp/${config.runId}.manifest.json`;
-  if (!priorManifest) await saveManifest(manifestPath, manifest);
-  const report = { status: 'persisted' as const, persisted: true, operation: config.operation, runId: config.runId, scenario: config.scenario, seed: config.seed, richness: config.richness, manifestPath, platform: platform.result, orca };
+  const results = [];
+  for (const product of config.products) {
+    const result = await registry.products[product]!.seed(world, config, platform.context, manifest);
+    manifest = result.manifest;
+    results.push(result);
+  }
+  if (results.some(r => r.validations.some(v => !v.passed))) throw new Error('Post-seed validation failed');
+  if (priorManifest) {
+    // A recovered partial run may have added rows. Preserve original deletion
+    // authority and append only genuinely new receipts into a new immutable file.
+    const keys = new Set(priorManifest.records.map(r => `${r.database}/${r.target}/${r.table}/${r.id}`));
+    manifest = { ...priorManifest, records: [...priorManifest.records, ...manifest.records.filter(r => !keys.has(`${r.database}/${r.target}/${r.table}/${r.id}`))] };
+    manifestPath += `.verified-${process.pid}.json`;
+  }
+  await saveManifest(manifestPath, manifest);
+  const report = { status: 'persisted' as const, persisted: true, operation: config.operation, runId: config.runId, scenario: config.scenario, seed: config.seed, richness: config.richness, manifestPath, platform: platform.result, products: results };
   output(config.json ? JSON.stringify(report, null, 2) : [
     `SignalThread demo persisted · ${config.scenario} · ${config.richness}`,
     `Operation: ${config.operation} · Seed: ${config.seed} · Run: ${config.runId}`,
     `Platform: ${JSON.stringify(platform.result.counts)}`,
-    `Orca: ${JSON.stringify(orca.counts)}`,
-    `Validation: ${[...platform.result.validations, ...orca.validations].every((entry) => entry.passed) ? 'PASS' : 'FAIL'}`,
+    ...results.map(result => `${result.product}: ${JSON.stringify(result.counts)}`),
+    `Validation: ${[...platform.result.validations, ...results.flatMap(r => r.validations)].every((entry) => entry.passed) ? 'PASS' : 'FAIL'}`,
     `Ownership manifest: ${manifestPath}`,
   ].join('\n'));
 }

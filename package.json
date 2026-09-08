@@ -38,7 +38,7 @@
     "prisma:seed": "npm --workspace apps/orca run prisma:seed",
     "test:marketing-email-smoke": "npm --workspace apps/orca run test:marketing-email-smoke",
     "seed:demo": "node scripts/demo-seeding/cli.ts",
-    "test:demo-seeding": "node --test scripts/demo-seeding/framework.test.ts",
+    "test:demo-seeding": "node --test scripts/demo-seeding/*.test.ts",
     "typecheck:demo-seeding": "tsc -p scripts/demo-seeding/tsconfig.json",
     "lint:demo-seeding": "eslint --config scripts/demo-seeding/eslint.config.mjs scripts/demo-seeding/*.ts"
   },
