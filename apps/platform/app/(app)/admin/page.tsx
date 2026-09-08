@@ -123,10 +123,21 @@ export default async function AdminPage() {
           />
         </AdminForm>
 
-        <AdminForm action={createEvent} title="Create event" submitLabel="Create event">
+        <AdminForm
+          action={createEvent}
+          title="Create event"
+          description="Dates place the event on the lifecycle every product shares. Venue and timezone are optional."
+          submitLabel="Create event"
+        >
           <SelectField label="Organization" name="organizationId" options={orgOptions} />
           <Field label="Slug" name="slug" required />
           <Field label="Name" name="name" required />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Field label="Starts" name="startsAt" type="date" />
+            <Field label="Ends" name="endsAt" type="date" />
+          </div>
+          <Field label="Venue" name="venue" />
+          <Field label="Timezone (IANA, e.g. America/Los_Angeles)" name="timezone" />
         </AdminForm>
 
         <AdminForm

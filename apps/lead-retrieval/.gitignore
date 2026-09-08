@@ -1,0 +1,21 @@
+.next
+node_modules
+.env.local
+.env
+.DS_Store
+coverage
+tsconfig.tsbuildinfo
+.vercel
+.env*.local
+results-*.txt
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+e2e/.license-seat-lock
+
+# LR test runner artifacts
+.lr-test/

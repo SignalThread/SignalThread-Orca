@@ -1,0 +1,156 @@
+{
+  "doc": "SYSTEM_ARCHITECTURE",
+  "project": "Lead Intel",
+  "last_reviewed": "2026-04-27",
+  "authority": "This file summarizes architecture verified against this repo. Runtime schema: types/database.ts + migrations (regen types if tables missing). Product marketing: docs/PROJECT_SUMMARY_APP.md. Do not treat this JSON as a release checklist.",
+  "documentation": {
+    "project_summary": "docs/PROJECT_SUMMARY_APP.md",
+    "schema_index": "docs/APP_SCHEMA.md",
+    "app_architecture": "docs/APP_ARCHITECTURE.md",
+    "manifest": "docs/Admin_Project_Summary.md",
+    "engineering_standards": "docs/ENGINEERING_STANDARDS.md",
+    "rbac_matrix": "docs/RBAC_MATRIX.json",
+    "archived_index": "docs/old/README.md",
+    "archived_schema_locked": "docs/old/DB_SCHEMA_LOCKED.json",
+    "archived_architecture_map": "docs/old/System_Architecture_Map.md"
+  },
+  "product_capability_groups": {
+    "capture_and_sync": [
+      "Show-floor lead capture",
+      "Offline capture with later sync (mobile direction; SQLite + outbox planned — not in Admin repo)",
+      "Faster lead workflow from scan to pipeline"
+    ],
+    "conversation_intelligence": [
+      "Full conversation recording",
+      "AI conversation summaries",
+      "AI briefings before meetings"
+    ],
+    "prioritization_and_signals": [
+      "Real-time lead prioritization / hot lead scoring",
+      "AI Signals / behavioral insights"
+    ],
+    "engagement_and_follow_up": [
+      "AI-written follow-up campaigns",
+      "Immediate follow-up scheduling",
+      "Send documents/content from the app"
+    ],
+    "visibility_and_reporting": [
+      "Booth performance visibility",
+      "Sponsor engagement visibility",
+      "Post-event reporting",
+      "ROI measurement / proving exhibitor value",
+      "Renewal-supporting reporting"
+    ]
+  },
+  "code_verified_in_this_repository": {
+    "description": "Non-exhaustive; verify app/api and supabase/migrations for your branch.",
+    "includes": [
+      "Next.js 16 App Router Admin: platform (/admin), organizer (/app/organizer, /organizer), exhibitor (/exhibitor, /app/exhibitor)",
+      "Lead Intelligence: exhibitor leads list/detail; per-lead AI Brief from public.lead_briefings; import wizard publish sync into lead_briefings",
+      "Campaigns API: list/create and related routes restricted to exhibitor_admin + platform_admin in route handlers",
+      "Signal Library API: list/create in route handlers restricted to exhibitor_admin + platform_admin",
+      "Exhibitor import wizard: batch CSV, field mapping, enrichment, validation, briefing rows, publish into leads + lead_briefings",
+      "Invites: invite_codes + /api/invites/claim; users.event_access_mode + invite event_access_mode (migrations 0062, 0063)",
+      "Seat / app access: evaluateAppAccessGrant and related helpers in lib/server/event-user-access.ts",
+      "Leads APIs: bearer + session patterns; exhibitor_viewer mobile list requires eventId on some routes"
+    ],
+    "excludes": [
+      "Lead Intel Scan (Expo) mobile app source",
+      "Offline-first SQLite + sync_outbox implementation",
+      "badge_templates table (no migration in this repo)",
+      "Any capability not backed by types/database.ts + migrations in this branch"
+    ]
+  },
+  "platform_product_capabilities": {
+    "description": "Cross-client product intent; realization split across Admin web, mobile, Supabase, and integrations.",
+    "shared_system_of_record": "Supabase Postgres — public.leads, lead_briefings, events, companies, users, event_users, licenses, campaigns, signals, import_batch_* per migrations",
+    "note": "ROI/renewal/sponsor reporting may be partial product surfaces; dedicated ROI fact tables are not asserted without migration proof."
+  },
+  "shared_system_dependencies": {
+    "supabase": ["Postgres", "Auth", "RLS", "Storage (feature-specific)"],
+    "email": "Outbound email for campaigns where integrated (verify deployment)",
+    "object_storage": "Audio and large assets; patterns vary by feature",
+    "enrichment_providers": "Apollo, PDL, ZoomInfo — where credentials configured"
+  },
+  "future_extended_capabilities": {
+    "mobile_offline_first": "SQLite local_leads, sync_outbox, sync engine — planned; see docs/old/DB_SCHEMA_LOCKED.json mobile_local_sqlite_planned",
+    "analytics_roi": "May aggregate leads/campaigns/email_events; not implied as fully shipped without code review"
+  },
+  "surfaces": {
+    "mobile": {
+      "name": "Lead Intel Scan",
+      "repo": "Expo app (separate repository; not vendored here)",
+      "stack": ["Expo Router", "Supabase client", "device camera/mic"],
+      "current_state": {
+        "capture_persistence": "Online-dependent for writing leads to Supabase (typical)",
+        "backend": "Same Supabase project as Admin — shared Postgres contract (not a separate backend)",
+        "api_patterns": "Bearer token session via resolveApiSession; exhibitor_viewer lead list requires eventId query param on implemented routes"
+      },
+      "planned_offline_first": {
+        "status": "Not implemented in this repo",
+        "local_sqlite": "Canonical on-device store for capture (e.g. local_leads)",
+        "sync_outbox": "Queue mutations; retry/backoff; idempotent server handling where applicable",
+        "sync_engine": "Drains outbox to Supabase; success = rows in public.leads",
+        "audio": "Local-first; upload queued as secondary job after lead sync (non-blocking for capture success)"
+      }
+    },
+    "web_admin": {
+      "name": "Lead Retrieval Admin",
+      "stack": ["Next.js 16 App Router", "Server Components", "Route Handlers", "Supabase server client"],
+      "primary_flows": [
+        "Platform admin: /admin — tenants, events, licenses, global signals, integrations",
+        "Organizer: /app/organizer and /organizer",
+        "Exhibitor: Lead Intelligence, import wizard, AI Brief (lead_briefings), briefing knowledge, campaigns/signals UIs (API role gates apply), team/invites",
+        "Post-login exhibitor resolver: /api/auth/exhibitor-web-entry"
+      ]
+    }
+  },
+  "backend": {
+    "supabase": {
+      "components": ["Postgres", "Auth", "RLS", "Storage (as used by features)"],
+      "auth_model": "Supabase Auth; app roles in public.users.role; per-event membership in event_users; invite_codes drive redeem flows",
+      "rls": "Enforced for tenant-scoped tables; service role / admin client used in server-only paths per route implementation"
+    },
+    "schema": {
+      "note": "No Prisma. Contract is types/database.ts + supabase/migrations/*.sql. Regenerate Supabase types when DDL changes (invite_codes may be missing from checked-in types until regen)."
+    },
+    "api": {
+      "pattern": "Next.js Route Handlers under app/api",
+      "authn": "Session via Supabase SSR; optional Bearer token path skips middleware refresh — handlers validate",
+      "authz": "Per-handler role checks + company/event scope + Postgres RLS for direct Supabase queries",
+      "middleware_guards": "lib/supabase/middleware.ts — prefix-based role routing; dev x-dev-bypass only in development"
+    }
+  },
+  "data_flow": {
+    "admin_to_supabase": "Direct via @supabase/ssr server and browser clients",
+    "mobile_to_supabase": "Direct Supabase client from mobile app (same project); optional HTTP API routes for shaped payloads",
+    "import_publish_to_lead_briefings": "Approved import_batch_row_briefings + publish materialization → upsert lead_briefings for exhibitor AI Brief",
+    "mobile_planned_offline": "App → SQLite (local_leads) → sync_outbox → sync engine → Supabase → public.leads",
+    "audio_planned": "Recorded locally → optional upload queue → storage (after lead payload is safe)"
+  },
+  "external_services": {
+    "sendgrid": {
+      "role": "Outbound email for campaigns where integrated",
+      "note": "Verify deployment configuration"
+    },
+    "enrichment_apollo_pdl_zoominfo": {
+      "role": "Lead enrichment where company/workspace credentials exist"
+    },
+    "object_storage": {
+      "role": "Voice/audio and large assets (e.g. AWS SDK in repo for tooling/uploads)"
+    },
+    "streampoint_v1_spec": {
+      "role": "Event registration ingest: sync registrants/badge identifiers for scan-time resolution (1:1 event mapping in V1 spec)",
+      "archived_spec": "docs/old/STREAMPOINT_INTEGRATION_V1.md",
+      "note": "Confirm implementation in application code/migrations; spec is non-canonical"
+    }
+  },
+  "architecture_guardrails": [
+    "Single seat/app grant path: evaluateAppAccessGrant — not users.license_id or licenses.seats_used",
+    "exhibitor_admin vs exhibitor_viewer: use lib/auth/role-scope.ts; viewers blocked from many write APIs",
+    "Campaigns and signals HTTP APIs (app/api/campaigns*, app/api/signals*): list/create handlers allow only platform_admin + exhibitor_admin today",
+    "GET /api/exhibitor/leads/[leadId]/briefing: exhibitor_admin only",
+    "Organizer URLs: platform_admin middleware redirects away to /admin",
+    "Do not ship dev-only x-dev-bypass behavior to production clients"
+  ]
+}

@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS phone text NULL;
+
+COMMIT;

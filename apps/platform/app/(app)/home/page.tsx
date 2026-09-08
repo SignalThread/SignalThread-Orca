@@ -86,13 +86,23 @@ export default async function HomePage() {
                   className="space-y-3 rounded-xl border p-4"
                   style={{ borderColor: "var(--border)", background: "var(--surface)" }}
                 >
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-medium" style={{ color: "var(--signalthread-ink)" }}>
-                      {event.name}
-                    </p>
-                    <p className="text-xs" style={{ color: "var(--signalthread-muted)" }}>
-                      {event.slug} · {event.status}
-                    </p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium" style={{ color: "var(--signalthread-ink)" }}>
+                        {event.name}
+                      </p>
+                      <p className="text-xs" style={{ color: "var(--signalthread-muted)" }}>
+                        {event.slug} · {event.status}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/events/${event.id}`}
+                      className="shrink-0 text-xs font-medium hover:underline"
+                      style={{ color: "var(--text-link)" }}
+                      data-testid={`overview-${event.id}`}
+                    >
+                      Overview →
+                    </Link>
                   </div>
 
                   {event.products.length === 0 ? (

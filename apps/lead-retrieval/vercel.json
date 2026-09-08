@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/internal/workflow-tick",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/internal/pipedrive-sync-tick",
+      "schedule": "* * * * *"
+    }
+  ]
+}

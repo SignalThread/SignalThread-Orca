@@ -18,6 +18,8 @@ apps/orca/playwright-report/
 .claude/
 .vercel
 .env*
+# Documented variable names, never values. Each app keeps one committed example file.
+!.env.example
 
 # Generated local simulation artifacts
 apps/orca/tmp/

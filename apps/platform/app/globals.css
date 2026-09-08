@@ -1,29 +1,138 @@
 @import "tailwindcss";
+@import "@signalthread/ui/styles/tokens.css";
 
+/* Components from the shared design system live outside this app's tree, so
+   Tailwind must be told to scan them or their utility classes are never emitted. */
+@source "../../../packages/signalthread-ui/src";
+
+/*
+ * SignalThread Platform — semantic tokens.
+ *
+ * Grounded in the `--st-*` source of truth above (same canvas, slate scale and
+ * #28439A primary) and extended with the aliases the connected-event dashboard
+ * design relies on: product accents, status colours and the dark event object.
+ * Reference these in product code rather than raw hex.
+ */
 :root {
-  --background: #f7f8fb;
-  --foreground: #1e293b;
-  --signalthread-ink: #0b1220;
-  --signalthread-accent: #3372e3;
-  --signalthread-muted: #64748b;
-  --surface: #ffffff;
-  --border: #e2e8f0;
+  /* surfaces */
+  --surface-canvas: var(--st-bg-canvas);
+  --surface-card: var(--st-bg-surface);
+  --surface-muted: #f8fafc;
+  --surface-sunken: var(--st-bg-panel);
+  --surface-event: #0c1a3f; /* the dark connected-event object */
+
+  /* borders */
+  --border-subtle: var(--st-border-subtle);
+  --border-strong: var(--st-border-default);
+  --border-hairline: #f1f5f9;
+  --border-focus: var(--st-action-primary);
+
+  /* text */
+  --text-strong: var(--st-text-primary);
+  --text-heading: #1e293b;
+  --text-body: var(--st-text-secondary);
+  --text-muted: var(--st-text-muted);
+  --text-subtle: #94a3b8;
+  --text-link: #1f3d8f;
+  --text-on-event: #ffffff;
+  --text-on-event-muted: #b9c5e6;
+  --text-on-event-subtle: #8fa3d9;
+
+  /* actions */
+  --accent-primary: var(--st-action-primary);
+  --accent-primary-hover: var(--st-action-primary-hover);
+  --accent-primary-soft: #e0e7ff;
+
+  /* status */
+  --status-success: #059669;
+  --status-success-text: #047857;
+  --status-warning: #d97706;
+  --status-warning-text: #b45309;
+  --status-danger: #e11d48;
+  --status-review-text: #475569;
+
+  /* product accents: (text/icon, soft surface, band border, band text) */
+  --product-orca: #28439a;
+  --product-orca-soft: #eef2ff;
+  --product-orca-faint: #f8faff;
+  --product-orca-border: #c7d2fe;
+  --product-orca-ink: #1e2f6b;
+  --product-orca-dot: #7c9cff;
+
+  --product-registration: #6d28d9;
+  --product-registration-soft: #f5f3ff;
+  --product-registration-faint: #faf9ff;
+  --product-registration-border: #c4b5fd;
+  --product-registration-ink: #4c1d95;
+  --product-registration-dot: #a78bfa;
+
+  --product-housing: #047857;
+  --product-housing-soft: #ecfdf5;
+  --product-housing-faint: #f7fdfa;
+  --product-housing-border: #a7f3d0;
+  --product-housing-ink: #065f46;
+  --product-housing-dot: #34d399;
+
+  --product-lead-retrieval: #c2410c;
+  --product-lead-retrieval-soft: #fff7ed;
+  --product-lead-retrieval-faint: #fffbf7;
+  --product-lead-retrieval-border: #fed7aa;
+  --product-lead-retrieval-ink: #7c2d12;
+  --product-lead-retrieval-dot: #fb923c;
+
+  --product-pulse: #0e7490;
+  --product-pulse-soft: #ecfeff;
+  --product-pulse-faint: #f7feff;
+  --product-pulse-border: #a5f3fc;
+  --product-pulse-ink: #164e63;
+  --product-pulse-dot: #22d3ee;
+
+  /* elevation: cards are border-led; shadows are a whisper */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+  /* type */
+  --font-sans: var(--font-geist-sans), "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* legacy aliases still used by the sign-in and admin screens */
+  --background: var(--surface-canvas);
+  --foreground: var(--text-body);
+  --signalthread-ink: var(--text-strong);
+  --signalthread-accent: var(--accent-primary);
+  --signalthread-muted: var(--text-muted);
+  --surface: var(--surface-card);
+  --border: var(--border-subtle);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b1220;
-    --foreground: #e2e8f0;
-    --signalthread-ink: #f8fafc;
-    --signalthread-accent: #6f9bf0;
-    --signalthread-muted: #94a3b8;
-    --surface: #131c2e;
-    --border: #1e293b;
-  }
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--surface-canvas);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* 10px uppercase eyebrow used throughout the dashboard. */
+.st-eyebrow {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }

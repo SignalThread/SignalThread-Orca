@@ -1,0 +1,106 @@
+{
+  "doc": "DB_SCHEMA_LOCKED",
+  "project": "Lead Intel",
+  "authority": "types/database.ts (generated Supabase types) is the runtime source of truth for Postgres.",
+  "status": "CLOUD_CONTRACT_SUMMARY_AND_MOBILE_PLAN",
+  "last_reviewed": "2026-03",
+  "notes": [
+    "This file summarizes the shared cloud contract and documents PLANNED mobile SQLite shapes.",
+    "Do not merge cloud and mobile DDL into one logical table definition.",
+    "Removed legacy entries (e.g. accounts) that do not exist in types/database.ts.",
+    "Known drift: older markdown snapshots may omit columns; always prefer types/database.ts."
+  ],
+  "cloud": {
+    "leads": {
+      "purpose": "Captured leads; shared by Lead Intel Scan (mobile) and Admin web.",
+      "columns_authoritative": [
+        "id uuid",
+        "company_id uuid",
+        "event_id uuid null",
+        "owner_user_id uuid null",
+        "full_name text",
+        "email text null",
+        "job_title text null",
+        "company_text text null",
+        "rating number",
+        "priority_score number",
+        "status text",
+        "follow_up_date date null",
+        "temperature text",
+        "is_hot boolean",
+        "enriched_* (job_title, company_size, industry, company_domain, linkedin_url, seniority, score)",
+        "created_at timestamptz",
+        "updated_at timestamptz"
+      ],
+      "reference": "types/database.ts → public.Tables.leads"
+    },
+    "campaign_messages": {
+      "purpose": "Per-recipient message rows for campaigns.",
+      "important": "Uses recipient_id → campaign_recipients.id (not lead_id on this row).",
+      "reference": "types/database.ts → campaign_messages"
+    },
+    "signals": {
+      "purpose": "Signal Library definitions for campaign composition.",
+      "columns_authoritative": [
+        "id",
+        "name",
+        "category",
+        "default_prompt",
+        "admin_override_prompt",
+        "visibility",
+        "role_scope",
+        "template_scope",
+        "is_active",
+        "available_in_pattern_mode",
+        "tones",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "reference": "types/database.ts → signals"
+    }
+  },
+  "mobile_local_sqlite_planned": {
+    "status": "NOT_IMPLEMENTED_IN_THIS_REPO",
+    "owner": "Lead Intel Scan mobile repository (future)",
+    "principles": [
+      "SQLite is canonical for capture until sync succeeds.",
+      "Outbox records mutations; sync engine retries with backoff; server handlers should be idempotent where practical.",
+      "Supabase remains system of record after sync.",
+      "Audio: local file + outbox upload job — not blocking lead row creation."
+    ],
+    "tables": {
+      "local_leads": {
+        "purpose": "On-device lead capture payload and sync state (mirrors cloud fields as needed + local metadata).",
+        "columns_planned": [
+          "local_id TEXT PRIMARY KEY",
+          "cloud_id TEXT NULL",
+          "payload_json TEXT NOT NULL",
+          "event_id TEXT NULL",
+          "company_id TEXT NULL",
+          "sync_status TEXT NOT NULL",
+          "created_at TEXT NOT NULL",
+          "updated_at TEXT NOT NULL"
+        ],
+        "notes": "Exact column set to be finalized in mobile implementation; must map cleanly to public.leads insert/update."
+      },
+      "sync_outbox": {
+        "purpose": "Durable queue of operations to apply against Supabase.",
+        "columns_planned": [
+          "id TEXT PRIMARY KEY",
+          "operation_type TEXT NOT NULL",
+          "payload_json TEXT NOT NULL",
+          "attempt_count INTEGER NOT NULL",
+          "next_attempt_at TEXT NOT NULL",
+          "last_error TEXT NULL",
+          "created_at TEXT NOT NULL"
+        ]
+      }
+    }
+  },
+  "engineering_alignment": [
+    "Single source of truth for cloud: types/database.ts + migrations.",
+    "Deterministic sync ordering from outbox; safe retries; low-breakage API contracts.",
+    "Separate documentation for cloud vs local schema to avoid contradiction."
+  ]
+}

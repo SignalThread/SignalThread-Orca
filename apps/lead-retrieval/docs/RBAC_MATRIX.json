@@ -1,0 +1,143 @@
+{
+  "doc": "RBAC_MATRIX",
+  "project": "Lead Intel Admin + shared Supabase (mobile consumes same DB)",
+  "last_reviewed": "2026-04-27",
+  "notes": [
+    "Middleware enforces only coarse URL prefixes; each Route Handler adds its own role checks.",
+    "users.role value 'viewer' (company 'App user' in team UX) is NOT the same as 'exhibitor_viewer' (read-only exhibitor web + mobile). Middleware allows only exhibitor_admin and exhibitor_viewer under /exhibitor and /app/exhibitor.",
+    "platform_admin is redirected away from organizer routes to /admin (middleware)."
+  ],
+  "roles": {
+    "platform_admin": {
+      "scope": ["platform"],
+      "can": [
+        "all /admin/* routes per middleware",
+        "campaign and signal APIs as implemented (exhibitor_admin + platform_admin in app/api/campaigns and app/api/signals handlers)",
+        "support-style access patterns as coded per route"
+      ],
+      "cannot": [
+        "use organizer shell URLs (/app/organizer, /organizer) — redirected to /admin",
+        "use exhibitor-only URLs (/exhibitor/*) — redirected to role home (middleware)"
+      ]
+    },
+    "organizer_admin": {
+      "scope": ["organizer", "event"],
+      "can": [
+        "/app/organizer/* and /organizer/* (middleware)",
+        "view/manage data in organizer surfaces per RLS and route handlers"
+      ],
+      "cannot": [
+        "/admin/* (middleware)",
+        "exhibitor URL prefixes without an exhibitor role (middleware)"
+      ]
+    },
+    "exhibitor_admin": {
+      "scope": ["company", "event"],
+      "can": [
+        "full exhibitor web admin: leads CRUD (subject to RLS), import wizard, briefing approval, briefing knowledge",
+        "read/write lead_briefings per RLS and server routes",
+        "GET /api/exhibitor/leads/[leadId]/briefing",
+        "campaign and signal APIs (with platform_admin) as implemented",
+        "manage invites from exhibitor surfaces when handlers allow"
+      ],
+      "cannot": [
+        "platform-wide tenant management",
+        "organizer routes without organizer_admin role"
+      ]
+    },
+    "exhibitor_viewer": {
+      "scope": ["company", "event"],
+      "can": [
+        "read-focused exhibitor web routes allowed by middleware (with exhibitor_admin)",
+        "Supabase reads subject to RLS (e.g. leads, lead_briefings where policies permit)",
+        "bearer API read paths where handlers call canReadExhibitorLeadsInContext — mobile list may require eventId (see app/api/exhibitor/leads/list/route.ts)"
+      ],
+      "cannot": [
+        "GET /api/exhibitor/leads/[leadId]/briefing (exhibitor_admin only in handler)",
+        "campaign list/create APIs (403 — exhibitor_admin + platform_admin only)",
+        "signal list/create APIs (403 — exhibitor_admin + platform_admin only)",
+        "import wizard mutation routes (403 on guarded handlers)"
+      ]
+    },
+    "viewer": {
+      "scope": ["company"],
+      "description": "Persisted users.role for company team 'App user'; used in team management and settings — not an exhibitor middleware role.",
+      "can": [
+        "non-exhibitor app paths per product (e.g. /App shell at /app) where pages allow",
+        "operations explicitly coded for role === viewer"
+      ],
+      "cannot": [
+        "/exhibitor/* and /app/exhibitor/* (middleware allows only exhibitor_admin + exhibitor_viewer)"
+      ]
+    }
+  },
+  "route_guards": {
+    "middleware_prefixes": {
+      "/admin": ["platform_admin", "narrow exhibitor_admin exceptions: multi-event company license paths, Salesforce/Zapier admin integration paths"],
+      "/app/organizer": ["organizer_admin"],
+      "/organizer": ["organizer_admin"],
+      "/exhibitor": ["exhibitor_admin", "exhibitor_viewer"],
+      "/app/exhibitor": ["exhibitor_admin", "exhibitor_viewer"],
+      "/campaigns": "authenticated only at middleware — no exhibitor prefix check; API calls still 403 for non-admin roles"
+    },
+    "ui_routes": {
+      "/admin/*": {
+        "middleware_roles": ["platform_admin"],
+        "notes": "See exceptions in lib/supabase/middleware.ts for exhibitor_admin on licensed routes"
+      },
+      "/app/organizer/*": { "middleware_roles": ["organizer_admin"] },
+      "/organizer/*": { "middleware_roles": ["organizer_admin"] },
+      "/exhibitor/*": { "middleware_roles": ["exhibitor_admin", "exhibitor_viewer"] },
+      "/app/exhibitor/*": { "middleware_roles": ["exhibitor_admin", "exhibitor_viewer"] }
+    },
+    "api_routes": {
+      "/api/admin/*": { "typical_roles": ["platform_admin"], "notes": "verify each handler" },
+      "/api/organizer/*": { "typical_roles": ["organizer_admin", "platform_admin"], "notes": "verify each handler" },
+      "/api/exhibitor/*": {
+        "session_roles": ["exhibitor_admin", "exhibitor_viewer"],
+        "notes": "Per-handler: many writes are exhibitor_admin only; bearer mobile may need eventId for viewer role; platform_admin often not applicable"
+      },
+      "/api/campaigns": {
+        "get_post_roles": ["exhibitor_admin", "platform_admin"],
+        "notes": "Implemented in app/api/campaigns/route.ts — 403 for other roles including exhibitor_viewer and viewer"
+      },
+      "/api/signals": {
+        "get_post_roles": ["exhibitor_admin", "platform_admin"],
+        "notes": "app/api/signals/route.ts"
+      },
+      "/api/exhibitor/leads/*/briefing": {
+        "get_roles": ["exhibitor_admin"],
+        "notes": "handleExhibitorLeadBriefingGet returns 403 for non-exhibitor_admin"
+      },
+      "/api/invites/claim": { "notes": "Public/authenticated claim flow — see handler for invite_codes + seat activation" }
+    }
+  },
+  "data_access_rules": {
+    "leads": {
+      "read": "company_id and event scope per RLS + server helpers (assertEventIdAccessibleForUser when eventId supplied)",
+      "write": "exhibitor_admin (and platform flows); exhibitor_viewer blocked on mutation APIs"
+    },
+    "lead_briefings": {
+      "read": "company-scoped; RLS policies in migrations (exhibitor_admin sync + read paths); exhibitor lead detail RSC loads for scoped roles",
+      "write": "import approval sync + reconcilers; exhibitor admin operations per policies — not general viewer writes"
+    },
+    "campaigns": {
+      "read_write_api": "exhibitor_admin + platform_admin only in list/create handlers",
+      "rls": "company-scoped tenant rules apply for direct Supabase access"
+    },
+    "signals": {
+      "read_write_api": "exhibitor_admin + platform_admin in signals route handlers",
+      "rls": "signals table policies in migration 0008_signal_library.sql"
+    },
+    "licenses": {
+      "read": "organizer_admin within event scope, platform_admin globally — per surfaces",
+      "write": "organizer/platform flows; entitlement math uses scope event|company and evaluateAppAccessGrant"
+    }
+  },
+  "event_users_and_invites": {
+    "membership": "Per-user per-event; exhibitor_company_id ties exhibitor staff to company",
+    "permissions_json": "Boolean flags admin and app (legacy array form normalized server-side). permissions.app participates in mobile seat licensing and canReadExhibitorLeadsInContext",
+    "invite_codes": "event_access_mode on row mirrors users.event_access_mode on redeem; permissions default {admin,app} booleans",
+    "seat_enforcement": "activateInvitedMembership* uses evaluateAppAccessGrant when permissions.app is true"
+  }
+}

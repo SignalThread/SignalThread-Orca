@@ -1,0 +1,163 @@
+name: LR Test Suite
+
+# Cadence, per plan §30 and prompt 2 step 9:
+#   every PR              → P0 + P1, strict tags
+#   nightly               → full suite
+#   pre-production        → full suite + visual + Playwright
+#
+# The environment guard (scripts/testing/env-guard.mjs) runs before any test in every
+# job. LR_REQUIRE_TEST_ENV=1 makes it refuse to run against an unidentified project,
+# which is the posture CI should always use.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * *"        # nightly, 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "Which suite to run"
+        type: choice
+        options: [pr, nightly, pre-promotion]
+        default: nightly
+
+concurrency:
+  group: lr-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LR_REQUIRE_TEST_ENV: "1"
+  LR_PROD_SUPABASE_REF: ${{ secrets.LR_PROD_SUPABASE_REF }}
+  LR_PROD_GOOGLE_CLIENT_ID: ${{ secrets.LR_PROD_GOOGLE_CLIENT_ID }}
+  LR_TEST_ALLOWED_SUPABASE_REFS: ${{ secrets.LR_TEST_ALLOWED_SUPABASE_REFS }}
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+
+jobs:
+  # ── gate: tags must be complete and current before anything runs ──────────────
+  tags:
+    name: Tag registry is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: web }
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/lead-intel-scan
+          path: lead-intel-scan
+          token: ${{ secrets.MOBILE_REPO_TOKEN }}
+          continue-on-error: true
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+        working-directory: web
+      - name: Every test file must be tagged
+        working-directory: web
+        run: npm run test:tags:check
+
+  # ── every PR: P0 and P1 only, must be green on the first attempt ──────────────
+  pr:
+    name: P0/P1 (pull request)
+    if: github.event_name == 'pull_request' || github.event.inputs.scope == 'pr'
+    needs: tags
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: web }
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/lead-intel-scan
+          path: lead-intel-scan
+          token: ${{ secrets.MOBILE_REPO_TOKEN }}
+          continue-on-error: true
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+        working-directory: web
+      - name: Install mobile dependencies
+        working-directory: lead-intel-scan
+        run: npm ci
+        continue-on-error: true
+      - name: Typecheck
+        working-directory: web
+        run: npm run typecheck
+      - name: P0/P1 suite
+        working-directory: web
+        run: npm run test:ci:pr
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lr-results-pr
+          path: web/.lr-test/results.json
+
+  # ── nightly: everything ───────────────────────────────────────────────────────
+  nightly:
+    name: Full suite (nightly)
+    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.inputs.scope == 'nightly'
+    needs: tags
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: web }
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/lead-intel-scan
+          path: lead-intel-scan
+          token: ${{ secrets.MOBILE_REPO_TOKEN }}
+          continue-on-error: true
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+        working-directory: web
+      - name: Install mobile dependencies
+        working-directory: lead-intel-scan
+        run: npm ci
+        continue-on-error: true
+      - name: Full suite
+        working-directory: web
+        run: npm run test:ci:nightly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lr-results-nightly
+          path: web/.lr-test/results.json
+
+  # ── pre-promotion: full suite plus the browser lane ───────────────────────────
+  pre-promotion:
+    name: Full suite + Playwright (pre-promotion)
+    if: github.event.inputs.scope == 'pre-promotion'
+    needs: tags
+    runs-on: ubuntu-latest
+    env:
+      LR_RUN_PLAYWRIGHT: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: web }
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/lead-intel-scan
+          path: lead-intel-scan
+          token: ${{ secrets.MOBILE_REPO_TOKEN }}
+          continue-on-error: true
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+        working-directory: web
+      - run: npx playwright install --with-deps chromium webkit
+        working-directory: web
+      - name: Build
+        working-directory: web
+        run: npm run build
+      - name: Full suite including browser lane
+        working-directory: web
+        run: npm run test:ci:nightly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lr-results-pre-promotion
+          path: |
+            web/.lr-test/results.json
+            web/playwright-report/

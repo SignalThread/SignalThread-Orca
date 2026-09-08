@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getPlatformAdminClient } from "./admin-client";
 import { requirePlatformAdmin } from "./guards";
 import { syncClaimsForOrganization, syncSignalThreadClaims } from "./claims";
+import { isValidTimeZone, parseEventDate } from "@/lib/event-overview/event-date-input";
 
 /**
  * Platform admin mutations.
@@ -114,9 +115,28 @@ export async function createEvent(formData: FormData): Promise<ActionResult> {
     const name = String(formData.get("name") ?? "").trim();
     if (!organizationId || !slug || !name) return { ok: false, error: "Organization, slug and name are required." };
 
+    const venue = String(formData.get("venue") ?? "").trim();
+    const timezone = String(formData.get("timezone") ?? "").trim();
+    if (timezone && !isValidTimeZone(timezone)) return { ok: false, error: "Timezone must be an IANA name such as America/Los_Angeles." };
+    const startsAt = parseEventDate(formData.get("startsAt"), timezone || "UTC");
+    const endsAt = parseEventDate(formData.get("endsAt"), timezone || "UTC");
+    if (startsAt === false || endsAt === false) return { ok: false, error: "Dates must be valid YYYY-MM-DD calendar days in the event timezone." };
+    if (startsAt && endsAt && endsAt < startsAt) return { ok: false, error: "The end date is before the start date." };
+
     const { error } = await getPlatformAdminClient()
       .from("events")
-      .insert({ organization_id: organizationId, slug, name, status: "ACTIVE" });
+      .insert({
+        organization_id: organizationId,
+        slug,
+        name,
+        status: "ACTIVE",
+        starts_at: startsAt,
+        ends_at: endsAt,
+        // Optional descriptive columns are only written when supplied, so a
+        // project that has not applied their migration yet keeps working.
+        ...(venue ? { venue } : {}),
+        ...(timezone ? { timezone } : {}),
+      });
     if (error) throw new Error(error.message);
     revalidatePath("/admin");
     // Events are not in the JWT, so no claim re-derivation and no refresh needed.

@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createPlatformServerClient } from "@/lib/supabase/server";
+import { getOrganizationAccessForUser, isPlatformAdmin } from "@/lib/server/registry";
+import { PlatformShell } from "@/app/_components/platform-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -19,33 +21,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user) redirect("/signin");
 
+  const [access, admin] = await Promise.all([getOrganizationAccessForUser(user.id), isPlatformAdmin(user.id)]);
+  const organization = access.length === 1 ? { name: access[0].organizationName, role: access[0].organizationRole } : null;
+
   return (
-    <div className="min-h-screen">
-      <header className="border-b" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
-          <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--signalthread-ink)" }}>
-            SignalThread
-          </span>
-
-          <div className="flex items-center gap-4">
-            <span className="text-xs" style={{ color: "var(--signalthread-muted)" }}>
-              {user.email}
-            </span>
-            {/* A form POST, so no prefetch or embedded resource can trigger sign-out. */}
-            <form action="/signout" method="post">
-              <button
-                type="submit"
-                className="rounded-md border px-3 py-1.5 text-xs font-medium"
-                style={{ borderColor: "var(--border)" }}
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-6xl px-6 py-8">{children}</main>
-    </div>
+    <PlatformShell
+      email={user.email ?? null}
+      organization={organization}
+      organizationCount={access.length}
+      admin={admin}
+    >
+      {children}
+    </PlatformShell>
   );
 }
