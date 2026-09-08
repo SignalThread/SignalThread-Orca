@@ -119,7 +119,7 @@ test("claim route mirrors redeem wiring (planner + consume-all + role from permi
 });
 
 test("migration 0063 adds event_access_mode column with canonical check constraint", () => {
-  const src = read("supabase/migrations/0063_invite_codes_event_access_mode.sql");
+  const src = read("test-fixtures/legacy-lr-migrations/0063_invite_codes_event_access_mode.sql");
   assert.match(src, /ALTER TABLE public\.invite_codes/);
   assert.match(src, /ADD COLUMN IF NOT EXISTS event_access_mode/);
   assert.match(src, /CHECK \(event_access_mode IN \('all_company_events',\s*'assigned_events_only'\)\)/);

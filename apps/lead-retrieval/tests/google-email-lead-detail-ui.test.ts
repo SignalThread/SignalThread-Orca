@@ -32,7 +32,7 @@ test("canonical and compatibility routes share exactly one handler", () => {
 });
 
 test("provider-neutral activity preserves history and stores no content or credentials", () => {
-  const migration = readFileSync("supabase/migrations/0104_provider_neutral_email_send.sql", "utf8");
+  const migration = readFileSync("test-fixtures/legacy-lr-migrations/0104_provider_neutral_email_send.sql", "utf8");
   const service = readFileSync("lib/integrations/email/send-service.ts", "utf8");
   assert.match(migration, /ALTER TABLE public\.google_email_activities RENAME TO email_activities/);
   assert.match(migration, /CREATE VIEW public\.google_email_activities/);

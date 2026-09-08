@@ -51,7 +51,7 @@ test("default campaign agent allowlist uses the renamed labels", () => {
 });
 
 test("default campaign agent rename migration targets only defaults and default-derived event copies", () => {
-  const migration = read("supabase/migrations/0083_rename_default_campaign_agents.sql");
+  const migration = read("test-fixtures/legacy-lr-migrations/0083_rename_default_campaign_agents.sql");
 
   for (const name of [...OLD_DEFAULT_NAMES, ...NEW_DEFAULT_NAMES]) {
     assert.match(migration, new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { buildProductReturnPath, getProductAppUrl } from "./product-registry";
+import { buildProductHandoffUrl, buildProductReturnPath, getProductAppUrl, getProductAuthAuthority } from "./product-registry";
 
 /**
  * The handoff is a bearer credential for a real session, so the properties that
@@ -15,7 +15,14 @@ const LAUNCH = readFileSync("app/api/launch/[product]/route.ts", "utf8");
 const AUTHZ = readFileSync("lib/server/product-launch.ts", "utf8");
 const DECISION = readFileSync("lib/server/launch-decision.ts", "utf8");
 
-const MANAGED = ["ORCA_APP_URL", "NEXT_PUBLIC_ORCA_APP_URL", "PULSE_APP_URL", "NEXT_PUBLIC_PULSE_APP_URL"] as const;
+const MANAGED = [
+  "ORCA_APP_URL",
+  "NEXT_PUBLIC_ORCA_APP_URL",
+  "PULSE_APP_URL",
+  "NEXT_PUBLIC_PULSE_APP_URL",
+  "LEAD_RETRIEVAL_APP_URL",
+  "NEXT_PUBLIC_LEAD_RETRIEVAL_APP_URL",
+] as const;
 function withEnv<T>(o: Record<string, string | undefined>, run: () => T): T {
   const saved = new Map<string, string | undefined>();
   for (const k of MANAGED) saved.set(k, process.env[k]);
@@ -80,6 +87,90 @@ test("Pulse lands on its own /platform-entry, carrying the event id as a hint on
     buildProductReturnPath("pulse", "ae9942ba-5759-486b-b591-f1b5ed223370"),
     "/platform-entry?event_id=ae9942ba-5759-486b-b591-f1b5ed223370",
   );
+});
+
+test("Lead Retrieval resolves its own base URL through the same two-name convention", () => {
+  withEnv({ LEAD_RETRIEVAL_APP_URL: "https://lr.signalthread.ai", NEXT_PUBLIC_LEAD_RETRIEVAL_APP_URL: "https://stale" }, () => {
+    assert.equal(getProductAppUrl("lead-retrieval"), "https://lr.signalthread.ai", "server-only name wins");
+  });
+  withEnv({ NEXT_PUBLIC_LEAD_RETRIEVAL_APP_URL: "https://lr.signalthread.ai/" }, () => {
+    assert.equal(getProductAppUrl("lead-retrieval"), "https://lr.signalthread.ai", "public fallback, trailing slash trimmed");
+  });
+  withEnv({}, () => assert.equal(getProductAppUrl("lead-retrieval"), null, "unconfigured means not launchable, not a guess"));
+  // Registering Lead Retrieval must not make any other product resolvable, nor borrow another product's URL.
+  withEnv({ LEAD_RETRIEVAL_APP_URL: "https://lr.signalthread.ai" }, () => {
+    assert.equal(getProductAppUrl("pulse"), null);
+    assert.equal(getProductAppUrl("orca"), null);
+    assert.equal(getProductAppUrl("registration"), null);
+    assert.equal(getProductAppUrl("housing"), null);
+  });
+  withEnv({ PULSE_APP_URL: "https://voice.signalthread.ai", ORCA_APP_URL: "https://orca.signalthread.ai" }, () => {
+    assert.equal(getProductAppUrl("lead-retrieval"), null, "no cross-product fallback");
+  });
+});
+
+test("Lead Retrieval is an own-authority product: it never receives a Platform Core session", () => {
+  assert.equal(getProductAuthAuthority("lead-retrieval"), "own");
+  assert.equal(getProductAuthAuthority("pulse"), "own", "Pulse unchanged");
+  assert.equal(getProductAuthAuthority("orca"), "platform-core", "Orca unchanged");
+  assert.equal(getProductAuthAuthority("registration"), null);
+  assert.equal(getProductAuthAuthority("housing"), null);
+});
+
+test("Lead Retrieval lands on its own /platform-entry, carrying the event id as a hint only", () => {
+  assert.equal(
+    buildProductReturnPath("lead-retrieval", "ae9942ba-5759-486b-b591-f1b5ed223370"),
+    "/platform-entry?event_id=ae9942ba-5759-486b-b591-f1b5ed223370",
+  );
+  assert.equal(buildProductReturnPath("lead-retrieval", "a b"), "/platform-entry?event_id=a%20b", "encoded, never interpolated raw");
+});
+
+test("Lead Retrieval's handoff URL is the own-authority shape: token to /platform-entry, correlator relayed, no Supabase callback", () => {
+  const url = buildProductHandoffUrl({
+    productKey: "lead-retrieval",
+    appUrl: "https://lr.signalthread.ai",
+    hashedToken: "pkce_token",
+    eventId: "ae9942ba-5759-486b-b591-f1b5ed223370",
+    launchState: "a".repeat(64),
+  });
+  assert.equal(
+    url,
+    "https://lr.signalthread.ai/platform-entry?handoff=pkce_token&event_id=ae9942ba-5759-486b-b591-f1b5ed223370&state=" + "a".repeat(64),
+  );
+  const withoutState = buildProductHandoffUrl({
+    productKey: "lead-retrieval",
+    appUrl: "https://lr.signalthread.ai",
+    hashedToken: "pkce_token",
+    eventId: "ae9942ba-5759-486b-b591-f1b5ed223370",
+  });
+  assert.equal(withoutState, "https://lr.signalthread.ai/platform-entry?handoff=pkce_token&event_id=ae9942ba-5759-486b-b591-f1b5ed223370");
+  assert.equal(String(url).includes("/auth/callback"), false, "an own-authority product never gets a Platform Core token exchange URL");
+  assert.equal(String(url).includes("token_hash"), false);
+  // A malformed correlator refuses the whole URL rather than dropping the binding.
+  assert.equal(
+    buildProductHandoffUrl({ productKey: "lead-retrieval", appUrl: "https://lr.signalthread.ai", hashedToken: "t", eventId: "e", launchState: "short" }),
+    null,
+  );
+});
+
+test("adding Lead Retrieval touched only the registry tables: generic launch, claim and authorization code name no product", () => {
+  const HANDOFF_ROUTE = readFileSync("app/api/launch/[product]/route.ts", "utf8");
+  const CLAIM_ROUTE = readFileSync("app/api/launch/[product]/claim/route.ts", "utf8");
+  const CLAIM_CORE = readFileSync("lib/server/handoff-claim-core.ts", "utf8");
+  for (const [name, source] of [
+    ["handoff.ts", HANDOFF],
+    ["product-launch.ts", AUTHZ],
+    ["launch-decision.ts", DECISION],
+    ["launch route", HANDOFF_ROUTE],
+    ["claim route", CLAIM_ROUTE],
+    ["handoff-claim-core.ts", CLAIM_CORE],
+  ] as const) {
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    assert.equal(/lead-retrieval|leadRetrieval|LEAD_RETRIEVAL/.test(code), false, `${name} carries no Lead Retrieval conditional`);
+  }
+  // The registry is the only place the product key appears on the Platform side of the handoff.
+  assert.match(REGISTRY, /"lead-retrieval": \["LEAD_RETRIEVAL_APP_URL", "NEXT_PUBLIC_LEAD_RETRIEVAL_APP_URL"\]/);
+  assert.match(REGISTRY, /"lead-retrieval": "own"/);
 });
 
 test("the handoff uses the Supabase-native one-time primitive, not custom crypto", () => {

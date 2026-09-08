@@ -43,7 +43,7 @@ test("provider requests use freebusy, owned calendar events, attendee invite, Me
 });
 
 test("migration stores safe meeting identity and explicitly omits freebusy and content", () => {
-  const migration = read("supabase/migrations/0093_google_calendar_meeting_activities.sql");
+  const migration = read("test-fixtures/legacy-lr-migrations/0093_google_calendar_meeting_activities.sql");
   assert.match(migration, /CREATE TABLE public\.google_calendar_meeting_activities/);
   assert.match(migration, /UNIQUE \(idempotency_key\)/);
   assert.match(migration, /UNIQUE \(connection_id, google_event_id\)/);

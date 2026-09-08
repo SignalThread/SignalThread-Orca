@@ -193,7 +193,7 @@ test("Pipedrive setup is server-authorized, company-scoped, and never returns cr
   const route = readFileSync("app/api/integrations/pipedrive/setup/route.ts", "utf8");
   const page = readFileSync("app/(app)/exhibitor/integrations/pipedrive/page.tsx", "utf8");
   const service = readFileSync("lib/integrations/pipedrive/setup-service.ts", "utf8");
-  const migration = readFileSync("supabase/migrations/0101_pipedrive_integration_settings.sql", "utf8");
+  const migration = readFileSync("test-fixtures/legacy-lr-migrations/0101_pipedrive_integration_settings.sql", "utf8");
   assert.match(route, /authorizeCompanyIntegrationAdmin\(\{ supabase: routeAuth\.supabase \}\)/);
   assert.match(route, /companyId: authorization\.context\.companyId/);
   assert.match(service, /\.eq\("company_id", companyId\)/);

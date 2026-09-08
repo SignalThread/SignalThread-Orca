@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 const here = dirname(fileURLToPath(import.meta.url));
 
 const migrationSource = readFileSync(
-  join(here, "..", "supabase", "migrations", "0051_import_batch_row_briefings_published_review_rls.sql"),
+  join(here, "..", "test-fixtures", "legacy-lr-migrations", "0051_import_batch_row_briefings_published_review_rls.sql"),
   "utf8"
 );
 

@@ -20,7 +20,7 @@ test("provider-neutral calendar routes expose availability, create, update, and 
 });
 
 test("Microsoft meeting persistence stores safe metadata and pins canonical provider claims", () => {
-  const migration = read("supabase/migrations/0105_microsoft_calendar_meetings.sql");
+  const migration = read("test-fixtures/legacy-lr-migrations/0105_microsoft_calendar_meetings.sql");
   assert.match(migration, /CREATE TABLE public\.calendar_meeting_provider_claims/);
   assert.match(migration, /idempotency_key uuid PRIMARY KEY/);
   assert.match(migration, /provider IN \('google_workspace', 'microsoft_365'\)/);

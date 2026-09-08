@@ -96,7 +96,7 @@ export async function adoptContextVoiceNoteFromUpload(input: {
     p_audio_url: trimStr(input.storagePathAsAudioUrl),
     p_source: "context",
     p_client_local_note_id: trimmedLocal,
-    p_duration_ms: durationMs ?? null
+    p_duration_ms: durationMs ?? undefined
   });
 
   const noteId = data != null ? String(data).trim() : "";
@@ -227,7 +227,7 @@ export async function syncContextVoiceNoteFromConversationIfNeeded(input: {
       p_conversation_id: conversationId,
       p_transcript: transcript,
       p_transcription_status: transcriptionStatus,
-      p_note_summary: summary
+      p_note_summary: summary ?? undefined
     }
   );
 

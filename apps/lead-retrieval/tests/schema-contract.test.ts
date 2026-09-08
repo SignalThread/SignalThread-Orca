@@ -23,11 +23,17 @@ function tableBlock(tableName: string): string {
 }
 
 function migrationSource(): string {
-  const dir = join(root, "supabase", "migrations");
-  return readdirSync(dir)
-    .filter((file) => file.endsWith(".sql"))
-    .sort()
-    .map((file) => readFileSync(join(dir, file), "utf8"))
+  // The active path holds the clean canonical baseline; the historical Admin
+  // migrations that these assertions were written against live on as fixtures.
+  const dirs = [join(root, "supabase", "migrations"), join(root, "test-fixtures", "legacy-lr-migrations")];
+  return dirs
+    .filter((dir) => existsSync(dir))
+    .flatMap((dir) =>
+      readdirSync(dir)
+        .filter((file) => file.endsWith(".sql"))
+        .sort()
+        .map((file) => readFileSync(join(dir, file), "utf8"))
+    )
     .join("\n\n");
 }
 

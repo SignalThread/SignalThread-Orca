@@ -93,8 +93,8 @@ describe("Documents & Links account isolation regressions", () => {
   });
 
   it("direct Supabase access is not left openly readable/writable by documents RLS", () => {
-    const migration = read("supabase/migrations/0021_documents_hub.sql");
-    const allMigrations = read("supabase/migrations/0021_documents_hub.sql") + "\n" + read("supabase/migrations/0082_documents_asset_kind.sql");
+    const migration = read("test-fixtures/legacy-lr-migrations/0021_documents_hub.sql");
+    const allMigrations = read("test-fixtures/legacy-lr-migrations/0021_documents_hub.sql") + "\n" + read("test-fixtures/legacy-lr-migrations/0082_documents_asset_kind.sql");
 
     assert.match(migration, /alter table public\.documents enable row level security/);
     assert.match(migration, /alter table public\.document_sends enable row level security/);

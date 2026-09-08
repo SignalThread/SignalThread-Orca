@@ -11,7 +11,7 @@ function read(path: string) {
 
 describe("Documents Library file/link support contract", () => {
   it("adds durable file/link storage without breaking existing file documents", () => {
-    const migration = read("supabase/migrations/0082_documents_asset_kind.sql");
+    const migration = read("test-fixtures/legacy-lr-migrations/0082_documents_asset_kind.sql");
     const route = read("app/api/exhibitor/documents/route.ts");
 
     assert.match(migration, /add column if not exists asset_kind text not null default 'file'/);

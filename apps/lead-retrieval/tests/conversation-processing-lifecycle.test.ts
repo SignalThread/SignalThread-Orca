@@ -702,7 +702,7 @@ test("worker tick includes stale conversation processing reconciliation", () => 
 });
 
 test("schema repair preserves processing lifecycle source of truth", () => {
-  const src = readRepoFile("supabase/migrations/0090_conversation_processing_recovery.sql");
+  const src = readRepoFile("test-fixtures/legacy-lr-migrations/0090_conversation_processing_recovery.sql");
 
   assert.match(src, /lead_conversation_readiness/);
   assert.match(src, /conversation_version int/);

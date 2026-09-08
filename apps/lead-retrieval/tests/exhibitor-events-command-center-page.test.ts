@@ -21,7 +21,7 @@ const metricLoaderSrc = readFileSync(
   "utf8"
 );
 const metricMigrationSrc = readFileSync(
-  path.join(process.cwd(), "supabase/migrations/0098_dashboard_truth_event_timezone.sql"),
+  path.join(process.cwd(), "test-fixtures/legacy-lr-migrations/0098_dashboard_truth_event_timezone.sql"),
   "utf8"
 );
 const combinedSrc = pageSrc + "\n" + viewSrc;

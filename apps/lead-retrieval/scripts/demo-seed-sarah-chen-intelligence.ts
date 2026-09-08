@@ -269,10 +269,9 @@ async function main(): Promise<void> {
     synthesis_error: null,
   };
 
-  // Table may be absent from generated Database types; service client still supports it at runtime.
-  const sb = supabase as unknown as {
-    from: (t: string) => ReturnType<AdminClient["from"]>;
-  };
+  // lead_conversations is part of the canonical generated types (regenerated from the new project), so the
+  // typed client is used directly instead of the untyped workaround the stale hand-maintained types required.
+  const sb = supabase;
 
   const { data: existingConv, error: selErr } = await sb
     .from("lead_conversations")

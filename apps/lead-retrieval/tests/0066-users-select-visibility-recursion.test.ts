@@ -9,14 +9,14 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const MIGRATIONS = path.join(ROOT, "supabase", "migrations");
+const MIGRATIONS = path.join(ROOT, "test-fixtures", "legacy-lr-migrations");
 const M0066 = "0066_fix_users_select_visibility_recursion.sql";
 
 test("0066 exists after 0065 and later migrations do not recreate users_select_visibility_v2", () => {
   const all = readdirSync(MIGRATIONS)
     .filter((f) => f.endsWith(".sql"))
     .sort();
-  assert.ok(all.includes(M0066), `${M0066} must exist in supabase/migrations`);
+  assert.ok(all.includes(M0066), `${M0066} must exist in test-fixtures/legacy-lr-migrations`);
   const index0065 = all.indexOf("0065_exhibitor_viewer_mobile_bootstrap_rls.sql");
   const index0066 = all.indexOf(M0066);
   assert.ok(index0065 >= 0, "0065 migration must exist");

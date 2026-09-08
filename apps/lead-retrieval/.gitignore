@@ -19,3 +19,6 @@ e2e/.license-seat-lock
 
 # LR test runner artifacts
 .lr-test/
+
+# Supabase CLI link state (project ref, pooler URL, versions) — machine-local, never committed
+supabase/.temp/

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const MIGRATION = "supabase/migrations/0072_lead_voice_notes.sql";
+const MIGRATION = "test-fixtures/legacy-lr-migrations/0072_lead_voice_notes.sql";
 
 function readMigration(): string {
   return readFileSync(path.join(ROOT, MIGRATION), "utf8");
