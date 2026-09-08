@@ -36,7 +36,11 @@
     "help:check": "npm run help:manifest && npm run help:generate && npm run help:validate",
     "help:screenshots": "npm --workspace apps/orca run help:screenshots",
     "prisma:seed": "npm --workspace apps/orca run prisma:seed",
-    "test:marketing-email-smoke": "npm --workspace apps/orca run test:marketing-email-smoke"
+    "test:marketing-email-smoke": "npm --workspace apps/orca run test:marketing-email-smoke",
+    "seed:demo": "node scripts/demo-seeding/cli.ts",
+    "test:demo-seeding": "node --test scripts/demo-seeding/framework.test.ts",
+    "typecheck:demo-seeding": "tsc -p scripts/demo-seeding/tsconfig.json",
+    "lint:demo-seeding": "eslint --config scripts/demo-seeding/eslint.config.mjs scripts/demo-seeding/*.ts"
   },
   "dependencies": {
     "@prisma/client": "^7.4.2",
