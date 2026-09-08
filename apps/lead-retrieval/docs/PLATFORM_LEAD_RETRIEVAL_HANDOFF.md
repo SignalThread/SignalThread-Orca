@@ -1,7 +1,8 @@
 # SignalThread Platform → Lead Retrieval launch handoff
 
-Status: **implemented in code, not yet proven live** (Step 4A). The live end-to-end
-proof, the first real mapping rows and the production environment wiring are Step 4B.
+Status: **implemented and proven live locally** (Step 4A code, Step 4B1 happy path,
+Step 4B2 negative/security matrix; see §10). Production environment wiring, real mapping
+rows and the legacy-data decision remain separate steps.
 
 Lead Retrieval (LR) is an **own-authority** product: it runs its own Supabase Auth
 project (`signalthread-lead-retrieval`, ref `wsbdyemyzixkyvuiyesm`) and must never hold,
@@ -198,14 +199,111 @@ Platform side: `apps/platform/lib/server/product-registry.ts` only (URL env name
 authority `own`, return path). Generic launch, claim and authorization code contains no
 Lead Retrieval conditional — asserted by `apps/platform/lib/server/handoff.test.ts`.
 
-## 9. What Step 4B must do before this is live
+## 9. Live proof record
 
-1. Set `LEAD_RETRIEVAL_APP_URL` on Platform and `PLATFORM_APP_URL` on LR (local first).
-2. Create the first real mapping rows explicitly (Platform user ↔ LR user, Platform
-   organization ↔ LR company, Platform event ↔ LR event) with an auditable tool — never
-   by inference.
-3. Run the browser end-to-end proof: Platform launch → LR workspace, plus the negative
-   cases (no mapping, ambiguous organization, unauthorized user, replayed handoff,
-   forwarded URL, foreign browser state, existing other-user session).
-4. Only then consider production configuration (Vercel env, LR Auth site URL / redirect
-   allow-list already excludes nothing new: the handoff uses no redirect allow-list).
+All proofs ran against Platform (`apps/platform`, dev on `localhost:3001`, Platform Core
+`wtbnpeluwhjjqccdofxd`) and Lead Retrieval (dev on `localhost:3013`, NEW project
+`wsbdyemyzixkyvuiyesm`) from the consolidation worktree, with temporary fixtures that
+existed only in the NEW project and were deleted afterwards. Old LR production
+(`imkrdrscrikxqywdcmzy`) was never contacted. No token, cookie or secret is recorded here.
+
+### 9.1 Step 4B1 — happy path (2026-09-08)
+
+Prerequisite: Acme Events (`7437a82f-…`) holds an ACTIVE `lead-retrieval` entitlement in
+Platform Core (granted 2026-09-08). Fixture: one LR auth user + `users` row
+(`exhibitor_admin`, `all_company_events`, `platform_user_id` = Platform user), one company
+(`platform_organization_id` = Platform org), one event owned by that company
+(`platform_event_id` = Platform event, `container_kind = event`), one active company-scoped
+license, one `exhibitors` row.
+
+| Hop | Request | Result |
+|---|---|---|
+| 1 | Platform `GET /api/launch/lead-retrieval?event_id=…` (Platform session) | 303 → LR `/platform-entry?handoff=…&event_id=…` |
+| 2 | LR `/platform-entry` with no browser state | 303 → `/platform-entry/start?event_id=…` (handoff **not** redeemed) |
+| 3 | LR `/platform-entry/start` | 303 → `…&armed=1`, sets `lr_platform_launch` (HttpOnly, `Path=/platform-entry`, 120 s) |
+| 4 | LR `/platform-entry/start?armed=1` | 303 → Platform launch `…&state=<SHA-256(nonce)>` |
+| 5 | Platform launch with `state` | 303 → LR `/platform-entry?handoff=<new>&event_id=…&state=<same>` |
+| 6 | LR `/platform-entry` (state + handoff) | 303 → `/exhibitor/dashboard?eventId=<lrEventId>`; clears launch state, sets `leadintel_exhibitor_app_active_event_id`, sets the LR session cookie |
+| 7 | LR `/exhibitor/dashboard?eventId=<lrEventId>` | **200**, event page rendered, no login, no picker |
+
+Session: JWT `iss = https://wsbdyemyzixkyvuiyesm.supabase.co/auth/v1`, `sub` = the mapped
+LR user (not the Platform user); a matching `auth.sessions` row existed in the NEW project;
+`auth.one_time_tokens` was 0 afterwards (hash consumed server-side, nothing mailed). A
+follow-up `GET /exhibitor/dashboard` without `eventId` stayed on the launched event. The
+same chain was repeated in a real Chromium tab with identical result. Fixtures and the auth
+user were then deleted: 0 auth users, 0 sessions, 0 refresh tokens, 0 public rows.
+
+### 9.2 Step 4B2 — negative / security matrix (2026-09-08)
+
+Each case used its own fixture in the NEW project, exercised the real Platform launch and
+LR entry routes with a browser-like cookie jar, and was cleaned up afterwards. "Session" =
+any LR auth cookie issued or `auth.sessions` row created.
+
+| # | Case | Fixture shape | Expected | Actual | Session |
+|---|---|---|---|---|---|
+| 1 | Missing user mapping | mapped company + event; LR user carrying the Platform user's **own email** but no `platform_user_id` | `USER_MAPPING_NOT_FOUND` | 403 `USER_MAPPING_NOT_FOUND` | none |
+| 2 | Missing event mapping | mapped user + company; LR event named exactly like the Platform event, `platform_event_id` NULL | `EVENT_MAPPING_NOT_FOUND` | 403 `EVENT_MAPPING_NOT_FOUND` | none |
+| 3 | Event / organization mismatch | mapped user (company C1, mapped); mapped event owned by unmapped C2, C1 unrelated to it | `EVENT_ORGANIZATION_MISMATCH` | 403 `EVENT_ORGANIZATION_MISMATCH` | none |
+| 4 | LR access denied | all three mappings resolve; user has no license and no `event_users` | `LR_ACCESS_DENIED` | 403 `LR_ACCESS_DENIED` | none |
+| 5 | Ambiguous organization | C1 and C2 both mapped to the org; event owned by C1, C2 exhibits; user belongs to unmapped C3 | `AMBIGUOUS_ORGANIZATION_MAPPING`, unchanged after reordering rows | 403 both times | none |
+| 6 | Synthetic event | `continuous_capture` row; insert and update of `platform_event_id` | DB refuses; launch cannot reach it | both writes refused by `events_platform_event_id_container_kind_check`; launch 403 `EVENT_MAPPING_NOT_FOUND`; app-layer `EVENT_NOT_LAUNCHABLE_CONTAINER` asserted by unit tests | none |
+| 7 | Handoff replay | full happy fixture; redeem once, replay the same URL with a copy of the valid state cookie; also replay the claim directly | second use refused | first 303 → workspace; replay 401 `HANDOFF_INVALID`; direct `POST /api/launch/lead-retrieval/claim` replay 401 | none on replay |
+| 8 | Launch state | fresh handoff per sub-case | restart or 403; handoff untouched | see below | none |
+
+Case 8 sub-cases, each followed by a direct claim of the same handoff to prove LR had **not**
+redeemed it before state validation (200 = still valid, i.e. untouched):
+
+| Sub-case | LR response | Handoff afterwards |
+|---|---|---|
+| no state cookie | 303 → `/platform-entry/start?event_id=…` | still claimable |
+| another browser's correlator | 403 `LAUNCH_STATE_MISMATCH` | still claimable |
+| state created for a different event | 403 `LAUNCH_STATE_MISMATCH` | still claimable |
+| cookie present, `state` missing from URL | 403 `LAUNCH_STATE_MISSING` | still claimable |
+| expired state | 303 → `/platform-entry/start?event_id=…` | still claimable |
+| subresource fetch (`Sec-Fetch-Dest: image`) | 403 `NOT_A_NAVIGATION`, no cookies at all | still claimable |
+
+Invariants checked in the same run: a browser holding only the Platform Core session cookie
+is redirected to `/login` by LR (`/exhibitor/dashboard`, `/admin`); across all 139 responses
+seen (bodies and headers) no service-role key, DB password or old-LR project ref appeared;
+every denial carried only the spent `lr_platform_launch` cookie (or none); `auth.sessions`
+in the NEW project stayed at 0 for every denial case. A happy-path run in the same harness
+passed again (7 hops, 200, LR-issued session). Bugs found: none; no code changed in 4B2.
+
+### 9.3 Denial / error codes (browser-facing JSON `{success:false, error, reason, hint[, platformReason]}`)
+
+`INVALID_REQUEST` 400 · `NOT_A_NAVIGATION` 403 · `LAUNCH_STATE_MISSING` / `LAUNCH_STATE_MISMATCH`
+403 · `LAUNCH_STATE_REQUIRED` 400 · `PLATFORM_NOT_CONFIGURED` 503 · `HANDOFF_INVALID` /
+`HANDOFF_EXPIRED` 401 · `PLATFORM_DENIED` 403 (+`platformReason`) · `PLATFORM_UNAVAILABLE` 502 ·
+`USER_MAPPING_NOT_FOUND` / `EVENT_MAPPING_NOT_FOUND` / `ORGANIZATION_MAPPING_NOT_FOUND` /
+`EVENT_NOT_LAUNCHABLE_CONTAINER` / `EVENT_ORGANIZATION_MISMATCH` / `AMBIGUOUS_ORGANIZATION_MAPPING` /
+`LR_ROLE_NOT_LAUNCHABLE` / `LR_ACCESS_DENIED` 403 · `SESSION_CONFLICT` 409 ·
+`AUTH_IDENTITY_*` / `SESSION_*` 403 · `INTERNAL_ERROR` 500. Missing or expired browser state is
+not an error: it restarts the launch for this browser via `/platform-entry/start`.
+
+### 9.4 Final validation (Step 4B2, worktree commit `833d9079`)
+
+| Check | Result |
+|---|---|
+| LR typecheck | 0 errors |
+| LR build | success (`/platform-entry`, `/platform-entry/start` dynamic routes) |
+| LR handoff tests | 59 / 59 |
+| LR full node suite | 3,530 tests, 13 failures — the same 13 inherited failures as the pre-consolidation baseline (name-level diff identical) |
+| Platform typecheck | 0 errors |
+| Platform tests (incl. launch/handoff/claim) | 155 / 155 |
+| Import boundaries | OK, no cross-app imports |
+| Whitespace check on the consolidation diff | clean |
+
+### 9.5 Fixture cleanup state
+
+After Step 4B1 and after every Step 4B2 case the NEW project was returned to: auth users 0,
+auth sessions 0, refresh tokens 0, identities 0, one-time tokens 0, public rows 0 (no
+ambiguous or synthetic mapping rows remain). Schema and reference objects untouched.
+
+## 10. What remains before production
+
+1. Set `LEAD_RETRIEVAL_APP_URL` on the Platform deployment and `PLATFORM_APP_URL` on the LR
+   deployment (values live only in deployment env, never in the repository).
+2. Create the real mapping rows explicitly and auditably (Platform user ↔ LR user,
+   organization ↔ company, event ↔ event) — never by inference.
+3. The separate decision about legacy LR data (old project `imkrdrscrikxqywdcmzy`), then
+   production Auth settings and cutover.
